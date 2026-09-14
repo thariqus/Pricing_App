@@ -1,0 +1,60 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+ 
+{% block title %}{{ title }}{% endblock %}
+ 
+{% block content %}
+  <h1>{{ title }}</h1>
+ 
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+ 
+  <form action="{{ url_for('upload_csv_call') }}" method="post">
+    <input type="file" name="file" accept=".csv" required>
+    <button type="submit">Add by CSV</button>
+  </form>
+ 
+  <p>{{ items|length }} record(s)</p>
+ 
+  <table border="1" cellpadding="4" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Cond</th><th>Item</th><th>Cust</th><th>Loc</th>
+        <th>Pri</th><th>UOM</th><th>Min Qty</th>
+        <th>Price</th><th>Lower</th><th>Upper</th>
+        <th>From</th><th>To</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for item in items %}
+      <tr>
+        <td>{{ item.condition_type or '' }}</td>
+        <td>{{ item.item_no or '' }}</td>
+        <td>{{ item.customer_no or '' }}</td>
+        <td>{{ item.location_code or '' }}</td>
+        <td>{{ item.priority if item.priority is not none else '' }}</td>
+        <td>{{ item.uom or '' }}</td>
+        <td>{{ item.minimum_quantity if item.minimum_quantity is not none else '' }}</td>
+        <td>
+          {{ item.currency or '' }}
+          {{ "%.2f"|format(item.sales_price) if item.sales_price is not none else '' }}
+        </td>
+        <td>{{ "%.2f"|format(item.lower_limit) if item.lower_limit is not none else '' }}</td>
+        <td>{{ "%.2f"|format(item.upper_limit) if item.upper_limit is not none else '' }}</td>
+        <td>{{ item.starting_date.strftime('%d/%m/%Y') if item.starting_date else '' }}</td>
+        <td>{{ item.ending_date.strftime('%d/%m/%Y') if item.ending_date else '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="12">No records</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
+ 

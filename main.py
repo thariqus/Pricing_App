@@ -1,8 +1,16 @@
 from flask import Flask
 from api import fetch_all_prices, create_price, update_price_data, filter_price_data
+from upload_csv import upload_csv, index
 
 app = Flask(__name__)
 
+@app.get("/")
+def index_call():
+    return index()
+
+@app.post("/items/upload")
+def upload_csv_call():
+    return upload_csv()
 
 @app.route('/api/fetch_all_prices')
 def main_function():
