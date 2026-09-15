@@ -3,6 +3,7 @@ from database import get_db_connection
 from query import select_all_prices, insert_price_query, update_price, check_price_exists, filter_prices
 import logging
 import pymysql
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -15,6 +16,29 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+def convert_datetime(value):
+ 
+    if not value:
+        return None
+ 
+    value = value.strip()
+ 
+    formats = [
+        "%m/%d/%Y %H:%M",
+        "%m/%d/%Y %H:%M:%S",
+        "%m/%d/%Y",
+    ]
+ 
+    for date_format in formats:
+        try:
+            date_value = datetime.strptime(value, date_format)
+ 
+            return date_value.strftime("%Y-%m-%d %H:%M:%S")
+ 
+        except ValueError:
+            continue
+ 
+    raise ValueError(f"Invalid datetime format: {value}")
 
 def fetch_all_prices():
     logger.info("Entered in fetch all prices")
@@ -84,43 +108,50 @@ def fetch_all_prices():
         if con:
             con.close()
 
-def create_price():
+def create_price(records):
     logger.info("Entered in create price")
     con = None
     cursor = None
     try:
-        # Get JSON data
-        data = request.get_json()
-        if not data:
+        if not records:
             return jsonify({
                 "status": "error",
-                "message": "Request body is empty"
+                "message": "CSV file contains no records"
             }), 400
-        logger.info("Received pricing data")
-        # Database connection
+        logger.info(
+            f"Received {len(records)} pricing records"
+        )
         logger.info("Connecting to database")
         con = get_db_connection()
         logger.info("Database connection successful")
         cursor = con.cursor()
-        # Get insert query
-        logger.info("Calling Insert Query")
-        sql_query, params = insert_price_query(data)
-        # Execute insert
-        cursor.execute(sql_query, params)
-        # Save changes
+        i=0
+        for data in records:
+            i=i+1
+            logger.info("Calling Insert Query")
+            data["starting_date"] = convert_datetime(
+                data.get("Starting Date")
+            )
+ 
+            data["ending_date"] = convert_datetime(
+                data.get("Ending Date")
+            )
+ 
+            sql_query, params = insert_price_query(data)
+            cursor.execute(sql_query, params)
         con.commit()
-        # Get newly created ID
-        inserted_id = cursor.lastrowid
         logger.info(
-            f"Price inserted successfully. ID: {inserted_id}"
+            f"{len(records)} price records inserted successfully"
         )
         return jsonify({
             "status": "success",
-            "message": "Price created successfully",
-            "id": inserted_id
+            "message": "CSV data inserted successfully",
+            "count": len(records)
         }), 201
     except ConnectionError as e:
-        logger.error(f"Database connection error: {e}")
+        logger.error(
+            f"Database connection error: {e}"
+        )
         return jsonify({
             "status": "error",
             "message": "Unable to connect to database",
@@ -129,7 +160,9 @@ def create_price():
     except pymysql.MySQLError as e:
         if con:
             con.rollback()
-        logger.exception("Database error while inserting price")
+        logger.exception(
+            "Database error while inserting CSV data"
+        )
         return jsonify({
             "status": "error",
             "message": "Database error",
@@ -139,7 +172,7 @@ def create_price():
         if con:
             con.rollback()
         logger.exception(
-            "Unexpected error while inserting price"
+            "Unexpected error while inserting CSV data"
         )
         return jsonify({
             "status": "error",
@@ -151,6 +184,7 @@ def create_price():
             cursor.close()
         if con:
             con.close()
+
 
 def update_price_data(price_id):
     logger.info(
