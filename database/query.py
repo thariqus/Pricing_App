@@ -1,5 +1,42 @@
-PRICING_DB_CREATION_QUERY = "CREATE DATABASE IF NOT EXISTS PRICING_DATABASE"
- 
+# Database Creation query for Pricing and Discount
+def create_pricing_database_query(db_name):
+    return f"CREATE DATABASE IF NOT EXISTS {db_name}"
+
+#
+def create_pricing_table_query(table_name):
+    return f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            active BOOLEAN DEFAULT 1,
+            condition_type VARCHAR(100),
+            item_no VARCHAR(100),
+            customer VARCHAR(100),
+            customer_grp INT,
+            customer_hierarchy INT,
+            distribution_channel_code INT,
+            location_code INT,
+            priority INT,
+            currency VARCHAR(100),
+            sales_price FLOAT,
+            unit_of_measure VARCHAR(100),
+            minimum_quantity INT,
+            starting_date DATETIME,
+            ending_date DATETIME,
+            lower_limit FLOAT,
+            upper_limit FLOAT,
+            transportation_zone_code VARCHAR(100),
+            map VARCHAR(100),
+            change_type VARCHAR(100),
+            updated_from_sap BOOLEAN,
+            sales_division_code INT,
+            offer_article BOOLEAN,
+            price_with_tax FLOAT,
+            tax_percent FLOAT,
+            KEY idx_item_uom (item_no, unit_of_measure),
+            KEY idx_dates (starting_date, ending_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """
+
 def select_all_prices(page, limit):
     offset = (page - 1) * limit
     sql_query = """

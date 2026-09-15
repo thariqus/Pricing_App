@@ -2,7 +2,8 @@ import os
  
 import pymysql
 from dotenv import load_dotenv
-from database.mysql_connection import get_db_connection,PRICING_DB_CREATION_QUERY
+from database.mysql_connection import get_db_connection
+from database.query import create_pricing_database_query, create_pricing_table_query
  
 load_dotenv()
  
@@ -14,7 +15,7 @@ def create_database():
     con = get_db_connection()
     try:
         with con.cursor() as cursor:
-            cursor.execute(PRICING_DB_CREATION_QUERY)
+            cursor.execute(create_pricing_database_query(DB_NAME))
         con.commit()
         print(f"Database '{DB_NAME}' is ready.")
     finally:
@@ -25,38 +26,7 @@ def create_pricing_table():
     con = get_db_connection()
     try:
         with con.cursor() as cursor:
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {PRICING_TABLE} (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    active BOOLEAN DEFAULT 1,
-                    condition_type VARCHAR(100),
-                    item_no VARCHAR(100),
-                    customer VARCHAR(100),
-                    customer_grp INT,
-                    customer_hierarchy INT,
-                    distribution_channel_code INT,
-                    location_code INT,
-                    priority INT,
-                    currency VARCHAR(100),
-                    sales_price FLOAT,
-                    unit_of_measure VARCHAR(100),
-                    minimum_quantity INT,
-                    starting_date DATE,
-                    ending_date DATE,
-                    lower_limit FLOAT,
-                    upper_limit FLOAT,
-                    transportation_zone_code VARCHAR(100),
-                    map VARCHAR(100),
-                    change_type VARCHAR(100),
-                    updated_from_sap BOOLEAN,
-                    sales_division_code INT,
-                    offer_article BOOLEAN,
-                    price_with_tax FLOAT,
-                    tax_percent FLOAT,
-                    KEY idx_item_uom (item_no, unit_of_measure),
-                    KEY idx_dates (starting_date, ending_date)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            """)
+            cursor.execute(create_pricing_table_query(PRICING_TABLE))
         con.commit()
         print(f"Table '{PRICING_TABLE}' is ready.")
     finally:
