@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
-from database import get_db_connection
-from query import select_all_prices, insert_price_query, update_price, check_price_exists, filter_prices
+from database.mysql_connection import get_db_connection
+from database.query import select_all_prices, insert_price_query, update_price, check_price_exists, filter_prices, deactive_exp_items
 import logging
 import pymysql
 from datetime import datetime
@@ -64,7 +64,7 @@ def fetch_all_prices():
         )
         # Database connection
         logger.info("Connecting to database")
-        con = get_db_connection()
+        con = get_db_connection("PRICING_DATABASE")
         logger.info("Database connection successful")
         cursor = con.cursor()
         # Execute query
@@ -122,7 +122,7 @@ def create_price(records):
             f"Received {len(records)} pricing records"
         )
         logger.info("Connecting to database")
-        con = get_db_connection()
+        con = get_db_connection("PRICING_DATABASE")
         logger.info("Database connection successful")
         cursor = con.cursor()
         i=0
@@ -185,6 +185,111 @@ def create_price(records):
         if con:
             con.close()
 
+def create_single_price():
+
+    logger.info("Entered in create_single_price")
+
+    con = None
+    cursor = None
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                "status": "error",
+                "message": "Request data is empty"
+            }), 400
+
+        logger.info("Connecting to database")
+
+        con = get_db_connection("PRICING_DATABASE")
+
+        logger.info("Database connection successful")
+
+        cursor = con.cursor()
+        print("start date ",data.get("starting_date"))
+        # Convert datetime values
+        data["starting_date"] = convert_datetime(
+            data.get("starting_date")
+        )
+
+        data["ending_date"] = convert_datetime(
+            data.get("ending_date")
+        )
+
+        logger.info("Calling Insert Query")
+
+        sql_query, params = insert_price_query(data)
+
+        cursor.execute(
+            sql_query,
+            params
+        )
+
+        inserted_id = cursor.lastrowid
+
+        con.commit()
+
+        logger.info(
+            f"Price inserted successfully. ID: {inserted_id}"
+        )
+
+        return jsonify({
+            "status": "success",
+            "message": "Price created successfully",
+            "id": inserted_id
+        }), 201
+
+    except ConnectionError as e:
+
+        logger.error(
+            f"Database connection error: {e}"
+        )
+
+        return jsonify({
+            "status": "error",
+            "message": "Unable to connect to database",
+            "error": str(e)
+        }), 503
+
+    except pymysql.MySQLError as e:
+
+        if con:
+            con.rollback()
+
+        logger.exception(
+            "Database error while creating price"
+        )
+
+        return jsonify({
+            "status": "error",
+            "message": "Database error",
+            "error": str(e)
+        }), 500
+
+    except Exception as e:
+
+        if con:
+            con.rollback()
+
+        logger.exception(
+            "Unexpected error while creating price"
+        )
+
+        return jsonify({
+            "status": "error",
+            "message": "Something went wrong",
+            "error": str(e)
+        }), 500
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if con:
+            con.close()
+
 
 def update_price_data(price_id):
     logger.info(
@@ -203,7 +308,7 @@ def update_price_data(price_id):
         logger.info("Received pricing update data")
         # Database connection
         logger.info("Connecting to database")
-        con = get_db_connection()
+        con = get_db_connection("PRICING_DATABASE")
         logger.info("Database connection successful")
         cursor = con.cursor()
         # Check whether record exists
@@ -291,7 +396,7 @@ def filter_price_data():
                 "message": "Request must contain valid JSON"
             }), 400
         logger.info("Received filter data")
-        con = get_db_connection()
+        con = get_db_connection("PRICING_DATABASE")
         logger.info("Database connection successful")
         cursor = con.cursor()
         logger.info("Calling Filter Query")
@@ -333,5 +438,85 @@ def filter_price_data():
     finally:
         if cursor:
             cursor.close()
+        if con:
+            con.close()
+
+def deactive_items():
+
+    logger.info("Entered in deactive_items function")
+
+    con = None
+    cursor = None
+
+    try:
+
+        logger.info("Connecting to database")
+
+        con = get_db_connection("PRICING_DATABASE")
+
+        logger.info("Database connection successful")
+
+        cursor = con.cursor()
+
+        logger.info("Calling Update Query")
+
+        sql_query = deactive_exp_items()
+
+        logger.info("Executing update query")
+
+        cursor.execute(sql_query)
+
+        updated_rows = cursor.rowcount
+
+        con.commit()
+
+        logger.info(
+            f"Updated successfully. Rows affected: {updated_rows}"
+        )
+
+        return {
+            "status": "success",
+            "message": "Items updated successfully",
+            "updated_rows": updated_rows
+        }
+
+    except ConnectionError:
+
+        if con:
+            con.rollback()
+
+        logger.exception(
+            "Database connection error"
+        )
+
+        raise
+
+    except pymysql.MySQLError:
+
+        if con:
+            con.rollback()
+
+        logger.exception(
+            "Database error while updating price"
+        )
+
+        raise
+
+    except Exception:
+
+        if con:
+            con.rollback()
+
+        logger.exception(
+            "Unexpected error while updating price"
+        )
+
+        raise
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
         if con:
             con.close()

@@ -267,3 +267,9 @@ def filter_prices(data):
         params.append(data.get("tax_percent"))
     sql_query += " ORDER BY item_no"
     return sql_query, tuple(params)
+
+def deactive_exp_items():
+    sql_query = """
+        update PRICING_TABLE set active = true where id=63
+    """
+    return sql_query

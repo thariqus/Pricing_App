@@ -17,7 +17,6 @@ def create_database():
         with con.cursor() as cursor:
             cursor.execute(create_pricing_database_query(DB_NAME))
         con.commit()
-        print(f"Database '{DB_NAME}' is ready.")
     finally:
         con.close()
  
@@ -28,7 +27,6 @@ def create_pricing_table():
         with con.cursor() as cursor:
             cursor.execute(create_pricing_table_query(PRICING_TABLE))
         con.commit()
-        print(f"Table '{PRICING_TABLE}' is ready.")
     finally:
         con.close()
  
@@ -203,8 +201,6 @@ def create_pricing_submaster():
             """)
  
         con.commit()
- 
-        print("Pricing master tables are ready.")
  
     finally:
  

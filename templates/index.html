@@ -1,60 +1,3787 @@
-<!-- templates/index.html -->
-{% extends "base.html" %}
- 
-{% block title %}{{ title }}{% endblock %}
- 
-{% block content %}
-  <h1>{{ title }}</h1>
- 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <ul class="flashes">
-      {% for category, message in messages %}
-        <li class="{{ category }}">{{ message }}</li>
-      {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
- 
-  <form action="{{ url_for('upload_csv_call') }}" method="post">
-    <input type="file" name="file" accept=".csv" required>
-    <button type="submit">Add by CSV</button>
-  </form>
- 
-  <p>{{ items|length }} record(s)</p>
- 
-  <table border="1" cellpadding="4" cellspacing="0">
-    <thead>
-      <tr>
-        <th>Cond</th><th>Item</th><th>Cust</th><th>Loc</th>
-        <th>Pri</th><th>UOM</th><th>Min Qty</th>
-        <th>Price</th><th>Lower</th><th>Upper</th>
-        <th>From</th><th>To</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for item in items %}
-      <tr>
-        <td>{{ item.condition_type or '' }}</td>
-        <td>{{ item.item_no or '' }}</td>
-        <td>{{ item.customer_no or '' }}</td>
-        <td>{{ item.location_code or '' }}</td>
-        <td>{{ item.priority if item.priority is not none else '' }}</td>
-        <td>{{ item.uom or '' }}</td>
-        <td>{{ item.minimum_quantity if item.minimum_quantity is not none else '' }}</td>
-        <td>
-          {{ item.currency or '' }}
-          {{ "%.2f"|format(item.sales_price) if item.sales_price is not none else '' }}
-        </td>
-        <td>{{ "%.2f"|format(item.lower_limit) if item.lower_limit is not none else '' }}</td>
-        <td>{{ "%.2f"|format(item.upper_limit) if item.upper_limit is not none else '' }}</td>
-        <td>{{ item.starting_date.strftime('%d/%m/%Y') if item.starting_date else '' }}</td>
-        <td>{{ item.ending_date.strftime('%d/%m/%Y') if item.ending_date else '' }}</td>
-      </tr>
-    {% else %}
-      <tr><td colspan="12">No records</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-{% endblock %}
- 
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Item Management</title>
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+    >
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Arial,
+                sans-serif;
+            color: #1e2130;
+            background: white;
+        }
+
+
+        /* =========================
+           MAIN CONTAINER
+           ========================= */
+
+        .item-management-container {
+
+            width: 100%;
+            height: 100vh;
+
+            padding: 16px 20px;
+
+            display: flex;
+            flex-direction: column;
+
+            overflow: hidden;
+        }
+
+
+        /* =========================
+           TOP BAR
+           ========================= */
+
+        .top-bar {
+
+            flex-shrink: 0;
+
+            background: white;
+
+            border: 1px solid #e2e8f0;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.06);
+
+            padding: 22px 28px;
+
+            margin-bottom: 14px;
+        }
+
+
+        .top-bar-title {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            font-size: 1.2rem;
+
+            font-weight: 700;
+
+            color: #4f46e5;
+
+            margin-bottom: 10px;
+        }
+
+
+        .top-bar-title i {
+
+            font-size: 22px;
+        }
+
+
+        /* =========================
+           TOOLBAR
+           ========================= */
+
+        .toolbar-form {
+
+            width: 100%;
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            align-items: flex-start;
+
+            gap: 8px;
+        }
+
+
+       .filters-row {
+            width: 100%;
+
+            display: flex;
+            align-items: flex-start;
+
+            gap: 15px;
+
+            width: 100%;
+        }
+
+
+        /* =========================
+           ITEM NO
+           ========================= */
+
+        #itemNoContainer {
+
+            width: 300px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 6px;
+
+            flex-shrink: 0;
+        }
+
+
+        .item-no-row {
+
+            width: 100%;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 6px;
+        }
+
+
+        .item-no-row .itemNoInput {
+
+            flex: 1;
+
+            min-width: 0;
+
+            height: 42px;
+
+            padding: 0 12px;
+
+            border: 1px solid #dbe3ef;
+
+            border-radius: 6px;
+
+            font-size: 13px;
+
+            outline: none;
+        }
+
+
+        .item-no-row .itemNoInput:focus {
+
+            border-color: #4f46e5;
+
+            box-shadow:
+                0 0 0 2px rgba(79, 70, 229, 0.12);
+        }
+
+
+        /* ADD ITEM NO BUTTON */
+
+        .addItemNoBtn {
+
+            width: 38px;
+
+            height: 38px;
+
+            flex-shrink: 0;
+
+            border: 1px solid #9ca3af;
+
+            border-radius: 0;
+
+            background: white;
+
+            color: #111827;
+
+            font-size: 22px;
+
+            line-height: 1;
+
+            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+        }
+
+
+        .addItemNoBtn:hover {
+
+            background: #eef2ff;
+
+            color: #4f46e5;
+
+            border-color: #4f46e5;
+        }
+
+
+        /* REMOVE ITEM NO BUTTON */
+
+        .removeItemNoBtn {
+
+            width: 38px;
+
+            height: 38px;
+
+            flex-shrink: 0;
+
+            border: 1px solid #ef4444;
+
+            border-radius: 6px;
+
+            background: white;
+
+            color: #ef4444;
+
+            font-size: 22px;
+
+            line-height: 1;
+
+            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+        }
+
+
+        .removeItemNoBtn:hover {
+
+            background: #fef2f2;
+        }
+
+
+/* =========================
+   CORE FIELDS
+   ========================= */
+
+.core-field {
+    width: 205px;
+    min-width: 205px;
+}
+
+.core-field .form-control {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 12px;
+
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
+
+    font-size: 13px;
+    background: white;
+
+    box-sizing: border-box;
+}
+
+
+/* ACTIVE */
+
+#fetchActive {
+    width: 205px !important;
+    min-width: 205px !important;
+    max-width: 205px !important;
+}
+
+
+/* ADD FILTER */
+
+ #addFilterSelect {
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+
+    height: 42px;
+
+    box-sizing: border-box;
+
+    padding: 0 12px;
+
+    color: #4f46e5;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================
+   ACTION BUTTONS
+   ========================= */
+
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    margin-left: auto !important;
+
+    flex-shrink: 0;
+
+    width: auto;
+
+    flex-wrap: nowrap;
+
+    white-space: nowrap;
+}
+/* ALL BUTTONS */
+
+.btn {
+    height: 42px;
+    min-height: 42px;
+
+    padding: 0 16px;
+
+    border-radius: 6px;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    white-space: nowrap;
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+
+/* =========================================================
+   FETCH - BLACK
+   ========================================================= */
+
+.btn-primary {
+    background: #1f1f1f !important;
+    border: 1px solid #1f1f1f !important;
+    color: #ffffff !important;
+}
+
+.btn-primary:hover {
+    background: #000000 !important;
+    border-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   CSV + IMPORT - WHITE
+   ========================================================= */
+
+.btn-outline {
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    color: #1f2937 !important;
+}
+
+.btn-outline:hover {
+    background: #f8fafc !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+}
+
+
+/* =========================================================
+   ADD ITEM - GREEN
+   ========================================================= */
+
+.btn-success {
+    background: #16b981 !important;
+    border: 1px solid #16b981 !important;
+    color: #ffffff !important;
+}
+
+.btn-success:hover {
+    background: #10a974 !important;
+    border-color: #10a974 !important;
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   SAVE - LIGHT GREEN
+   ========================================================= */
+
+#saveUpdateBtn {
+    background: #86d19c !important;
+    border: 1px solid #86d19c !important;
+    color: #ffffff !important;
+
+    opacity: 1 !important;
+}
+
+#saveUpdateBtn:hover:not(:disabled) {
+    background: #70c487 !important;
+    border-color: #70c487 !important;
+}
+
+#saveUpdateBtn:disabled {
+    background: #86d19c !important;
+    border: 1px solid #86d19c !important;
+    color: #ffffff !important;
+
+    opacity: 1 !important;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   BUTTON ICONS
+   ========================================================= */
+
+.toolbar-actions .btn i {
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .toolbar-actions {
+        width: 100%;
+        margin-left: 0;
+        flex-wrap: wrap;
+    }
+
+    .toolbar-actions .btn {
+        flex: 1;
+        min-width: 100px;
+    }
+}        
+        /* =========================
+           FILTERS
+           ========================= */
+
+        .active-filters {
+
+            width: 100%;
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 8px;
+
+            margin-top: 10px;
+        }
+
+
+        .filter-chip {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            padding: 6px 10px;
+
+            background: #f8fafc;
+
+            border: 1px solid #e2e8f0;
+
+            border-radius: 8px;
+        }
+
+
+        .filter-chip label {
+
+            margin: 0;
+
+            font-size: 12px;
+
+            font-weight: 600;
+        }
+/* CUSTOMER / GROUP / HIERARCHY FILTER */
+
+.customer-hierarchy-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 7px;
+    min-height: 44px;
+
+    background: #ffffff;
+    border: 1px solid #d9dee7;
+    border-radius: 6px;
+}
+
+.customer-filter-label {
+    margin: 0;
+    min-width: 82px;
+
+    font-size: 12px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.customer-filter-type {
+    width: 190px;
+    height: 36px;
+
+    padding: 0 10px;
+
+    font-size: 13px;
+    color: #374151;
+
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+
+    outline: none;
+    cursor: pointer;
+}
+
+.customer-filter-type:focus {
+    border-color: #64748b;
+}
+
+.customer-filter-value {
+    width: 220px;
+    height: 36px;
+
+    padding: 0 10px;
+
+    font-size: 13px;
+    color: #374151;
+
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+
+    outline: none;
+}
+
+.customer-filter-value::placeholder {
+    color: #9ca3af;
+}
+
+.customer-filter-value:focus {
+    border-color: #64748b;
+}
+
+.customer-filter-remove {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 20px;
+    line-height: 1;
+
+    color: #dc2626;
+    background: #ffffff;
+
+    border: 1px solid #dc2626;
+    border-radius: 5px;
+
+    cursor: pointer;
+}
+
+.customer-filter-remove:hover {
+    color: #ffffff;
+    background: #dc2626;
+}
+
+        /* =========================
+           RESULTS
+           ========================= */
+
+        .results-section {
+
+            flex: 1;
+
+            min-height: 0;
+
+            display: flex;
+
+            flex-direction: column;
+
+            background: white;
+
+            border: 1px solid #e2e8f0;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.06);
+
+            overflow: hidden;
+        }
+
+
+        .table-responsive {
+
+            flex: 1;
+
+            min-height: 0;
+
+            width: 100%;
+
+            overflow: hidden;
+        }
+
+
+        /* =========================
+           TABLE
+           ========================= */
+
+        .table {
+
+            width: 100%;
+
+            min-width: 0;
+
+            margin: 0;
+
+            table-layout: fixed;
+
+            border-collapse: collapse;
+
+            font-size: 10px;
+        }
+
+
+        .table th {
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 5;
+
+            background: #f8fafc;
+
+            color: #1e2130;
+
+            font-size: 9px;
+
+            font-weight: 700;
+
+            text-align: center;
+
+            vertical-align: middle;
+
+            padding: 6px 3px;
+
+            border: 1px solid #e2e8f0;
+
+            white-space: nowrap;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+        }
+
+
+        .table td {
+
+            padding: 4px 3px;
+
+            text-align: center;
+
+            vertical-align: middle;
+
+            border: 1px solid #e2e8f0;
+
+            white-space: nowrap;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+        }
+
+
+        .table tbody tr:hover {
+
+            background: #f8fafc;
+        }
+
+
+        .table tbody input,
+        .table tbody select {
+
+            width: 100%;
+
+            height: 34px;
+
+            padding: 2px 4px;
+
+            border: 1px solid #dbe3ef;
+
+            border-radius: 5px;
+
+            font-size: 10px;
+
+            text-align: center;
+
+            background: white;
+        }
+
+
+        .table tbody input:focus,
+        .table tbody select:focus {
+
+            outline: none;
+
+            border-color: #4f46e5;
+        }
+
+
+        /* =========================
+           ACTION COLUMN
+           ========================= */
+
+        .fixed-action-column {
+
+            position: sticky !important;
+
+            right: 0;
+
+            z-index: 6;
+
+            background: #f8fafc !important;
+        }
+
+
+        .table tbody td:last-child {
+
+            position: sticky;
+
+            right: 0;
+
+            z-index: 4;
+
+            background: white;
+        }
+
+
+        .row-action-btn {
+            width: 58px;
+            height: 38px;
+            border: none;
+            border-radius: 6px;
+            background: #1f1f1f !important;
+            color: #ffffff !important;
+            font-size: 12px !important;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .row-action-btn:hover {
+            background: #000000 !important;
+            color: #ffffff !important;
+        }
+
+
+        .delete-row-btn {
+
+            width: 38px;
+
+            height: 38px;
+
+            margin-left: 4px;
+
+            border: none;
+
+            border-radius: 6px;
+
+            background: #ef4444;
+
+            color: white;
+
+            cursor: pointer;
+        }
+
+
+        .delete-row-btn:hover {
+
+            background: #dc2626;
+        }
+
+
+        /* =========================
+           PAGINATION
+           ========================= */
+
+        .pagination-controls {
+
+            flex-shrink: 0;
+
+            min-height: 45px;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            gap: 8px;
+
+            border-top: 1px solid #e2e8f0;
+        }
+
+
+        /* =========================
+           CSV LOADING
+           ========================= */
+
+        .csv-loading-overlay {
+
+            display: none;
+
+            position: fixed;
+
+            inset: 0;
+
+            background: rgba(255, 255, 255, 0.8);
+
+            z-index: 9999;
+
+            align-items: center;
+
+            justify-content: center;
+        }
+
+
+        .csv-loading-box {
+
+            background: white;
+
+            padding: 25px;
+
+            border-radius: 10px;
+
+            box-shadow:
+                0 5px 25px rgba(0, 0, 0, 0.15);
+
+            text-align: center;
+        }
+
+
+        .csv-spinner {
+
+            width: 35px;
+
+            height: 35px;
+
+            border: 4px solid #e5e7eb;
+
+            border-top-color: #4f46e5;
+
+            border-radius: 50%;
+
+            animation: spin 0.8s linear infinite;
+
+            margin: auto auto 15px;
+        }
+
+
+        @keyframes spin {
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+
+        .csv-loading-title {
+
+            font-size: 18px;
+
+            font-weight: 700;
+
+            margin-bottom: 5px;
+        }
+
+
+        .csv-loading-text {
+
+            font-size: 13px;
+
+            color: #64748b;
+        }
+
+
+        /* =========================
+           RESPONSIVE
+           ========================= */
+
+        @media (max-width: 1200px) {
+
+            .toolbar-actions {
+                margin-left: auto;
+                width: auto;
+                flex-wrap: nowrap;
+            }
+
+        }
+
+
+        @media (max-width: 900px) {
+
+            .filters-row {
+
+                flex-direction: column;
+            }
+
+
+            #itemNoContainer,
+            .core-field {
+
+                width: 100%;
+
+                max-width: 100%;
+            }
+
+
+            .toolbar-actions {
+
+                width: 100%;
+            }
+
+
+            .toolbar-actions .btn {
+
+                flex: 1;
+            }
+
+        }
+
+    
+
+/* =========================================================
+   FRAPPE-STYLE TOOLBAR OVERRIDE
+   Keep Item Management toolbar on one clean row
+   ========================================================= */
+
+.top-bar {
+    padding: 22px 32px !important;
+    margin-bottom: 14px !important;
+}
+
+.top-bar-title {
+    font-size: 1.2rem !important;
+    margin-bottom: 10px !important;
+}
+
+.top-bar-title i {
+    font-size: 22px !important;
+}
+
+.toolbar-form {
+    width: 100% !important;
+    display: block !important;
+}
+
+.filters-row {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 15px !important;
+}
+
+#itemNoContainer {
+    width: 300px !important;
+    min-width: 300px !important;
+    flex: 0 0 300px !important;
+    gap: 8px !important;
+}
+
+.item-no-row {
+    width: 100% !important;
+    height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+}
+
+.item-no-row .itemNoInput {
+    height: 48px !important;
+    font-size: 14px !important;
+    padding: 0 12px !important;
+    border-radius: 7px !important;
+}
+
+.addItemNoBtn,
+.removeItemNoBtn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    font-size: 24px !important;
+    border-radius: 0 !important;
+}
+
+.core-field {
+    width: 205px !important;
+    min-width: 205px !important;
+    max-width: 205px !important;
+    flex: 0 0 205px !important;
+}
+
+.core-field .form-control,
+#fetchActive {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: 48px !important;
+    font-size: 14px !important;
+    padding: 0 14px !important;
+    border-radius: 7px !important;
+}
+
+#addFilterSelect {
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    height: 48px !important;
+    font-size: 14px !important;
+    padding: 0 14px !important;
+    border-radius: 7px !important;
+}
+
+/* Push Fetch/CSV/Import/Add Item/Save to the far right */
+.toolbar-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    margin-left: auto !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+}
+
+.toolbar-actions .btn {
+    height: 48px !important;
+    min-height: 48px !important;
+    padding: 0 15px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    border-radius: 7px !important;
+    white-space: nowrap !important;
+}
+
+.toolbar-actions .btn i {
+    font-size: 14px !important;
+}
+
+.btn-primary {
+    background: #222222 !important;
+    border-color: #222222 !important;
+    color: #ffffff !important;
+}
+
+.btn-outline {
+    background: #ffffff !important;
+    border: 1px solid #dbe3ef !important;
+    color: #1e293b !important;
+}
+
+.btn-success {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+}
+
+#saveUpdateBtn,
+#saveUpdateBtn:disabled {
+    background: #7acb91 !important;
+    border-color: #7acb91 !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.active-filters {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+}
+
+/* Keep customer filter compact like Frappe */
+.customer-hierarchy-filter {
+    min-height: 44px !important;
+    gap: 8px !important;
+    padding: 5px 7px !important;
+}
+
+.customer-filter-label {
+    font-size: 12px !important;
+}
+
+.customer-filter-type,
+.customer-filter-value {
+    height: 36px !important;
+    font-size: 13px !important;
+}
+
+/* Table text */
+.table {
+    font-size: 10px !important;
+}
+
+.table th {
+    font-size: 10px !important;
+}
+
+.table tbody input,
+.table tbody select {
+    font-size: 10px !important;
+}
+
+.row-action-btn {
+    font-size: 12px !important;
+}
+
+/* Desktop: never wrap the top toolbar */
+@media (min-width: 901px) {
+    .filters-row {
+        flex-wrap: nowrap !important;
+    }
+
+    .toolbar-actions {
+        flex-wrap: nowrap !important;
+    }
+}
+
+/* Smaller screens */
+@media (max-width: 900px) {
+    .filters-row {
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+    }
+
+    #itemNoContainer,
+    .core-field,
+    #addFilterSelect {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 auto !important;
+    }
+
+    .toolbar-actions {
+        width: 100% !important;
+        flex-wrap: wrap !important;
+        margin-left: 0 !important;
+        justify-content: flex-start !important;
+    }
+}
+</style>
+
+
+<style id="final-frappe-toolbar-fix">
+/* =========================================================
+   FINAL TOOLBAR FIX
+   One clean override only
+   ========================================================= */
+
+/* TOP CARD */
+.top-bar {
+    padding: 18px 28px !important;
+    margin-bottom: 14px !important;
+}
+
+.top-bar-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+}
+
+.top-bar-title i {
+    font-size: 20px !important;
+}
+
+/* TOOLBAR */
+.toolbar-form {
+    width: 100% !important;
+    display: block !important;
+}
+
+.filters-row {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 300px 205px minmax(220px, 1fr) max-content !important;
+    align-items: start !important;
+    column-gap: 12px !important;
+    row-gap: 6px !important;
+}
+
+/* ITEM NO */
+#itemNoContainer {
+    width: 300px !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+}
+
+.item-no-row {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.item-no-row .itemNoInput {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    border-radius: 6px !important;
+}
+
+/* ITEM NO + / - */
+.addItemNoBtn,
+.removeItemNoBtn {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    padding: 0 !important;
+    font-size: 21px !important;
+    line-height: 1 !important;
+    border-radius: 0 !important;
+}
+
+/* ACTIVE */
+.core-field {
+    width: 205px !important;
+    min-width: 205px !important;
+    max-width: 205px !important;
+}
+
+.core-field .form-control,
+#fetchActive {
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    border-radius: 6px !important;
+}
+
+/* ADD FILTER
+   This occupies the flexible middle area.
+   Therefore the action buttons stay at the far right. */
+#addFilterSelect {
+    width: 100% !important;
+    min-width: 220px !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+}
+
+/* ACTION BUTTONS */
+.toolbar-actions {
+    grid-column: 4 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    width: max-content !important;
+    min-width: max-content !important;
+    flex: none !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+}
+
+.toolbar-actions .btn {
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 13px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
+}
+
+.toolbar-actions .btn i {
+    font-size: 13px !important;
+}
+
+/* FETCH */
+.toolbar-actions .btn-primary {
+    background: #222222 !important;
+    border: 1px solid #222222 !important;
+    color: #ffffff !important;
+}
+
+/* CSV + IMPORT */
+.toolbar-actions .btn-outline {
+    background: #ffffff !important;
+    border: 1px solid #dbe3ef !important;
+    color: #1e293b !important;
+}
+
+/* ADD ITEM */
+.toolbar-actions .btn-success {
+    background: #10b981 !important;
+    border: 1px solid #10b981 !important;
+    color: #ffffff !important;
+}
+
+/* MAIN SAVE */
+.toolbar-actions #saveUpdateBtn,
+.toolbar-actions #saveUpdateBtn:disabled {
+    background: #7acb91 !important;
+    border: 1px solid #7acb91 !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* CUSTOMER FILTER */
+.customer-hierarchy-filter {
+    min-height: 42px !important;
+    gap: 7px !important;
+    padding: 4px 7px !important;
+}
+
+.customer-filter-label {
+    min-width: 78px !important;
+    font-size: 11px !important;
+}
+
+.customer-filter-type {
+    width: 180px !important;
+    height: 34px !important;
+    font-size: 12px !important;
+}
+
+.customer-filter-value {
+    width: 210px !important;
+    height: 34px !important;
+    font-size: 12px !important;
+}
+
+.customer-filter-remove {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    font-size: 18px !important;
+}
+
+/* NORMAL FILTER CHIPS */
+.filter-chip {
+    padding: 5px 8px !important;
+    gap: 5px !important;
+}
+
+.filter-chip label {
+    font-size: 11px !important;
+}
+
+/* TABLE */
+.table {
+    font-size: 10px !important;
+}
+
+.table th {
+    font-size: 9px !important;
+    padding: 6px 3px !important;
+}
+
+.table td {
+    padding: 4px 3px !important;
+}
+
+.table tbody input,
+.table tbody select {
+    height: 32px !important;
+    font-size: 10px !important;
+}
+
+/* ACTION COLUMN FIX
+   The old 58px column was too narrow for Save + Delete.
+   Give it enough width so both buttons remain visible. */
+.fixed-action-column,
+.table tbody td:last-child {
+    width: 108px !important;
+    min-width: 108px !important;
+    max-width: 108px !important;
+}
+
+.row-action-btn {
+    width: 58px !important;
+    height: 34px !important;
+    min-width: 58px !important;
+    padding: 0 !important;
+    background: #222222 !important;
+    border: 1px solid #222222 !important;
+    color: #ffffff !important;
+    font-size: 11px !important;
+    border-radius: 6px !important;
+}
+
+.delete-row-btn {
+    width: 34px !important;
+    height: 34px !important;
+    margin-left: 3px !important;
+    border-radius: 6px !important;
+}
+
+.pagination-controls {
+    min-height: 42px !important;
+}
+
+/* LOADING TEXT */
+.csv-loading-title {
+    font-size: 17px !important;
+}
+
+.csv-loading-text {
+    font-size: 12px !important;
+}
+
+/* DESKTOP */
+@media (min-width: 1201px) {
+    .filters-row {
+        grid-template-columns: 300px 205px minmax(220px, 1fr) max-content !important;
+    }
+}
+
+/* MEDIUM DESKTOP */
+@media (max-width: 1200px) and (min-width: 901px) {
+    .filters-row {
+        grid-template-columns: 270px 190px minmax(180px, 1fr) max-content !important;
+        column-gap: 8px !important;
+    }
+
+    #itemNoContainer {
+        width: 270px !important;
+        min-width: 270px !important;
+        max-width: 270px !important;
+    }
+
+    .core-field {
+        width: 190px !important;
+        min-width: 190px !important;
+        max-width: 190px !important;
+    }
+
+    #addFilterSelect {
+        min-width: 180px !important;
+    }
+
+    .toolbar-actions {
+        gap: 5px !important;
+    }
+
+    .toolbar-actions .btn {
+        padding: 0 9px !important;
+        font-size: 12px !important;
+    }
+
+    .toolbar-actions .btn i {
+        font-size: 12px !important;
+    }
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+    .filters-row {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 8px !important;
+    }
+
+    #itemNoContainer,
+    .core-field,
+    #fetchActive,
+    #addFilterSelect {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        flex: none !important;
+    }
+
+    #addFilterSelect {
+        width: 100% !important;
+    }
+
+    .toolbar-actions {
+        width: 100% !important;
+        min-width: 0 !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+    }
+
+    .toolbar-actions .btn {
+        flex: 1 1 auto !important;
+    }
+}
+
+
+/* =========================================================
+   ACTIVE COLUMN - FRAPPE STYLE BLACK TICK BUTTON
+   ========================================================= */
+
+.active-tick-wrapper {
+    width: 100%;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.active-tick-btn {
+    width: 32px !important;
+    height: 34px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #222222 !important;
+    border-radius: 5px !important;
+    background: #222222 !important;
+    color: #ffffff !important;
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+}
+
+.active-tick-btn:hover {
+    background: #000000 !important;
+    border-color: #000000 !important;
+}
+
+.active-tick-btn.inactive {
+    background: #ffffff !important;
+    border-color: #dbe3ef !important;
+    color: #ffffff !important;
+}
+</style>
+
+
+<style id="final-no-horizontal-scroll">
+/* =========================================================
+   FINAL ITEM TABLE
+   MAP, Change Type, SAP Updated, Division Code,
+   Price w/ Tax and Tax % removed.
+   ========================================================= */
+
+.table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+.table {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    font-size: 9px !important;
+}
+
+.table th,
+.table td {
+    padding: 4px 2px !important;
+    font-size: 9px !important;
+}
+
+.table th {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.table tbody input,
+.table tbody select {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 30px !important;
+    padding: 2px 3px !important;
+    font-size: 9px !important;
+}
+
+.fixed-action-column,
+.table tbody td:last-child {
+    width: 108px !important;
+    min-width: 108px !important;
+    max-width: 108px !important;
+}
+
+.results-section {
+    overflow: hidden !important;
+}
+
+@media (min-width: 901px) {
+    .table-responsive {
+        overflow-x: hidden !important;
+    }
+}
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="item-management-container">
+
+
+    <!-- =====================================================
+         HEADER
+         ====================================================== -->
+
+    <div class="top-bar">
+
+
+        <div class="top-bar-title" style="justify-content: space-between;">
+
+            <span style="display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-tags"></i>
+                Item Management
+            </span>
+
+            <a href="/discount-management" style="font-size: 13px; font-weight: 600; color: #4f46e5;">
+                Go to Discount Management &rarr;
+            </a>
+
+        </div>
+
+
+        <form
+            id="fetchForm"
+            class="toolbar-form"
+        >
+
+
+            <div class="filters-row">
+
+
+                <!-- =================================================
+                     ITEM NO
+                     ================================================= -->
+
+                <div id="itemNoContainer">
+
+
+                    <div class="item-no-row">
+
+
+                        <input
+                            type="text"
+                            class="form-control itemNoInput"
+                            name="item_no[]"
+                            placeholder="Item No"
+                        >
+
+
+                        <button
+                            type="button"
+                            class="addItemNoBtn"
+                            title="Add Item No"
+                        >
+                            +
+                        </button>
+
+
+                    </div>
+
+
+                </div>
+
+
+                <!-- =================================================
+                     ACTIVE
+                     ================================================= -->
+
+                <div class="core-field">
+
+
+                    <select
+                        id="fetchActive"
+                        name="active"
+                        class="form-control"
+                    >
+
+                        <option value="true">
+                            Active
+                        </option>
+
+                        <option value="false">
+                            Inactive
+                        </option>
+
+                        <option value="">
+                            All
+                        </option>
+
+                    </select>
+
+
+                </div>
+
+
+                <!-- =================================================
+                     ADD FILTER
+                     ================================================= -->
+
+                <div class="core-field">
+
+
+                    <select id="addFilterSelect" class="form-control">
+
+                    <option value="">
+                        + Add filter
+                    </option>
+
+                    <option value="customer_group_hierarchy">
+                        Customer / Group / Hierarchy
+                    </option>
+
+                    <option value="sort_by">
+                        Sort By
+                    </option>
+
+                    <option value="sales_organization">
+                        Sales Organization
+                    </option>
+
+                    <option value="distribution_channel">
+                        Distribution Channel
+                    </option>
+
+                    <option value="location_code">
+                        Location Code
+                    </option>
+
+                    <option value="condition_type">
+                        Condition Type
+                    </option>
+
+                    <option value="sales_price">
+                        Sales Price
+                    </option>
+
+                    <option value="currency">
+                        Currency
+                    </option>
+
+                    <option value="unit_of_measure">
+                        Unit of Measure
+                    </option>
+
+                    <option value="minimum_quantity">
+                        Minimum Quantity
+                    </option>
+
+                    <option value="lower_limit">
+                        Lower Limit
+                    </option>
+
+                    <option value="upper_limit">
+                        Upper Limit
+                    </option>
+
+                    <option value="transportation_zone">
+                        Transportation Zone
+                    </option>
+
+                    <option value="starting_date">
+                        Starting Date
+                    </option>
+
+                    <option value="ending_date">
+                        Ending Date
+                    </option>
+
+                    <option value="priority">
+                        Priority
+                    </option>
+
+                    <option value="offer_article">
+                        Offer Article
+                    </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- =================================================
+                     ACTION BUTTONS
+                     ================================================= -->
+
+                <div class="toolbar-actions">
+
+
+                    <button
+                        type="submit"
+                        id="fetch"
+                        class="btn btn-primary"
+                    >
+
+                        <i class="fas fa-search"></i>
+
+                        Fetch
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="downloadCsvBtn"
+                        class="btn btn-outline"
+                    >
+
+                        <i class="fas fa-download"></i>
+
+                        CSV
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="importBtnUnique"
+                        class="btn btn-outline"
+                    >
+
+                        <i class="fas fa-file-import"></i>
+
+                        Import
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="addItemBtn"
+                        class="btn btn-success"
+                    >
+
+                        <i class="fas fa-plus"></i>
+
+                        Add Item
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="saveUpdateBtn"
+                        class="btn btn-success"
+                        
+                    >
+
+                        Save
+
+                    </button>
+
+
+                </div>
+
+
+            </div>
+
+
+            <!-- =====================================================
+                 ACTIVE FILTERS
+                 ====================================================== -->
+
+            <div
+                id="activeFilters"
+                class="active-filters"
+            ></div>
+
+
+        </form>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         CSV POPUP
+         ====================================================== -->
+
+    <div
+        id="csvPopUp"
+        class="modal"
+        tabindex="-1"
+    >
+
+        <div class="modal-dialog">
+
+            <div class="modal-content">
+
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+
+                        <i class="fas fa-file-upload"></i>
+
+                        Upload Data
+
+                    </h5>
+
+
+                    <button
+                        type="button"
+                        class="close"
+                        id="closeCsvPopup"
+                    >
+
+                        <span>
+                            &times;
+                        </span>
+
+                    </button>
+
+                </div>
+
+
+                <div class="modal-body">
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Select Action
+                        </label>
+
+
+                        <select
+                            id="actionSelect"
+                            class="form-control"
+                        >
+
+                            <option value="add">
+                                Add Data
+                            </option>
+
+                            <option value="update">
+                                Update Data
+                            </option>
+
+                            <option value="bulk">
+                                Bulk Reset
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <button
+                            type="button"
+                            id="downloadSampleBtn"
+                            class="btn btn-outline btn-block"
+                        >
+
+                            <i class="fas fa-file-csv"></i>
+
+                            Download Sample CSV
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Upload CSV File
+                        </label>
+
+
+                        <input
+                            type="file"
+                            id="fileUpload"
+                            class="form-control"
+                            accept=".csv"
+                        >
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="modal-footer">
+
+
+                    <button
+                        type="button"
+                        id="cancelCsvBtn"
+                        class="btn btn-outline"
+                    >
+                        Cancel
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="uploadBtn"
+                        class="btn btn-primary"
+                    >
+
+                        <i class="fas fa-upload"></i>
+
+                        Upload CSV
+
+                    </button>
+
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         LOADING OVERLAY
+         ====================================================== -->
+
+    <div
+        id="csvLoadingOverlay"
+        class="csv-loading-overlay"
+    >
+
+        <div class="csv-loading-box">
+
+
+            <div class="csv-spinner"></div>
+
+
+            <div class="csv-loading-title">
+
+                Processing CSV...
+
+            </div>
+
+
+            <div class="csv-loading-text">
+
+                Please wait while the CSV data is being uploaded
+                and processed.
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         RESULTS TABLE
+         ====================================================== -->
+
+    <div class="results-section">
+
+
+        <div class="table-responsive">
+
+
+            <table class="table table-bordered table-hover">
+
+
+                <thead>
+
+                    <tr>
+
+                        <th>Active</th>
+
+                        <th>Condition Type</th>
+
+                        <th>Item No</th>
+
+                        <th>Customer</th>
+
+                        <th>Customer Grp</th>
+
+                        <th>Customer Hierarchy</th>
+
+                        <th>Distribution Channel</th>
+
+                        <th>Location Code</th>
+
+                        <th>Priority</th>
+
+                        <th>Currency</th>
+
+                        <th>Sales Price</th>
+
+                        <th>UOM</th>
+
+                        <th>Min Qty</th>
+
+                        <th>Starting Date</th>
+
+                        <th>Ending Date</th>
+
+                        <th>Lower Limit</th>
+
+                        <th>Upper Limit</th>
+
+                        <th>Zone Code</th>
+<th>Offer Article</th>
+<th class="fixed-action-column">
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="itemPriceTableBody">
+
+                </tbody>
+
+
+            </table>
+
+
+        </div>
+
+
+        <div
+            id="paginationControls"
+            class="pagination-controls"
+        ></div>
+
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        /* =====================================================
+           CSV SAMPLE DOWNLOAD + IMPORT
+           (parsing/mapping happens server-side in Flask)
+           ====================================================== */
+
+        document
+            .getElementById("downloadSampleBtn")
+            .addEventListener("click", function () {
+
+                window.location.href =
+                    "/api/item-management/sample-csv";
+
+            });
+
+        document
+            .getElementById("uploadBtn")
+            .addEventListener("click", function () {
+
+                const fileInput =
+                    document.getElementById("fileUpload");
+
+                const file =
+                    fileInput.files[0];
+
+                if (!file) {
+                    alert("Please choose a CSV file to upload.");
+                    return;
+                }
+
+                const formData = new FormData();
+
+                formData.append("file", file);
+
+                formData.append(
+                    "action",
+                    document.getElementById("actionSelect").value
+                );
+
+                const overlay =
+                    document.getElementById("csvLoadingOverlay");
+
+                if (overlay) overlay.style.display = "flex";
+
+                fetch("/api/items/upload", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(function (response) {
+
+                    return response.json().then(function (result) {
+
+                        if (!response.ok) {
+                            throw new Error(result.error || "Import failed");
+                        }
+
+                        return result;
+                    });
+                })
+                .then(function (result) {
+
+                    alert(result.message || "CSV imported successfully.");
+
+                    document.getElementById("csvPopUp").style.display = "none";
+
+                    fileInput.value = "";
+
+                })
+                .catch(function (error) {
+
+                    alert("Unable to import CSV: " + error.message);
+
+                })
+                .finally(function () {
+
+                    if (overlay) overlay.style.display = "none";
+
+                });
+
+            });
+
+
+
+        /* =====================================================
+           ITEM NO + BUTTON
+           ====================================================== */
+
+        const itemNoContainer =
+            document.getElementById(
+                "itemNoContainer"
+            );
+
+
+        itemNoContainer.addEventListener(
+            "click",
+            function (event) {
+
+
+                /* =============================================
+                   ADD ITEM NO
+                   ============================================== */
+
+                const addButton =
+                    event.target.closest(
+                        ".addItemNoBtn"
+                    );
+
+
+                if (addButton) {
+
+
+                    const newRow =
+                        document.createElement(
+                            "div"
+                        );
+
+
+                    newRow.className =
+                        "item-no-row";
+
+
+                    newRow.innerHTML = `
+
+                        <input
+                            type="text"
+                            class="form-control itemNoInput"
+                            name="item_no[]"
+                            placeholder="Item No"
+                        >
+
+                        <button
+                            type="button"
+                            class="removeItemNoBtn"
+                            title="Remove Item No"
+                        >
+                            −
+                        </button>
+
+                    `;
+
+
+                    itemNoContainer.appendChild(
+                        newRow
+                    );
+
+
+                    newRow
+                        .querySelector(
+                            ".itemNoInput"
+                        )
+                        .focus();
+
+
+                    return;
+
+                }
+
+
+                /* =============================================
+                   REMOVE ITEM NO
+                   ============================================== */
+
+                const removeButton =
+                    event.target.closest(
+                        ".removeItemNoBtn"
+                    );
+
+
+                if (removeButton) {
+
+
+                    const rows =
+                        itemNoContainer.querySelectorAll(
+                            ".item-no-row"
+                        );
+
+
+                    if (rows.length > 1) {
+
+                        removeButton
+                            .closest(
+                                ".item-no-row"
+                            )
+                            .remove();
+
+                    }
+
+                }
+
+            }
+        );
+
+
+
+        /* =====================================================
+           ADD ITEM BUTTON
+           ====================================================== */
+
+        const addItemBtn =
+            document.getElementById(
+                "addItemBtn"
+            );
+
+
+        const tableBody =
+            document.getElementById(
+                "itemPriceTableBody"
+            );
+
+
+        addItemBtn.addEventListener(
+            "click",
+            function () {
+
+
+                const row =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                row.className =
+                    "new-item-row";
+
+
+                row.innerHTML = `
+
+                    <td>
+                        <div class="active-tick-wrapper">
+                            <button
+                                type="button"
+                                class="active-tick-btn"
+                                title="Active"
+                            >
+                                ✓
+                            </button>
+                            <input
+                                type="hidden"
+                                class="active-value"
+                                value="true"
+                            >
+                        </div>
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Condition"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Item No"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Customer"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Customer Grp"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Customer Hierarchy"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Distribution"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Location"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Priority"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Currency"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="number"
+                            placeholder="0.00"
+                            step="0.01"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="UOM"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="number"
+                            placeholder="0"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="datetime-local"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="datetime-local"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="number"
+                            placeholder="0.00"
+                            step="0.01"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="number"
+                            placeholder="0.00"
+                            step="0.01"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            placeholder="Zone Code"
+                        >
+                    </td>
+
+
+
+                    
+<td>
+                        <input
+                            type="text"
+                            placeholder="Offer Article"
+                        >
+                    </td>
+
+
+
+                    <td class="fixed-action-column">
+
+
+                        <button
+                            type="button"
+                            class="row-action-btn save-row"
+                            title="Save"
+                        >
+                            Save
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="delete-row-btn delete-row"
+                            title="Delete"
+                        >
+
+                            <i class="fas fa-trash"></i>
+
+                        </button>
+
+
+                    </td>
+
+                `;
+
+
+                tableBody.appendChild(
+                    row
+                );
+
+
+                /* =============================================
+                   ACTIVE TICK BUTTON
+                   ============================================== */
+
+                const activeTickBtn =
+                    row.querySelector(
+                        ".active-tick-btn"
+                    );
+
+                const activeValue =
+                    row.querySelector(
+                        ".active-value"
+                    );
+
+                activeTickBtn.addEventListener(
+                    "click",
+                    function () {
+
+                        const isActive =
+                            activeValue.value === "true";
+
+                        activeValue.value =
+                            isActive ? "false" : "true";
+
+                        activeTickBtn.textContent =
+                            isActive ? "" : "✓";
+
+                        activeTickBtn.classList.toggle(
+                            "inactive",
+                            isActive
+                        );
+                    }
+                );
+
+
+                /* =============================================
+                   DELETE NEW ROW
+                   ============================================== */
+
+                row
+                    .querySelector(
+                        ".delete-row"
+                    )
+                    .addEventListener(
+                        "click",
+                        function () {
+
+                            row.remove();
+
+                        }
+                    );
+
+
+                /* =============================================
+                   SAVE NEW ROW
+                   ============================================== */
+
+                row
+                    .querySelector(
+                        ".save-row"
+                    )
+                    .addEventListener(
+                        "click",
+                        function () {
+
+
+                            const fields =
+                                row.querySelectorAll(
+                                    "input, select"
+                                );
+
+
+                            const data = [];
+
+
+                            fields.forEach(
+                                function (field) {
+
+                                    data.push(
+                                        field.value
+                                    );
+
+                                }
+                            );
+
+
+                            console.log(
+                                "Item data:",
+                                data
+                            );
+
+
+                            alert(
+                                "Item data collected successfully."
+                            );
+
+                        }
+                    );
+
+
+            }
+        );
+
+
+
+        /* =====================================================
+           FETCH
+           ====================================================== */
+
+/* =====================================================
+   FETCH
+   ====================================================== */
+
+document
+    .getElementById("fetchForm")
+    .addEventListener("submit", function (event) {
+
+        event.preventDefault();
+
+        /* -------------------------------
+           GET ITEM NUMBERS
+        -------------------------------- */
+
+        const itemInputs =
+            document.querySelectorAll(".itemNoInput");
+
+        const itemNumbers = [];
+
+        itemInputs.forEach(function (input) {
+
+            const value = input.value.trim();
+
+            if (value) {
+                itemNumbers.push(value);
+            }
+
+        });
+
+
+        /* -------------------------------
+           GET ACTIVE FILTER
+        -------------------------------- */
+
+        const activeFilter =
+            document.getElementById("fetchActive").value;
+
+
+        /* -------------------------------
+           GET ADDITIONAL FILTERS
+        -------------------------------- */
+
+        const filters = {};
+
+        document
+            .querySelectorAll("#activeFilters .filter-chip")
+            .forEach(function (chip) {
+
+                /* CUSTOMER / GROUP / HIERARCHY */
+                if (
+                    chip.classList.contains(
+                        "customer-hierarchy-filter"
+                    )
+                ) {
+
+                    const filterType =
+                        chip.querySelector(
+                            ".customer-filter-type"
+                        )?.value;
+
+                    const filterValue =
+                        chip.querySelector(
+                            ".customer-filter-value"
+                        )?.value.trim();
+
+                    if (
+                        filterType &&
+                        filterValue
+                    ) {
+
+                        filters[filterType] =
+                            filterValue;
+
+                    }
+
+                    return;
+                }
+
+
+                /* NORMAL FILTERS */
+
+                const filterId =
+                    chip.id.replace(
+                        "filter-",
+                        ""
+                    );
+
+                const input =
+                    chip.querySelector("input");
+
+                if (
+                    filterId &&
+                    input &&
+                    input.value.trim()
+                ) {
+
+                    filters[filterId] =
+                        input.value.trim();
+
+                }
+
+            });
+
+
+        console.log(
+            "Item Numbers:",
+            itemNumbers
+        );
+
+        console.log(
+            "Active:",
+            activeFilter
+        );
+
+        console.log(
+            "Filters:",
+            filters
+        );
+
+
+        /* -------------------------------
+           SEND TO FLASK
+           (no Item No entered = fetch everything
+           matching the other filters)
+        -------------------------------- */
+
+        fetch(
+            "/api/item-management/fetch",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    item_no:
+                        itemNumbers,
+
+                    active:
+                        activeFilter,
+
+                    filters:
+                        filters
+
+                })
+            }
+        )
+
+        .then(function (response) {
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Failed to fetch items"
+                );
+
+            }
+
+            return response.json();
+
+        })
+
+        .then(function (data) {
+
+            console.log(
+                "Flask response:",
+                data
+            );
+
+
+            const tbody =
+                document.getElementById(
+                    "itemPriceTableBody"
+                );
+
+            tbody.innerHTML = "";
+
+
+            /* -------------------------------
+               NO RESULTS
+            -------------------------------- */
+
+            if (
+                !Array.isArray(data) ||
+                data.length === 0
+            ) {
+
+                const row =
+                    document.createElement("tr");
+
+                row.innerHTML = `
+                    <td
+                        colspan="26"
+                        style="
+                            text-align:center;
+                            padding:20px;
+                            color:#777;
+                        "
+                    >
+                        No items found
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+
+                return;
+            }
+
+
+            /* -------------------------------
+               DISPLAY RESULTS
+            -------------------------------- */
+
+            data.forEach(function (item) {
+
+                const row =
+                    document.createElement("tr");
+
+
+                row.innerHTML = `
+
+                    <td>
+                        ${
+                            item.active
+                                ? `
+                                    <button
+                                        type="button"
+                                        class="active-tick-btn active"
+                                    >
+                                        ✓
+                                    </button>
+                                  `
+                                : `
+                                    <button
+                                        type="button"
+                                        class="active-tick-btn inactive"
+                                    >
+                                    </button>
+                                  `
+                        }
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.condition_type || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.item_no || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.customer || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.customer_grp || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.customer_hierarchy || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.distribution_channel || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.location_code || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.priority || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.currency || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="number"
+                            value="${item.sales_price ?? ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.uom || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="number"
+                            value="${item.min_qty ?? ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="date"
+                            value="${item.starting_date || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="date"
+                            value="${item.ending_date || ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="number"
+                            value="${item.lower_limit ?? ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="number"
+                            value="${item.upper_limit ?? ""}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.zone_code || ""}"
+                        >
+                    </td>
+
+
+                    <td>
+                        <input
+                            type="text"
+                            value="${item.offer_article || ""}"
+                        >
+                    </td>
+
+
+                    <td>
+                        <button
+                            type="button"
+                            class="row-action-btn save-row"
+                        >
+                            Save
+                        </button>
+
+                        <button
+                            type="button"
+                            class="delete-row"
+                        >
+                            🗑
+                        </button>
+                    </td>
+
+                `;
+
+                tbody.appendChild(row);
+
+            });
+
+        })
+
+        .catch(function (error) {
+
+            console.error(
+                "Fetch error:",
+                error
+            );
+
+            alert(
+                "Unable to fetch items from Flask."
+            );
+
+        });
+
+    });
+
+document
+    .getElementById("fetchForm")
+    .requestSubmit();
+
+    /* =====================================================
+   SAVE FETCHED ROW
+   ===================================================== */
+
+tableBody.addEventListener(
+    "click",
+    function (event) {
+        const deleteButton = event.target.closest(".delete-row");
+
+        if (deleteButton) {
+
+            const row = deleteButton.closest("tr");
+
+            if (row) {
+                row.remove();
+            }
+
+            return;
+        }
+        const saveButton =
+            event.target.closest(".save-row");
+
+        if (!saveButton) {
+            return;
+        }
+
+        const row =
+            saveButton.closest("tr");
+
+        if (!row) {
+            return;
+        }
+
+        const fields =
+            row.querySelectorAll("input");
+
+        const activeButton =
+            row.querySelector(".active-tick-btn");
+
+        const data = {
+            active:
+                !activeButton.classList.contains("inactive"),
+
+            condition_type:
+                fields[0]?.value || "",
+
+            item_no:
+                fields[1]?.value || "",
+
+            customer:
+                fields[2]?.value || "",
+
+            customer_grp:
+                fields[3]?.value || "",
+
+            customer_hierarchy:
+                fields[4]?.value || "",
+
+            distribution_channel:
+                fields[5]?.value || "",
+
+            location_code:
+                fields[6]?.value || "",
+
+            priority:
+                fields[7]?.value || "",
+
+            currency:
+                fields[8]?.value || "",
+
+            sales_price:
+                fields[9]?.value || "",
+
+            uom:
+                fields[10]?.value || "",
+
+            min_qty:
+                fields[11]?.value || "",
+
+            starting_date:
+                fields[12]?.value || "",
+
+            ending_date:
+                fields[13]?.value || "",
+
+            lower_limit:
+                fields[14]?.value || "",
+
+            upper_limit:
+                fields[15]?.value || "",
+
+            zone_code:
+                fields[16]?.value || "",
+
+            offer_article: fields[17]?.value || "",
+        };
+
+        
+        console.log(
+            "Saving fetched item:",
+            data
+        );
+
+        fetch("/api/items/singel_price", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+        .then(function (response) {
+
+            return response.json().then(function (result) {
+
+                if (!response.ok) {
+                    throw new Error(
+                        result.error || "Save failed"
+                    );
+                }
+
+                return result;
+            });
+
+        })
+        .then(function (result) {
+
+            console.log(
+                "Saved successfully:",
+                result
+            );
+
+            alert(
+                result.message ||
+                "Item saved successfully."
+            );
+
+        })
+        .catch(function (error) {
+
+            console.error(
+                "Save error:",
+                error
+            );
+
+            alert(
+                "Unable to save item: " +
+                error.message
+            );
+
+        });        
+    }
+);  
+
+
+        /* =====================================================
+        ADD FILTER
+        ====================================================== */
+
+        const addFilterSelect =
+            document.getElementById("addFilterSelect");
+
+        const activeFilters =
+            document.getElementById("activeFilters");
+
+
+        addFilterSelect.addEventListener(
+            "change",
+            function () {
+
+                const value = this.value;
+
+                if (!value) {
+                    return;
+                }
+
+
+                /* =================================================
+                CUSTOMER / GROUP / HIERARCHY
+                ================================================= */
+
+                if (value === "customer_group_hierarchy") {
+
+                    const existing =
+                        document.getElementById(
+                            "filter-customer_group_hierarchy"
+                        );
+
+                    if (existing) {
+                        this.value = "";
+                        return;
+                    }
+
+
+                    const chip =
+                        document.createElement("div");
+
+                    chip.className =
+                        "filter-chip customer-hierarchy-filter";
+
+                    chip.id =
+                        "filter-customer_group_hierarchy";
+
+
+                    chip.innerHTML = `
+
+                        <label class="customer-filter-label">
+                            CUSTOMER
+                        </label>
+
+                        <select
+                            class="customer-filter-type"
+                        >
+                            <option value="customer_no">
+                                Customer No
+                            </option>
+
+                            <option value="customer_group">
+                                Customer Group
+                            </option>
+
+                            <option value="customer_hierarchy">
+                                Customer Hierarchy
+                            </option>
+                        </select>
+
+                        <input
+                            type="text"
+                            class="customer-filter-value"
+                            placeholder="Value"
+                        >
+
+                        <button
+                            type="button"
+                            class="customer-filter-remove"
+                            title="Remove filter"
+                        >
+                            ×
+                        </button>
+
+                    `;
+
+
+                    activeFilters.appendChild(chip);
+
+                    this.value = "";
+
+                    return;
+                }
+
+
+                /* =================================================
+                OTHER FILTERS - EXISTING BEHAVIOUR
+                ================================================= */
+
+                const existing =
+                    document.getElementById(
+                        "filter-" + value
+                    );
+
+                if (existing) {
+                    this.value = "";
+                    return;
+                }
+
+
+                const chip =
+                    document.createElement("div");
+
+                chip.className =
+                    "filter-chip";
+
+                chip.id =
+                    "filter-" + value;
+
+
+                const label =
+                    value
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, function (c) {
+                            return c.toUpperCase();
+                        });
+
+
+                chip.innerHTML = `
+
+                    <label>
+                        ${label}
+                    </label>
+
+                    <input
+                        type="text"
+                        placeholder="${label}"
+                    >
+
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline remove-filter"
+                    >
+                        ×
+                    </button>
+
+                `;
+
+
+                activeFilters.appendChild(chip);
+
+                this.value = "";
+
+            }
+        );
+
+
+        /* =====================================================
+        REMOVE FILTER
+        ====================================================== */
+
+        activeFilters.addEventListener(
+            "click",
+            function (event) {
+
+                const removeButton =
+                    event.target.closest(
+                        ".customer-filter-remove, .remove-filter"
+                    );
+
+                if (!removeButton) {
+                    return;
+                }
+
+                const filter =
+                    removeButton.closest(".filter-chip");
+
+                if (filter) {
+                    filter.remove();
+                }
+
+            }
+        );
+
+        /* =====================================================
+           CSV BUTTON
+           ====================================================== */
+
+        const csvPopup =
+            document.getElementById(
+                "csvPopUp"
+            );
+
+
+        document
+            .getElementById(
+                "importBtnUnique"
+            )
+            .addEventListener(
+                "click",
+                function () {
+
+                    csvPopup.style.display =
+                        "block";
+
+                }
+            );
+
+
+        document
+            .getElementById(
+                "closeCsvPopup"
+            )
+            .addEventListener(
+                "click",
+                function () {
+
+                    csvPopup.style.display =
+                        "none";
+
+                }
+            );
+
+
+        document
+            .getElementById(
+                "cancelCsvBtn"
+            )
+            .addEventListener(
+                "click",
+                function () {
+
+                    csvPopup.style.display =
+                        "none";
+
+                }
+            );
+
+
+
+        /* =====================================================
+           CSV DOWNLOAD
+           ====================================================== */
+
+        document
+            .getElementById(
+                "downloadCsvBtn"
+            )
+            .addEventListener(
+                "click",
+                function () {
+
+
+                    const headers = [
+
+                        "Active",
+                        "Condition Type",
+                        "Item No",
+                        "Customer",
+                        "Customer Grp",
+                        "Customer Hierarchy",
+                        "Distribution Channel",
+                        "Location Code",
+                        "Priority",
+                        "Currency",
+                        "Sales Price",
+                        "UOM",
+                        "Min Qty",
+                        "Starting Date",
+                        "Ending Date",
+                        "Lower Limit",
+                        "Upper Limit",
+                        "Zone Code",
+                        "Offer Article",
+
+                    ];
+
+
+                    const csv =
+                        headers.join(",") +
+                        "\n";
+
+
+                    const blob =
+                        new Blob(
+                            [csv],
+                            {
+                                type:
+                                    "text/csv;charset=utf-8;"
+                            }
+                        );
+
+
+                    const url =
+                        URL.createObjectURL(
+                            blob
+                        );
+
+
+                    const link =
+                        document.createElement(
+                            "a"
+                        );
+
+
+                    link.href = url;
+
+                    link.download =
+                        "item_management.csv";
+
+
+                    link.click();
+
+
+                    URL.revokeObjectURL(
+                        url
+                    );
+
+                }
+            );
+
+
+
+        /* =====================================================
+           SAVE BUTTON
+           ====================================================== */
+
+        document.getElementById("saveUpdateBtn").addEventListener("click", function () {
+
+            const rows = document.querySelectorAll("#itemPriceTableBody tr");
+
+            if (!rows.length) {
+                alert("There are no items to save.");
+                return;
+            }
+
+            const items = [];
+
+            rows.forEach(function (row) {
+
+                const fields = row.querySelectorAll("input");
+                const activeButton = row.querySelector(".active-tick-btn");
+
+                const data = {
+                    active: activeButton
+                        ? !activeButton.classList.contains("inactive")
+                        : true,
+
+                    condition_type: fields[0]?.value || "",
+                    item_no: fields[1]?.value || "",
+                    customer: fields[2]?.value || "",
+                    customer_grp: fields[3]?.value || "",
+                    customer_hierarchy: fields[4]?.value || "",
+                    distribution_channel: fields[5]?.value || "",
+                    location_code: fields[6]?.value || "",
+                    priority: fields[7]?.value || "",
+                    currency: fields[8]?.value || "",
+                    sales_price: fields[9]?.value || "",
+                    uom: fields[10]?.value || "",
+                    min_qty: fields[11]?.value || "",
+                    starting_date: fields[12]?.value || "",
+                    ending_date: fields[13]?.value || "",
+                    lower_limit: fields[14]?.value || "",
+                    upper_limit: fields[15]?.value || "",
+                    zone_code: fields[16]?.value || "",
+                    offer_article: fields[17]?.value || "",
+                };
+
+                if (data.item_no.trim() !== "") {
+                    items.push(data);
+                }
+            });
+
+            if (!items.length) {
+                alert("No valid items found to save.");
+                return;
+            }
+
+            console.log("Saving all items:", items);
+
+            const saveButton = document.getElementById("saveUpdateBtn");
+
+            saveButton.disabled = true;
+            saveButton.innerText = "Saving...";
+
+            fetch("/api/item-management/save", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(items)
+            })
+            .then(function (response) {
+                return response.json().then(function (result) {
+
+                    if (!response.ok) {
+                        throw new Error(result.error || "Save failed");
+                    }
+
+                    return result;
+                });
+            })
+            .then(function (result) {
+
+                console.log("All items saved:", result);
+
+                alert(result.message || "All items saved successfully.");
+
+            })
+            .catch(function (error) {
+
+                console.error("Save error:", error);
+
+                alert("Unable to save items: " + error.message);
+
+            })
+            .finally(function () {
+
+                saveButton.disabled = false;
+                saveButton.innerText = "Save";
+
+            });
+        });        
+
+
+    }
+);
+
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,6 +1,7 @@
 from flask import Flask
-from api import fetch_all_prices, create_price, update_price_data, filter_price_data
+from api import fetch_all_prices, create_price, update_price_data, filter_price_data, create_single_price
 from upload_csv import upload_csv, index
+# from scheduler import scheduler
 
 app = Flask(__name__)
 
@@ -8,9 +9,13 @@ app = Flask(__name__)
 def index_call():
     return index()
 
-@app.post("/items/upload")
+@app.post("/api/items/upload")
 def upload_csv_call():
     return upload_csv()
+
+@app.post("/api/items/singel_price")
+def add_single_price():
+    return create_single_price()
 
 @app.route('/api/fetch_all_prices')
 def main_function():
