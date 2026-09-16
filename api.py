@@ -3,7 +3,7 @@ from database.mysql_connection import get_db_connection
 from database.query import select_all_prices, insert_price_query, update_price, check_price_exists, filter_prices, deactive_exp_items
 import logging
 import pymysql
-from datetime import datetime
+from datetime import datetime, date
 
 app = Flask(__name__)
 
@@ -125,9 +125,7 @@ def create_price(records):
         con = get_db_connection("PRICING_DATABASE")
         logger.info("Database connection successful")
         cursor = con.cursor()
-        i=0
         for data in records:
-            i=i+1
             logger.info("Calling Insert Query")
             data["starting_date"] = convert_datetime(
                 data.get("Starting Date")
@@ -460,11 +458,13 @@ def deactive_items():
 
         logger.info("Calling Update Query")
 
+        today = date.today()
+
         sql_query = deactive_exp_items()
 
         logger.info("Executing update query")
 
-        cursor.execute(sql_query)
+        cursor.execute(sql_query, today)
 
         updated_rows = cursor.rowcount
 

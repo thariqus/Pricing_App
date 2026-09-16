@@ -270,6 +270,6 @@ def filter_prices(data):
 
 def deactive_exp_items():
     sql_query = """
-        update PRICING_TABLE set active = true where id=63
+        update PRICING_TABLE set active = false where ending_date < %s
     """
     return sql_query

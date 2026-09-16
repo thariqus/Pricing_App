@@ -2906,7 +2906,7 @@ document
         -------------------------------- */
 
         fetch(
-            "/api/item-management/fetch",
+            "/api/fetch_all_prices",
             {
                 method: "POST",
 
@@ -2965,8 +2965,8 @@ document
             -------------------------------- */
 
             if (
-                !Array.isArray(data) ||
-                data.length === 0
+                !Array.isArray(data.data) ||
+                data.data.length === 0
             ) {
 
                 const row =
@@ -2995,7 +2995,7 @@ document
                DISPLAY RESULTS
             -------------------------------- */
 
-            data.forEach(function (item) {
+            data.data.forEach(function (item) {
 
                 const row =
                     document.createElement("tr");

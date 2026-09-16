@@ -17,7 +17,7 @@ def upload_csv_call():
 def add_single_price():
     return create_single_price()
 
-@app.route('/api/fetch_all_prices')
+@app.route('/api/fetch_all_prices', methods=['POST'])
 def main_function():
     prices = fetch_all_prices()
     return prices
