@@ -45,7 +45,12 @@ def select_all_prices(page, limit):
         ORDER BY item_no
         LIMIT %s OFFSET %s
     """
-    return sql_query, (limit, offset)
+    count_query = """
+        SELECT COUNT(*) AS total
+        FROM PRICING_TABLE
+    """
+
+    return sql_query, count_query, (limit, offset)
  
 def insert_price_query(data):
     sql_query = """

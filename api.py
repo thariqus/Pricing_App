@@ -47,7 +47,7 @@ def fetch_all_prices():
     try:
         # Get pagination values
         page = request.args.get("page", default=1, type=int)
-        limit = request.args.get("limit", default=10, type=int)
+        limit = request.args.get("limit", default=20, type=int)
         # Validate pagination
         if page < 1:
             return jsonify({
@@ -69,15 +69,18 @@ def fetch_all_prices():
         cursor = con.cursor()
         # Execute query
         logger.info("Calling Select Query")
-        sel_query, params = select_all_prices(page, limit)
+        sel_query, count_query, params = select_all_prices(page, limit)
         cursor.execute(sel_query, params)
         price_data = cursor.fetchall()
+        cursor.execute(count_query)
+        total_records = cursor.fetchone()["total"]
         logger.info("Returning Data")
         return jsonify({
             "status": "success",
             "page": page,
             "limit": limit,
-            "data": price_data
+            "data": price_data,
+            "total": total_records,
         })
     except ConnectionError as e:
         logger.error(f"Database connection error: {e}")
@@ -520,3 +523,39 @@ def deactive_items():
 
         if con:
             con.close()
+
+def get_prices():
+    logger.info("Enter into get price function")
+    data = request.get_json()
+    if not data:
+        return jsonify({
+            "status": "error",
+            "message": "Request data is empty"
+        }), 400
+    condition_type = bool(data["Condition_Type"])
+    item_no = bool(data["Item_No"])
+    customer_no = bool(data["Customer_No"])
+    customer_group = bool(data["Customer_Group"])
+    customer_hierarchy = bool(data["Customer_Hierarchy"])
+    distribution_channel_code = bool(data["Distribution_Channel_Code"])
+    location_code = bool(data["Location_Code"])
+    priority = bool(data["Priority"])
+    sales_division_code = bool(data["Sales_Division_Code"])
+    sales_organization_code = bool(data["Sales_Organization_Code"])
+    currency = bool(data["Currency"])
+    sales_price = bool(data["Sales_Price"])
+    unit_of_measure_code = bool(data["Unit_of_Measure_Code"])
+    starting_date = bool(data["Starting_Date"])
+    ending_date = bool(data["Ending_Date"])
+    change_type = bool(data["Change_Type"])
+    lower_limit = bool(data["Lower_Limit"])
+    upper_limit = bool(data["Upper_Limit"])
+    map = bool(data["MAP"])
+    updated_from_sap = bool(data["Updated_From_SAP"])
+    offer_article = bool(data["Offer_Article"])
+    price_with_tax = bool(data["Price_with_TAX"])
+    tax_percent = bool(data["Tax_Percent"])
+    transportation_zone_code = bool(data["Transportation_Zone_Code"])
+    print(condition_type)
+    print(data)
+    return {"status" : "Success"}

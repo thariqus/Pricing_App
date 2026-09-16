@@ -1,5 +1,5 @@
 from flask import Flask
-from api import fetch_all_prices, create_price, update_price_data, filter_price_data, create_single_price
+from api import fetch_all_prices, create_price, update_price_data, filter_price_data, create_single_price, get_prices
 from upload_csv import upload_csv, index
 # from scheduler import scheduler
 
@@ -36,6 +36,10 @@ def main_update_price(price_id):
 @app.route('/api/filter_prices', methods=['GET'])
 def main_filter_prices():
     return filter_price_data()
+
+@app.route('/api/get_item_price')
+def get_items_prices():
+    return get_prices()
 
 if __name__ == "__main__":
     app.run(debug=True)

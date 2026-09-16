@@ -3,1688 +3,623 @@
 
 <head>
 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Item Management</title>
-
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    >
-
-    <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
-    >
-
-    <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-            font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Roboto,
-                Arial,
-                sans-serif;
-            color: #1e2130;
-            background: white;
-        }
-
-
-        /* =========================
-           MAIN CONTAINER
-           ========================= */
-
-        .item-management-container {
-
-            width: 100%;
-            height: 100vh;
-
-            padding: 16px 20px;
-
-            display: flex;
-            flex-direction: column;
-
-            overflow: hidden;
-        }
-
-
-        /* =========================
-           TOP BAR
-           ========================= */
-
-        .top-bar {
-
-            flex-shrink: 0;
-
-            background: white;
-
-            border: 1px solid #e2e8f0;
-
-            border-radius: 12px;
-
-            box-shadow:
-                0 1px 2px rgba(15, 23, 42, 0.06);
-
-            padding: 22px 28px;
-
-            margin-bottom: 14px;
-        }
-
-
-        .top-bar-title {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 10px;
-
-            font-size: 1.2rem;
-
-            font-weight: 700;
-
-            color: #4f46e5;
-
-            margin-bottom: 10px;
-        }
-
-
-        .top-bar-title i {
-
-            font-size: 22px;
-        }
-
-
-        /* =========================
-           TOOLBAR
-           ========================= */
-
-        .toolbar-form {
-
-            width: 100%;
-
-            display: flex;
-
-            flex-wrap: wrap;
-
-            align-items: flex-start;
-
-            gap: 8px;
-        }
-
-
-       .filters-row {
-            width: 100%;
-
-            display: flex;
-            align-items: flex-start;
-
-            gap: 15px;
-
-            width: 100%;
-        }
-
-
-        /* =========================
-           ITEM NO
-           ========================= */
-
-        #itemNoContainer {
-
-            width: 300px;
-
-            display: flex;
-
-            flex-direction: column;
-
-            gap: 6px;
-
-            flex-shrink: 0;
-        }
-
-
-        .item-no-row {
-
-            width: 100%;
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 6px;
-        }
-
-
-        .item-no-row .itemNoInput {
-
-            flex: 1;
-
-            min-width: 0;
-
-            height: 42px;
-
-            padding: 0 12px;
-
-            border: 1px solid #dbe3ef;
-
-            border-radius: 6px;
-
-            font-size: 13px;
-
-            outline: none;
-        }
-
-
-        .item-no-row .itemNoInput:focus {
-
-            border-color: #4f46e5;
-
-            box-shadow:
-                0 0 0 2px rgba(79, 70, 229, 0.12);
-        }
-
-
-        /* ADD ITEM NO BUTTON */
-
-        .addItemNoBtn {
-
-            width: 38px;
-
-            height: 38px;
-
-            flex-shrink: 0;
-
-            border: 1px solid #9ca3af;
-
-            border-radius: 0;
-
-            background: white;
-
-            color: #111827;
-
-            font-size: 22px;
-
-            line-height: 1;
-
-            cursor: pointer;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-        }
-
-
-        .addItemNoBtn:hover {
-
-            background: #eef2ff;
-
-            color: #4f46e5;
-
-            border-color: #4f46e5;
-        }
-
-
-        /* REMOVE ITEM NO BUTTON */
-
-        .removeItemNoBtn {
-
-            width: 38px;
-
-            height: 38px;
-
-            flex-shrink: 0;
-
-            border: 1px solid #ef4444;
-
-            border-radius: 6px;
-
-            background: white;
-
-            color: #ef4444;
-
-            font-size: 22px;
-
-            line-height: 1;
-
-            cursor: pointer;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-        }
-
-
-        .removeItemNoBtn:hover {
-
-            background: #fef2f2;
-        }
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>{{ title or "Item Management" }}</title>
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<style>
+
+* { box-sizing: border-box; }
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #1e2130;
+    background: #fff;
+}
+
+/* =========================
+   LAYOUT
+   ========================= */
+
+.item-management-container {
+    width: 100%;
+    height: 100vh;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.top-bar {
+    flex-shrink: 0;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+    padding: 18px 28px;
+    margin-bottom: 14px;
+}
+
+.top-bar-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #4f46e5;
+}
+
+.top-bar-title i { font-size: 20px; }
+
+.toolbar-form { width: 100%; display: block; }
+
+.filters-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 300px 205px minmax(220px, 1fr) max-content;
+    align-items: start;
+    column-gap: 12px;
+    row-gap: 6px;
+}
+
+/* =========================
+   ITEM NO
+   ========================= */
+
+#itemNoContainer {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.item-no-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.item-no-row .itemNoInput {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 42px;
+    padding: 0 12px;
+    font-size: 13px;
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
+    outline: none;
+}
+
+.item-no-row .itemNoInput:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, .12);
+}
+
+.addItemNoBtn,
+.removeItemNoBtn {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    padding: 0;
+    font-size: 21px;
+    line-height: 1;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+}
+
+.addItemNoBtn { border: 1px solid #9ca3af; color: #111827; }
+.addItemNoBtn:hover { background: #eef2ff; color: #4f46e5; border-color: #4f46e5; }
+
+.removeItemNoBtn { border: 1px solid #ef4444; color: #ef4444; }
+.removeItemNoBtn:hover { background: #fef2f2; }
 
 /* =========================
    CORE FIELDS
    ========================= */
 
-.core-field {
-    width: 205px;
-    min-width: 205px;
-}
+.core-field { width: 205px; }
 
-.core-field .form-control {
+.core-field .form-control,
+#fetchActive {
     width: 100%;
     height: 42px;
-
     padding: 0 12px;
-
+    font-size: 13px;
+    background: #fff;
     border: 1px solid #dbe3ef;
     border-radius: 6px;
-
-    font-size: 13px;
-    background: white;
-
-    box-sizing: border-box;
 }
 
+.core-field.filter-field { width: 100%; min-width: 220px; }
 
-/* ACTIVE */
-
-#fetchActive {
-    width: 205px !important;
-    min-width: 205px !important;
-    max-width: 205px !important;
-}
-
-
-/* ADD FILTER */
-
- #addFilterSelect {
-    width: 280px !important;
-    min-width: 280px !important;
-    max-width: 280px !important;
-
+#addFilterSelect {
+    width: 100%;
     height: 42px;
-
-    box-sizing: border-box;
-
     padding: 0 12px;
-
-    color: #4f46e5;
-
     font-size: 13px;
     font-weight: 600;
-
+    color: #4f46e5;
+    background: #fff;
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
     cursor: pointer;
-
-    flex-shrink: 0;
 }
 
-
 /* =========================
-   ACTION BUTTONS
+   BUTTONS
    ========================= */
 
 .toolbar-actions {
+    grid-column: 4;
     display: flex;
     align-items: center;
-
-    gap: 12px;
-
-    margin-left: auto !important;
-
-    flex-shrink: 0;
-
-    width: auto;
-
+    justify-content: flex-end;
+    gap: 8px;
+    width: max-content;
     flex-wrap: nowrap;
-
     white-space: nowrap;
 }
-/* ALL BUTTONS */
 
 .btn {
     height: 42px;
-    min-height: 42px;
-
-    padding: 0 16px;
-
-    border-radius: 6px;
-
+    padding: 0 13px;
     font-size: 13px;
     font-weight: 600;
-
+    border-radius: 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    gap: 7px;
-
+    gap: 6px;
     white-space: nowrap;
     cursor: pointer;
-
-    transition:
-        background 0.15s ease,
-        border-color 0.15s ease,
-        color 0.15s ease;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
 
+.btn i { font-size: 13px; }
 
-/* =========================================================
-   FETCH - BLACK
-   ========================================================= */
+.btn-primary { background: #222; border: 1px solid #222; color: #fff; }
+.btn-primary:hover { background: #000; border-color: #000; }
 
-.btn-primary {
-    background: #1f1f1f !important;
-    border: 1px solid #1f1f1f !important;
-    color: #ffffff !important;
-}
+.btn-outline { background: #fff; border: 1px solid #dbe3ef; color: #1e293b; }
+.btn-outline:hover { background: #f8fafc; border-color: #9ca3af; }
 
-.btn-primary:hover {
-    background: #000000 !important;
-    border-color: #000000 !important;
-    color: #ffffff !important;
-}
+.btn-success { background: #10b981; border: 1px solid #10b981; color: #fff; }
+.btn-success:hover { background: #059669; border-color: #059669; }
 
-
-/* =========================================================
-   CSV + IMPORT - WHITE
-   ========================================================= */
-
-.btn-outline {
-    background: #ffffff !important;
-    border: 1px solid #d1d5db !important;
-    color: #1f2937 !important;
-}
-
-.btn-outline:hover {
-    background: #f8fafc !important;
-    border-color: #9ca3af !important;
-    color: #111827 !important;
-}
-
-
-/* =========================================================
-   ADD ITEM - GREEN
-   ========================================================= */
-
-.btn-success {
-    background: #16b981 !important;
-    border: 1px solid #16b981 !important;
-    color: #ffffff !important;
-}
-
-.btn-success:hover {
-    background: #10a974 !important;
-    border-color: #10a974 !important;
-    color: #ffffff !important;
-}
-
-
-/* =========================================================
-   SAVE - LIGHT GREEN
-   ========================================================= */
+.btn-block { width: 100%; }
 
 #saveUpdateBtn {
-    background: #86d19c !important;
-    border: 1px solid #86d19c !important;
-    color: #ffffff !important;
-
-    opacity: 1 !important;
+    background: #7acb91;
+    border: 1px solid #7acb91;
+    color: #fff;
+    opacity: 1;
 }
 
-#saveUpdateBtn:hover:not(:disabled) {
-    background: #70c487 !important;
-    border-color: #70c487 !important;
-}
-
-#saveUpdateBtn:disabled {
-    background: #86d19c !important;
-    border: 1px solid #86d19c !important;
-    color: #ffffff !important;
-
-    opacity: 1 !important;
-    cursor: not-allowed;
-}
-
-
-/* =========================================================
-   BUTTON ICONS
-   ========================================================= */
-
-.toolbar-actions .btn i {
-    font-size: 13px;
-}
-
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 900px) {
-
-    .toolbar-actions {
-        width: 100%;
-        margin-left: 0;
-        flex-wrap: wrap;
-    }
-
-    .toolbar-actions .btn {
-        flex: 1;
-        min-width: 100px;
-    }
-}        
-        /* =========================
-           FILTERS
-           ========================= */
-
-        .active-filters {
-
-            width: 100%;
-
-            display: flex;
-
-            flex-wrap: wrap;
-
-            gap: 8px;
-
-            margin-top: 10px;
-        }
-
-
-        .filter-chip {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 6px;
-
-            padding: 6px 10px;
-
-            background: #f8fafc;
-
-            border: 1px solid #e2e8f0;
-
-            border-radius: 8px;
-        }
-
-
-        .filter-chip label {
-
-            margin: 0;
-
-            font-size: 12px;
-
-            font-weight: 600;
-        }
-/* CUSTOMER / GROUP / HIERARCHY FILTER */
-
-.customer-hierarchy-filter {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 7px;
-    min-height: 44px;
-
-    background: #ffffff;
-    border: 1px solid #d9dee7;
-    border-radius: 6px;
-}
-
-.customer-filter-label {
-    margin: 0;
-    min-width: 82px;
-
-    font-size: 12px;
-    font-weight: 700;
-    color: #374151;
-}
-
-.customer-filter-type {
-    width: 190px;
-    height: 36px;
-
-    padding: 0 10px;
-
-    font-size: 13px;
-    color: #374151;
-
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 5px;
-
-    outline: none;
-    cursor: pointer;
-}
-
-.customer-filter-type:focus {
-    border-color: #64748b;
-}
-
-.customer-filter-value {
-    width: 220px;
-    height: 36px;
-
-    padding: 0 10px;
-
-    font-size: 13px;
-    color: #374151;
-
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 5px;
-
-    outline: none;
-}
-
-.customer-filter-value::placeholder {
-    color: #9ca3af;
-}
-
-.customer-filter-value:focus {
-    border-color: #64748b;
-}
-
-.customer-filter-remove {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-
-    padding: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-size: 20px;
-    line-height: 1;
-
-    color: #dc2626;
-    background: #ffffff;
-
-    border: 1px solid #dc2626;
-    border-radius: 5px;
-
-    cursor: pointer;
-}
-
-.customer-filter-remove:hover {
-    color: #ffffff;
-    background: #dc2626;
-}
-
-        /* =========================
-           RESULTS
-           ========================= */
-
-        .results-section {
-
-            flex: 1;
-
-            min-height: 0;
-
-            display: flex;
-
-            flex-direction: column;
-
-            background: white;
-
-            border: 1px solid #e2e8f0;
-
-            border-radius: 12px;
-
-            box-shadow:
-                0 1px 2px rgba(15, 23, 42, 0.06);
-
-            overflow: hidden;
-        }
-
-
-        .table-responsive {
-
-            flex: 1;
-
-            min-height: 0;
-
-            width: 100%;
-
-            overflow: hidden;
-        }
-
-
-        /* =========================
-           TABLE
-           ========================= */
-
-        .table {
-
-            width: 100%;
-
-            min-width: 0;
-
-            margin: 0;
-
-            table-layout: fixed;
-
-            border-collapse: collapse;
-
-            font-size: 10px;
-        }
-
-
-        .table th {
-
-            position: sticky;
-
-            top: 0;
-
-            z-index: 5;
-
-            background: #f8fafc;
-
-            color: #1e2130;
-
-            font-size: 9px;
-
-            font-weight: 700;
-
-            text-align: center;
-
-            vertical-align: middle;
-
-            padding: 6px 3px;
-
-            border: 1px solid #e2e8f0;
-
-            white-space: nowrap;
-
-            overflow: hidden;
-
-            text-overflow: ellipsis;
-        }
-
-
-        .table td {
-
-            padding: 4px 3px;
-
-            text-align: center;
-
-            vertical-align: middle;
-
-            border: 1px solid #e2e8f0;
-
-            white-space: nowrap;
-
-            overflow: hidden;
-
-            text-overflow: ellipsis;
-        }
-
-
-        .table tbody tr:hover {
-
-            background: #f8fafc;
-        }
-
-
-        .table tbody input,
-        .table tbody select {
-
-            width: 100%;
-
-            height: 34px;
-
-            padding: 2px 4px;
-
-            border: 1px solid #dbe3ef;
-
-            border-radius: 5px;
-
-            font-size: 10px;
-
-            text-align: center;
-
-            background: white;
-        }
-
-
-        .table tbody input:focus,
-        .table tbody select:focus {
-
-            outline: none;
-
-            border-color: #4f46e5;
-        }
-
-
-        /* =========================
-           ACTION COLUMN
-           ========================= */
-
-        .fixed-action-column {
-
-            position: sticky !important;
-
-            right: 0;
-
-            z-index: 6;
-
-            background: #f8fafc !important;
-        }
-
-
-        .table tbody td:last-child {
-
-            position: sticky;
-
-            right: 0;
-
-            z-index: 4;
-
-            background: white;
-        }
-
-
-        .row-action-btn {
-            width: 58px;
-            height: 38px;
-            border: none;
-            border-radius: 6px;
-            background: #1f1f1f !important;
-            color: #ffffff !important;
-            font-size: 12px !important;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-        }
-
-        .row-action-btn:hover {
-            background: #000000 !important;
-            color: #ffffff !important;
-        }
-
-
-        .delete-row-btn {
-
-            width: 38px;
-
-            height: 38px;
-
-            margin-left: 4px;
-
-            border: none;
-
-            border-radius: 6px;
-
-            background: #ef4444;
-
-            color: white;
-
-            cursor: pointer;
-        }
-
-
-        .delete-row-btn:hover {
-
-            background: #dc2626;
-        }
-
-
-        /* =========================
-           PAGINATION
-           ========================= */
-
-        .pagination-controls {
-
-            flex-shrink: 0;
-
-            min-height: 45px;
-
-            display: flex;
-
-            justify-content: center;
-
-            align-items: center;
-
-            gap: 8px;
-
-            border-top: 1px solid #e2e8f0;
-        }
-
-
-        /* =========================
-           CSV LOADING
-           ========================= */
-
-        .csv-loading-overlay {
-
-            display: none;
-
-            position: fixed;
-
-            inset: 0;
-
-            background: rgba(255, 255, 255, 0.8);
-
-            z-index: 9999;
-
-            align-items: center;
-
-            justify-content: center;
-        }
-
-
-        .csv-loading-box {
-
-            background: white;
-
-            padding: 25px;
-
-            border-radius: 10px;
-
-            box-shadow:
-                0 5px 25px rgba(0, 0, 0, 0.15);
-
-            text-align: center;
-        }
-
-
-        .csv-spinner {
-
-            width: 35px;
-
-            height: 35px;
-
-            border: 4px solid #e5e7eb;
-
-            border-top-color: #4f46e5;
-
-            border-radius: 50%;
-
-            animation: spin 0.8s linear infinite;
-
-            margin: auto auto 15px;
-        }
-
-
-        @keyframes spin {
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-
-        .csv-loading-title {
-
-            font-size: 18px;
-
-            font-weight: 700;
-
-            margin-bottom: 5px;
-        }
-
-
-        .csv-loading-text {
-
-            font-size: 13px;
-
-            color: #64748b;
-        }
-
-
-        /* =========================
-           RESPONSIVE
-           ========================= */
-
-        @media (max-width: 1200px) {
-
-            .toolbar-actions {
-                margin-left: auto;
-                width: auto;
-                flex-wrap: nowrap;
-            }
-
-        }
-
-
-        @media (max-width: 900px) {
-
-            .filters-row {
-
-                flex-direction: column;
-            }
-
-
-            #itemNoContainer,
-            .core-field {
-
-                width: 100%;
-
-                max-width: 100%;
-            }
-
-
-            .toolbar-actions {
-
-                width: 100%;
-            }
-
-
-            .toolbar-actions .btn {
-
-                flex: 1;
-            }
-
-        }
-
-    
-
-/* =========================================================
-   FRAPPE-STYLE TOOLBAR OVERRIDE
-   Keep Item Management toolbar on one clean row
-   ========================================================= */
-
-.top-bar {
-    padding: 22px 32px !important;
-    margin-bottom: 14px !important;
-}
-
-.top-bar-title {
-    font-size: 1.2rem !important;
-    margin-bottom: 10px !important;
-}
-
-.top-bar-title i {
-    font-size: 22px !important;
-}
-
-.toolbar-form {
-    width: 100% !important;
-    display: block !important;
-}
-
-.filters-row {
-    width: 100% !important;
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    align-items: flex-start !important;
-    gap: 15px !important;
-}
-
-#itemNoContainer {
-    width: 300px !important;
-    min-width: 300px !important;
-    flex: 0 0 300px !important;
-    gap: 8px !important;
-}
-
-.item-no-row {
-    width: 100% !important;
-    height: 48px !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 7px !important;
-}
-
-.item-no-row .itemNoInput {
-    height: 48px !important;
-    font-size: 14px !important;
-    padding: 0 12px !important;
-    border-radius: 7px !important;
-}
-
-.addItemNoBtn,
-.removeItemNoBtn {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    font-size: 24px !important;
-    border-radius: 0 !important;
-}
-
-.core-field {
-    width: 205px !important;
-    min-width: 205px !important;
-    max-width: 205px !important;
-    flex: 0 0 205px !important;
-}
-
-.core-field .form-control,
-#fetchActive {
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-    height: 48px !important;
-    font-size: 14px !important;
-    padding: 0 14px !important;
-    border-radius: 7px !important;
-}
-
-#addFilterSelect {
-    width: 280px !important;
-    min-width: 280px !important;
-    max-width: 280px !important;
-    height: 48px !important;
-    font-size: 14px !important;
-    padding: 0 14px !important;
-    border-radius: 7px !important;
-}
-
-/* Push Fetch/CSV/Import/Add Item/Save to the far right */
-.toolbar-actions {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 12px !important;
-    margin-left: auto !important;
-    width: auto !important;
-    flex: 0 0 auto !important;
-    flex-shrink: 0 !important;
-    flex-wrap: nowrap !important;
-    white-space: nowrap !important;
-}
-
-.toolbar-actions .btn {
-    height: 48px !important;
-    min-height: 48px !important;
-    padding: 0 15px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    border-radius: 7px !important;
-    white-space: nowrap !important;
-}
-
-.toolbar-actions .btn i {
-    font-size: 14px !important;
-}
-
-.btn-primary {
-    background: #222222 !important;
-    border-color: #222222 !important;
-    color: #ffffff !important;
-}
-
-.btn-outline {
-    background: #ffffff !important;
-    border: 1px solid #dbe3ef !important;
-    color: #1e293b !important;
-}
-
-.btn-success {
-    background: #10b981 !important;
-    border-color: #10b981 !important;
-    color: #ffffff !important;
-}
-
-#saveUpdateBtn,
-#saveUpdateBtn:disabled {
-    background: #7acb91 !important;
-    border-color: #7acb91 !important;
-    color: #ffffff !important;
-    opacity: 1 !important;
-}
+#saveUpdateBtn:hover:not(:disabled) { background: #5fb87a; border-color: #5fb87a; }
+#saveUpdateBtn:disabled { cursor: not-allowed; opacity: .65; }
+
+/* =========================
+   FILTER CHIPS
+   ========================= */
 
 .active-filters {
-    width: 100% !important;
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    margin-top: 10px !important;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
 }
 
-/* Keep customer filter compact like Frappe */
-.customer-hierarchy-filter {
-    min-height: 44px !important;
-    gap: 8px !important;
-    padding: 5px 7px !important;
-}
-
-.customer-filter-label {
-    font-size: 12px !important;
-}
-
-.customer-filter-type,
-.customer-filter-value {
-    height: 36px !important;
-    font-size: 13px !important;
-}
-
-/* Table text */
-.table {
-    font-size: 10px !important;
-}
-
-.table th {
-    font-size: 10px !important;
-}
-
-.table tbody input,
-.table tbody select {
-    font-size: 10px !important;
-}
-
-.row-action-btn {
-    font-size: 12px !important;
-}
-
-/* Desktop: never wrap the top toolbar */
-@media (min-width: 901px) {
-    .filters-row {
-        flex-wrap: nowrap !important;
-    }
-
-    .toolbar-actions {
-        flex-wrap: nowrap !important;
-    }
-}
-
-/* Smaller screens */
-@media (max-width: 900px) {
-    .filters-row {
-        flex-direction: column !important;
-        flex-wrap: nowrap !important;
-    }
-
-    #itemNoContainer,
-    .core-field,
-    #addFilterSelect {
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
-        flex: 0 0 auto !important;
-    }
-
-    .toolbar-actions {
-        width: 100% !important;
-        flex-wrap: wrap !important;
-        margin-left: 0 !important;
-        justify-content: flex-start !important;
-    }
-}
-</style>
-
-
-<style id="final-frappe-toolbar-fix">
-/* =========================================================
-   FINAL TOOLBAR FIX
-   One clean override only
-   ========================================================= */
-
-/* TOP CARD */
-.top-bar {
-    padding: 18px 28px !important;
-    margin-bottom: 14px !important;
-}
-
-.top-bar-title {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    margin-bottom: 8px !important;
-    font-size: 20px !important;
-    font-weight: 700 !important;
-}
-
-.top-bar-title i {
-    font-size: 20px !important;
-}
-
-/* TOOLBAR */
-.toolbar-form {
-    width: 100% !important;
-    display: block !important;
-}
-
-.filters-row {
-    width: 100% !important;
-    display: grid !important;
-    grid-template-columns: 300px 205px minmax(220px, 1fr) max-content !important;
-    align-items: start !important;
-    column-gap: 12px !important;
-    row-gap: 6px !important;
-}
-
-/* ITEM NO */
-#itemNoContainer {
-    width: 300px !important;
-    min-width: 300px !important;
-    max-width: 300px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-}
-
-.item-no-row {
-    width: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-}
-
-.item-no-row .itemNoInput {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 12px !important;
-    font-size: 13px !important;
-    border-radius: 6px !important;
-}
-
-/* ITEM NO + / - */
-.addItemNoBtn,
-.removeItemNoBtn {
-    width: 42px !important;
-    min-width: 42px !important;
-    max-width: 42px !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    max-height: 42px !important;
-    padding: 0 !important;
-    font-size: 21px !important;
-    line-height: 1 !important;
-    border-radius: 0 !important;
-}
-
-/* ACTIVE */
-.core-field {
-    width: 205px !important;
-    min-width: 205px !important;
-    max-width: 205px !important;
-}
-
-.core-field .form-control,
-#fetchActive {
-    width: 100% !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 12px !important;
-    font-size: 13px !important;
-    border-radius: 6px !important;
-}
-
-/* ADD FILTER
-   This occupies the flexible middle area.
-   Therefore the action buttons stay at the far right. */
-#addFilterSelect {
-    width: 100% !important;
-    min-width: 220px !important;
-    max-width: none !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 12px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    border-radius: 6px !important;
-}
-
-/* ACTION BUTTONS */
-.toolbar-actions {
-    grid-column: 4 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-    margin: 0 !important;
-    width: max-content !important;
-    min-width: max-content !important;
-    flex: none !important;
-    flex-wrap: nowrap !important;
-    white-space: nowrap !important;
-}
-
-.toolbar-actions .btn {
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 13px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    border-radius: 6px !important;
-    gap: 6px !important;
-    white-space: nowrap !important;
-}
-
-.toolbar-actions .btn i {
-    font-size: 13px !important;
-}
-
-/* FETCH */
-.toolbar-actions .btn-primary {
-    background: #222222 !important;
-    border: 1px solid #222222 !important;
-    color: #ffffff !important;
-}
-
-/* CSV + IMPORT */
-.toolbar-actions .btn-outline {
-    background: #ffffff !important;
-    border: 1px solid #dbe3ef !important;
-    color: #1e293b !important;
-}
-
-/* ADD ITEM */
-.toolbar-actions .btn-success {
-    background: #10b981 !important;
-    border: 1px solid #10b981 !important;
-    color: #ffffff !important;
-}
-
-/* MAIN SAVE */
-.toolbar-actions #saveUpdateBtn,
-.toolbar-actions #saveUpdateBtn:disabled {
-    background: #7acb91 !important;
-    border: 1px solid #7acb91 !important;
-    color: #ffffff !important;
-    opacity: 1 !important;
-}
-
-/* CUSTOMER FILTER */
-.customer-hierarchy-filter {
-    min-height: 42px !important;
-    gap: 7px !important;
-    padding: 4px 7px !important;
-}
-
-.customer-filter-label {
-    min-width: 78px !important;
-    font-size: 11px !important;
-}
-
-.customer-filter-type {
-    width: 180px !important;
-    height: 34px !important;
-    font-size: 12px !important;
-}
-
-.customer-filter-value {
-    width: 210px !important;
-    height: 34px !important;
-    font-size: 12px !important;
-}
-
-.customer-filter-remove {
-    width: 34px !important;
-    min-width: 34px !important;
-    height: 34px !important;
-    font-size: 18px !important;
-}
-
-/* NORMAL FILTER CHIPS */
 .filter-chip {
-    padding: 5px 8px !important;
-    gap: 5px !important;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
 }
 
-.filter-chip label {
-    font-size: 11px !important;
+.filter-chip label { margin: 0; font-size: 11px; font-weight: 700; color: #374151; }
+
+.filter-chip input,
+.filter-chip select {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    outline: none;
 }
 
-/* TABLE */
+.filter-chip input:focus,
+.filter-chip select:focus { border-color: #64748b; }
+
+.customer-hierarchy-filter { background: #fff; border-color: #d9dee7; padding: 4px 7px; }
+.customer-filter-label { min-width: 78px; }
+.customer-filter-type { width: 180px; }
+.customer-filter-value { width: 210px; }
+
+.customer-filter-remove,
+.remove-filter {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    color: #dc2626;
+    background: #fff;
+    border: 1px solid #dc2626;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.customer-filter-remove:hover,
+.remove-filter:hover { color: #fff; background: #dc2626; }
+
+/* =========================
+   RESULTS
+   ========================= */
+
+.results-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+    overflow: hidden;
+}
+
+.table-responsive {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
 .table {
-    font-size: 10px !important;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 9px;
 }
 
 .table th {
-    font-size: 9px !important;
-    padding: 6px 3px !important;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #f8fafc;
+    color: #1e2130;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+    padding: 6px 2px;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .table td {
-    padding: 4px 3px !important;
+    padding: 4px 2px;
+    font-size: 9px;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
+.table tbody tr:hover { background: #f8fafc; }
 
 .table tbody input,
 .table tbody select {
-    height: 32px !important;
-    font-size: 10px !important;
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    padding: 2px 3px;
+    font-size: 9px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid #dbe3ef;
+    border-radius: 5px;
 }
 
-/* ACTION COLUMN FIX
-   The old 58px column was too narrow for Save + Delete.
-   Give it enough width so both buttons remain visible. */
+.table tbody input:focus,
+.table tbody select:focus { outline: none; border-color: #4f46e5; }
+
+/* COLUMN WIDTHS — 19 data columns + action, total 100% */
+
+.table th:nth-child(1),  .table td:nth-child(1)  { width: 4%;   }  /* Active */
+.table th:nth-child(2),  .table td:nth-child(2)  { width: 5%;   }  /* Condition Type */
+.table th:nth-child(3),  .table td:nth-child(3)  { width: 6%;   }  /* Item No */
+.table th:nth-child(4),  .table td:nth-child(4)  { width: 5%;   }  /* Customer */
+.table th:nth-child(5),  .table td:nth-child(5)  { width: 4%;   }  /* Customer Grp */
+.table th:nth-child(6),  .table td:nth-child(6)  { width: 4%;   }  /* Customer Hierarchy */
+.table th:nth-child(7),  .table td:nth-child(7)  { width: 4%;   }  /* Distribution Channel */
+.table th:nth-child(8),  .table td:nth-child(8)  { width: 4%;   }  /* Location Code */
+.table th:nth-child(9),  .table td:nth-child(9)  { width: 3.5%; }  /* Priority */
+.table th:nth-child(10), .table td:nth-child(10) { width: 4%;   }  /* Currency */
+.table th:nth-child(11), .table td:nth-child(11) { width: 6%;   }  /* Sales Price */
+.table th:nth-child(12), .table td:nth-child(12) { width: 4%;   }  /* UOM */
+.table th:nth-child(13), .table td:nth-child(13) { width: 4%;   }  /* Min Qty */
+.table th:nth-child(14), .table td:nth-child(14) { width: 8%;   }  /* Starting Date */
+.table th:nth-child(15), .table td:nth-child(15) { width: 8%;   }  /* Ending Date */
+.table th:nth-child(16), .table td:nth-child(16) { width: 5%;   }  /* Lower Limit */
+.table th:nth-child(17), .table td:nth-child(17) { width: 5%;   }  /* Upper Limit */
+.table th:nth-child(18), .table td:nth-child(18) { width: 4%;   }  /* Zone Code */
+.table th:nth-child(19), .table td:nth-child(19) { width: 4%;   }  /* Offer Article */
+.table th:nth-child(20), .table td:nth-child(20) { width: 8.5%; }  /* Action */
+
+.table td.col-starting_date,
+.table td.col-ending_date { font-size: 8px; letter-spacing: -.2px; }
+
+/* EDITABLE CELLS */
+
+.table td.editable-cell { cursor: pointer; }
+.table td.editable-cell:hover { background: #eef2ff; }
+.table tr.row-dirty { background: #fffbeb !important; }
+.table td.cell-dirty { background: #fef3c7; font-weight: 600; }
+
+/* ACTIVE TICK */
+
+.active-tick-btn {
+    width: 32px;
+    height: 30px;
+    min-width: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #222;
+    border-radius: 5px;
+    background: #222;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.active-tick-btn:hover { background: #000; border-color: #000; }
+.active-tick-btn.inactive { background: #fff; border-color: #dbe3ef; color: transparent; }
+
+/* ACTION COLUMN */
+
 .fixed-action-column,
 .table tbody td:last-child {
-    width: 108px !important;
-    min-width: 108px !important;
-    max-width: 108px !important;
+    position: sticky;
+    right: 0;
+    z-index: 4;
+    background: #fff;
 }
 
-.row-action-btn {
-    width: 58px !important;
-    height: 34px !important;
-    min-width: 58px !important;
-    padding: 0 !important;
-    background: #222222 !important;
-    border: 1px solid #222222 !important;
-    color: #ffffff !important;
-    font-size: 11px !important;
-    border-radius: 6px !important;
-}
+.fixed-action-column { z-index: 6; background: #f8fafc; }
+.table tbody tr:hover td:last-child { background: #f8fafc; }
 
 .delete-row-btn {
-    width: 34px !important;
-    height: 34px !important;
-    margin-left: 3px !important;
-    border-radius: 6px !important;
+    width: 34px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    cursor: pointer;
 }
+
+.delete-row-btn:hover { background: #dc2626; }
+
+/* =========================
+   PAGINATION
+   ========================= */
 
 .pagination-controls {
-    min-height: 42px !important;
-}
-
-/* LOADING TEXT */
-.csv-loading-title {
-    font-size: 17px !important;
-}
-
-.csv-loading-text {
-    font-size: 12px !important;
-}
-
-/* DESKTOP */
-@media (min-width: 1201px) {
-    .filters-row {
-        grid-template-columns: 300px 205px minmax(220px, 1fr) max-content !important;
-    }
-}
-
-/* MEDIUM DESKTOP */
-@media (max-width: 1200px) and (min-width: 901px) {
-    .filters-row {
-        grid-template-columns: 270px 190px minmax(180px, 1fr) max-content !important;
-        column-gap: 8px !important;
-    }
-
-    #itemNoContainer {
-        width: 270px !important;
-        min-width: 270px !important;
-        max-width: 270px !important;
-    }
-
-    .core-field {
-        width: 190px !important;
-        min-width: 190px !important;
-        max-width: 190px !important;
-    }
-
-    #addFilterSelect {
-        min-width: 180px !important;
-    }
-
-    .toolbar-actions {
-        gap: 5px !important;
-    }
-
-    .toolbar-actions .btn {
-        padding: 0 9px !important;
-        font-size: 12px !important;
-    }
-
-    .toolbar-actions .btn i {
-        font-size: 12px !important;
-    }
-}
-
-/* MOBILE */
-@media (max-width: 900px) {
-    .filters-row {
-        display: flex !important;
-        flex-direction: column !important;
-        width: 100% !important;
-        gap: 8px !important;
-    }
-
-    #itemNoContainer,
-    .core-field,
-    #fetchActive,
-    #addFilterSelect {
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
-        flex: none !important;
-    }
-
-    #addFilterSelect {
-        width: 100% !important;
-    }
-
-    .toolbar-actions {
-        width: 100% !important;
-        min-width: 0 !important;
-        flex-wrap: wrap !important;
-        justify-content: flex-start !important;
-    }
-
-    .toolbar-actions .btn {
-        flex: 1 1 auto !important;
-    }
-}
-
-
-/* =========================================================
-   ACTIVE COLUMN - FRAPPE STYLE BLACK TICK BUTTON
-   ========================================================= */
-
-.active-tick-wrapper {
-    width: 100%;
-    height: 32px;
+    flex-shrink: 0;
+    min-height: 42px;
     display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-top: 1px solid #e2e8f0;
+    font-size: 12px;
+}
+
+.pagination-controls button {
+    padding: 6px 12px;
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
+    background: #fff;
+    color: #4f46e5;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #fff;
+}
+
+.pagination-controls button:disabled { opacity: .45; cursor: not-allowed; }
+
+/* =========================
+   MODAL
+   ========================= */
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    overflow: auto;
+    background: rgba(15, 23, 42, .55);
+}
+
+.modal-dialog { width: auto; max-width: 480px; margin: 60px auto; }
+
+.modal-content {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, .12);
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.modal-title i { color: #4f46e5; }
+
+.close {
+    background: transparent;
+    border: none;
+    font-size: 1.3rem;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.modal-body { padding: 22px; }
+.modal-body .form-group { margin-bottom: 14px; }
+
+.modal-body label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: .85rem;
+    font-weight: 600;
+}
+
+.modal-body .form-control {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 22px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* =========================
+   CSV LOADING
+   ========================= */
+
+.csv-loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(255, 255, 255, .8);
     align-items: center;
     justify-content: center;
 }
 
-.active-tick-btn {
-    width: 32px !important;
-    height: 34px !important;
-    min-width: 32px !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: 1px solid #222222 !important;
-    border-radius: 5px !important;
-    background: #222222 !important;
-    color: #ffffff !important;
-    font-size: 17px !important;
-    font-weight: 700 !important;
-    line-height: 1 !important;
-    cursor: pointer !important;
-    box-shadow: none !important;
+.csv-loading-box {
+    background: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, .15);
+    text-align: center;
 }
 
-.active-tick-btn:hover {
-    background: #000000 !important;
-    border-color: #000000 !important;
+.csv-spinner {
+    width: 35px;
+    height: 35px;
+    margin: 0 auto 15px;
+    border: 4px solid #e5e7eb;
+    border-top-color: #4f46e5;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
 }
 
-.active-tick-btn.inactive {
-    background: #ffffff !important;
-    border-color: #dbe3ef !important;
-    color: #ffffff !important;
-}
-</style>
+@keyframes spin { to { transform: rotate(360deg); } }
 
+.csv-loading-title { font-size: 17px; font-weight: 700; margin-bottom: 5px; }
+.csv-loading-text { font-size: 12px; color: #64748b; }
 
-<style id="final-no-horizontal-scroll">
-/* =========================================================
-   FINAL ITEM TABLE
-   MAP, Change Type, SAP Updated, Division Code,
-   Price w/ Tax and Tax % removed.
-   ========================================================= */
+/* =========================
+   RESPONSIVE
+   ========================= */
 
-.table-responsive {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-}
+@media (max-width: 1200px) and (min-width: 901px) {
 
-.table {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    table-layout: fixed !important;
-    font-size: 9px !important;
-}
-
-.table th,
-.table td {
-    padding: 4px 2px !important;
-    font-size: 9px !important;
-}
-
-.table th {
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-.table tbody input,
-.table tbody select {
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 30px !important;
-    padding: 2px 3px !important;
-    font-size: 9px !important;
-}
-
-.fixed-action-column,
-.table tbody td:last-child {
-    width: 108px !important;
-    min-width: 108px !important;
-    max-width: 108px !important;
-}
-
-.results-section {
-    overflow: hidden !important;
-}
-
-@media (min-width: 901px) {
-    .table-responsive {
-        overflow-x: hidden !important;
+    .filters-row {
+        grid-template-columns: 270px 190px minmax(180px, 1fr) max-content;
+        column-gap: 8px;
     }
+
+    #itemNoContainer { width: 270px; }
+    .core-field { width: 190px; }
+    .toolbar-actions { gap: 5px; }
+    .toolbar-actions .btn { padding: 0 9px; font-size: 12px; }
 }
+
+@media (max-width: 900px) {
+
+    .filters-row { display: flex; flex-direction: column; gap: 8px; }
+
+    #itemNoContainer,
+    .core-field,
+    .core-field.filter-field { width: 100%; min-width: 100%; }
+
+    .toolbar-actions { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
+    .toolbar-actions .btn { flex: 1 1 auto; }
+    .table-responsive { max-height: 60vh; }
+}
+
 </style>
 
 </head>
@@ -1692,2095 +627,1768 @@
 
 <body>
 
-
 <div class="item-management-container">
 
-
     <!-- =====================================================
-         HEADER
-         ====================================================== -->
+         HEADER + TOOLBAR
+         ===================================================== -->
 
     <div class="top-bar">
 
-
-        <div class="top-bar-title" style="justify-content: space-between;">
+        <div class="top-bar-title">
 
             <span style="display:flex; align-items:center; gap:10px;">
                 <i class="fas fa-tags"></i>
                 Item Management
             </span>
 
-            <a href="/discount-management" style="font-size: 13px; font-weight: 600; color: #4f46e5;">
-                Go to Discount Management &rarr;
-            </a>
-
         </div>
 
 
-        <form
-            id="fetchForm"
-            class="toolbar-form"
-        >
-
+        <form id="fetchForm" class="toolbar-form">
 
             <div class="filters-row">
 
-
-                <!-- =================================================
-                     ITEM NO
-                     ================================================= -->
+                <!-- ITEM NO -->
 
                 <div id="itemNoContainer">
 
-
                     <div class="item-no-row">
 
+                        <input type="text"
+                               class="form-control itemNoInput"
+                               name="item_no[]"
+                               placeholder="Item No"
+                               autocomplete="off">
 
-                        <input
-                            type="text"
-                            class="form-control itemNoInput"
-                            name="item_no[]"
-                            placeholder="Item No"
-                        >
-
-
-                        <button
-                            type="button"
-                            class="addItemNoBtn"
-                            title="Add Item No"
-                        >
-                            +
-                        </button>
-
+                        <button type="button"
+                                class="addItemNoBtn"
+                                title="Add Item No">+</button>
 
                     </div>
 
-
                 </div>
 
 
-                <!-- =================================================
-                     ACTIVE
-                     ================================================= -->
+                <!-- ACTIVE -->
 
                 <div class="core-field">
 
-
-                    <select
-                        id="fetchActive"
-                        name="active"
-                        class="form-control"
-                    >
-
-                        <option value="true">
-                            Active
-                        </option>
-
-                        <option value="false">
-                            Inactive
-                        </option>
-
-                        <option value="">
-                            All
-                        </option>
-
+                    <select id="fetchActive" name="active" class="form-control">
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                        <option value="">All</option>
                     </select>
 
-
                 </div>
 
 
-                <!-- =================================================
-                     ADD FILTER
-                     ================================================= -->
+                <!-- ADD FILTER -->
 
-                <div class="core-field">
-
+                <div class="core-field filter-field">
 
                     <select id="addFilterSelect" class="form-control">
-
-                    <option value="">
-                        + Add filter
-                    </option>
-
-                    <option value="customer_group_hierarchy">
-                        Customer / Group / Hierarchy
-                    </option>
-
-                    <option value="sort_by">
-                        Sort By
-                    </option>
-
-                    <option value="sales_organization">
-                        Sales Organization
-                    </option>
-
-                    <option value="distribution_channel">
-                        Distribution Channel
-                    </option>
-
-                    <option value="location_code">
-                        Location Code
-                    </option>
-
-                    <option value="condition_type">
-                        Condition Type
-                    </option>
-
-                    <option value="sales_price">
-                        Sales Price
-                    </option>
-
-                    <option value="currency">
-                        Currency
-                    </option>
-
-                    <option value="unit_of_measure">
-                        Unit of Measure
-                    </option>
-
-                    <option value="minimum_quantity">
-                        Minimum Quantity
-                    </option>
-
-                    <option value="lower_limit">
-                        Lower Limit
-                    </option>
-
-                    <option value="upper_limit">
-                        Upper Limit
-                    </option>
-
-                    <option value="transportation_zone">
-                        Transportation Zone
-                    </option>
-
-                    <option value="starting_date">
-                        Starting Date
-                    </option>
-
-                    <option value="ending_date">
-                        Ending Date
-                    </option>
-
-                    <option value="priority">
-                        Priority
-                    </option>
-
-                    <option value="offer_article">
-                        Offer Article
-                    </option>
-
+                        <option value="">+ Add filter</option>
+                        <option value="customer_group_hierarchy">Customer / Group / Hierarchy</option>
+                        <option value="sort_by">Sort By</option>
+                        <option value="sales_organization">Sales Organization</option>
+                        <option value="distribution_channel">Distribution Channel</option>
+                        <option value="location_code">Location Code</option>
+                        <option value="condition_type">Condition Type</option>
+                        <option value="sales_price">Sales Price</option>
+                        <option value="currency">Currency</option>
+                        <option value="uom">Unit of Measure</option>
+                        <option value="min_qty">Minimum Quantity</option>
+                        <option value="lower_limit">Lower Limit</option>
+                        <option value="upper_limit">Upper Limit</option>
+                        <option value="zone_code">Transportation Zone</option>
+                        <option value="starting_date">Starting Date</option>
+                        <option value="ending_date">Ending Date</option>
+                        <option value="priority">Priority</option>
+                        <option value="offer_article">Offer Article</option>
                     </select>
 
                 </div>
 
 
-                <!-- =================================================
-                     ACTION BUTTONS
-                     ================================================= -->
+                <!-- ACTIONS -->
 
                 <div class="toolbar-actions">
 
-
-                    <button
-                        type="submit"
-                        id="fetch"
-                        class="btn btn-primary"
-                    >
-
-                        <i class="fas fa-search"></i>
-
-                        Fetch
-
+                    <button type="submit" id="fetch" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Fetch
                     </button>
 
-
-                    <button
-                        type="button"
-                        id="downloadCsvBtn"
-                        class="btn btn-outline"
-                    >
-
-                        <i class="fas fa-download"></i>
-
-                        CSV
-
+                    <button type="button" id="downloadCsvBtn" class="btn btn-outline">
+                        <i class="fas fa-download"></i> CSV
                     </button>
 
-
-                    <button
-                        type="button"
-                        id="importBtnUnique"
-                        class="btn btn-outline"
-                    >
-
-                        <i class="fas fa-file-import"></i>
-
-                        Import
-
+                    <button type="button" id="importBtnUnique" class="btn btn-outline">
+                        <i class="fas fa-file-import"></i> Import
                     </button>
 
-
-                    <button
-                        type="button"
-                        id="addItemBtn"
-                        class="btn btn-success"
-                    >
-
-                        <i class="fas fa-plus"></i>
-
-                        Add Item
-
+                    <button type="button" id="addItemBtn" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Add Item
                     </button>
 
-
-                    <button
-                        type="button"
-                        id="saveUpdateBtn"
-                        class="btn btn-success"
-                        
-                    >
-
+                    <button type="button" id="saveUpdateBtn" class="btn" disabled>
                         Save
-
                     </button>
-
 
                 </div>
-
 
             </div>
 
 
-            <!-- =====================================================
-                 ACTIVE FILTERS
-                 ====================================================== -->
-
-            <div
-                id="activeFilters"
-                class="active-filters"
-            ></div>
-
+            <div id="activeFilters" class="active-filters"></div>
 
         </form>
-
 
     </div>
 
 
-
     <!-- =====================================================
          CSV POPUP
-         ====================================================== -->
+         ===================================================== -->
 
-    <div
-        id="csvPopUp"
-        class="modal"
-        tabindex="-1"
-    >
+    <div id="csvPopUp" class="modal" tabindex="-1">
 
         <div class="modal-dialog">
 
             <div class="modal-content">
 
-
                 <div class="modal-header">
 
                     <h5 class="modal-title">
-
-                        <i class="fas fa-file-upload"></i>
-
-                        Upload Data
-
+                        <i class="fas fa-file-upload"></i> Upload Data
                     </h5>
 
-
-                    <button
-                        type="button"
-                        class="close"
-                        id="closeCsvPopup"
-                    >
-
-                        <span>
-                            &times;
-                        </span>
-
+                    <button type="button" class="close" id="closeCsvPopup">
+                        <span>&times;</span>
                     </button>
 
                 </div>
-
 
                 <div class="modal-body">
 
-
                     <div class="form-group">
-
-                        <label>
-                            Select Action
-                        </label>
-
-
-                        <select
-                            id="actionSelect"
-                            class="form-control"
-                        >
-
-                            <option value="add">
-                                Add Data
-                            </option>
-
-                            <option value="update">
-                                Update Data
-                            </option>
-
-                            <option value="bulk">
-                                Bulk Reset
-                            </option>
-
+                        <label>Select Action</label>
+                        <select id="actionSelect" class="form-control">
+                            <option value="add">Add Data</option>
+                            <option value="update">Update Data</option>
+                            <option value="bulk">Bulk Reset</option>
                         </select>
-
                     </div>
 
-
                     <div class="form-group">
-
-                        <button
-                            type="button"
-                            id="downloadSampleBtn"
-                            class="btn btn-outline btn-block"
-                        >
-
-                            <i class="fas fa-file-csv"></i>
-
-                            Download Sample CSV
-
+                        <button type="button" id="downloadSampleBtn" class="btn btn-outline btn-block">
+                            <i class="fas fa-file-csv"></i> Download Sample CSV
                         </button>
-
                     </div>
-
 
                     <div class="form-group">
-
-                        <label>
-                            Upload CSV File
-                        </label>
-
-
-                        <input
-                            type="file"
-                            id="fileUpload"
-                            class="form-control"
-                            accept=".csv"
-                        >
-
+                        <label>Upload CSV File</label>
+                        <input type="file" id="fileUpload" class="form-control" accept=".csv">
                     </div>
-
 
                 </div>
-
 
                 <div class="modal-footer">
 
+                    <button type="button" id="cancelCsvBtn" class="btn btn-outline">Cancel</button>
 
-                    <button
-                        type="button"
-                        id="cancelCsvBtn"
-                        class="btn btn-outline"
-                    >
-                        Cancel
+                    <button type="button" id="uploadBtn" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload CSV
                     </button>
-
-
-                    <button
-                        type="button"
-                        id="uploadBtn"
-                        class="btn btn-primary"
-                    >
-
-                        <i class="fas fa-upload"></i>
-
-                        Upload CSV
-
-                    </button>
-
 
                 </div>
-
 
             </div>
 
         </div>
 
     </div>
-
 
 
     <!-- =====================================================
          LOADING OVERLAY
-         ====================================================== -->
+         ===================================================== -->
 
-    <div
-        id="csvLoadingOverlay"
-        class="csv-loading-overlay"
-    >
+    <div id="csvLoadingOverlay" class="csv-loading-overlay">
 
         <div class="csv-loading-box">
 
-
             <div class="csv-spinner"></div>
 
-
-            <div class="csv-loading-title">
-
-                Processing CSV...
-
-            </div>
-
+            <div class="csv-loading-title">Processing CSV...</div>
 
             <div class="csv-loading-text">
-
-                Please wait while the CSV data is being uploaded
-                and processed.
-
+                Please wait while the CSV data is being uploaded and processed.
             </div>
-
 
         </div>
 
     </div>
-
 
 
     <!-- =====================================================
-         RESULTS TABLE
-         ====================================================== -->
+         RESULTS
+         ===================================================== -->
 
     <div class="results-section">
 
-
         <div class="table-responsive">
-
 
             <table class="table table-bordered table-hover">
 
-
                 <thead>
-
-                    <tr>
-
-                        <th>Active</th>
-
-                        <th>Condition Type</th>
-
-                        <th>Item No</th>
-
-                        <th>Customer</th>
-
-                        <th>Customer Grp</th>
-
-                        <th>Customer Hierarchy</th>
-
-                        <th>Distribution Channel</th>
-
-                        <th>Location Code</th>
-
-                        <th>Priority</th>
-
-                        <th>Currency</th>
-
-                        <th>Sales Price</th>
-
-                        <th>UOM</th>
-
-                        <th>Min Qty</th>
-
-                        <th>Starting Date</th>
-
-                        <th>Ending Date</th>
-
-                        <th>Lower Limit</th>
-
-                        <th>Upper Limit</th>
-
-                        <th>Zone Code</th>
-<th>Offer Article</th>
-<th class="fixed-action-column">
-                            Action
-                        </th>
-
-                    </tr>
-
+                    <tr id="itemPriceTableHead"></tr>
                 </thead>
 
-
-                <tbody id="itemPriceTableBody">
-
-                </tbody>
-
+                <tbody id="itemPriceTableBody"></tbody>
 
             </table>
 
-
         </div>
 
-
-        <div
-            id="paginationControls"
-            class="pagination-controls"
-        ></div>
-
+        <div id="paginationControls" class="pagination-controls"></div>
 
     </div>
-
 
 </div>
 
 
-
 <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+/* =========================================================
+   COLUMN DEFINITIONS
+
+   Single source of truth. The header, the fetched rows, the
+   Add Item row, the editors, the CSV export and the save
+   payload are all generated from this array — so adding or
+   removing a column here is the only change needed.
+
+   type:     text | number | datetime
+   editable: inline-editable on an existing (fetched) row
+   ========================================================= */
+
+const COLUMNS = [
+    { key: "active",               label: "Active",               type: "active"                    },
+    { key: "condition_type",       label: "Condition Type",       type: "text"                      },
+    { key: "item_no",              label: "Item No",              type: "text"                      },
+    { key: "customer",             label: "Customer",             type: "text"                      },
+    { key: "customer_grp",         label: "Customer Grp",         type: "text"                      },
+    { key: "customer_hierarchy",   label: "Customer Hierarchy",   type: "text"                      },
+    { key: "distribution_channel", label: "Distribution Channel", type: "text"                      },
+    { key: "location_code",        label: "Location Code",        type: "text"                      },
+    { key: "priority",             label: "Priority",             type: "number",   editable: true  },
+    { key: "currency",             label: "Currency",             type: "text"                      },
+    { key: "sales_price",          label: "Sales Price",          type: "number",   editable: true  },
+    { key: "uom",                  label: "UOM",                  type: "text"                      },
+    { key: "min_qty",              label: "Min Qty",              type: "number",   editable: true  },
+    { key: "starting_date",        label: "Starting Date",        type: "datetime", editable: true  },
+    { key: "ending_date",          label: "Ending Date",          type: "datetime", editable: true  },
+    { key: "lower_limit",          label: "Lower Limit",          type: "number",   editable: true  },
+    { key: "upper_limit",          label: "Upper Limit",          type: "number",   editable: true  },
+    { key: "zone_code",            label: "Zone Code",            type: "text",     editable: true  },
+    { key: "offer_article",        label: "Offer Article",        type: "text",     editable: true  }
+];
+
+const API = {
+    fetch:     "/api/fetch_all_prices",
+    save:      "/api/create_manual_price",
+    remove:    "/api/item-management/delete",
+    import:    "/api/item-management/import",
+    sampleCsv: "/api/create_price"
+};
+
+const PAGE_SIZE = 20;
 
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+/* =========================================================
+   STATE
+   ========================================================= */
 
-        /* =====================================================
-           CSV SAMPLE DOWNLOAD + IMPORT
-           (parsing/mapping happens server-side in Flask)
-           ====================================================== */
+let items       = [];          // rows returned by the last fetch
+let currentPage = 1;
+let totalPages  = 1;
 
-        document
-            .getElementById("downloadSampleBtn")
-            .addEventListener("click", function () {
+// Pending edits to existing rows, keyed by row id:
+//   Map<id, { id, ...changedFields }>
+const pendingUpdates = new Map();
 
-                window.location.href =
-                    "/api/item-management/sample-csv";
-
-            });
-
-        document
-            .getElementById("uploadBtn")
-            .addEventListener("click", function () {
-
-                const fileInput =
-                    document.getElementById("fileUpload");
-
-                const file =
-                    fileInput.files[0];
-
-                if (!file) {
-                    alert("Please choose a CSV file to upload.");
-                    return;
-                }
-
-                const formData = new FormData();
-
-                formData.append("file", file);
-
-                formData.append(
-                    "action",
-                    document.getElementById("actionSelect").value
-                );
-
-                const overlay =
-                    document.getElementById("csvLoadingOverlay");
-
-                if (overlay) overlay.style.display = "flex";
-
-                fetch("/api/items/upload", {
-                    method: "POST",
-                    body: formData
-                })
-                .then(function (response) {
-
-                    return response.json().then(function (result) {
-
-                        if (!response.ok) {
-                            throw new Error(result.error || "Import failed");
-                        }
-
-                        return result;
-                    });
-                })
-                .then(function (result) {
-
-                    alert(result.message || "CSV imported successfully.");
-
-                    document.getElementById("csvPopUp").style.display = "none";
-
-                    fileInput.value = "";
-
-                })
-                .catch(function (error) {
-
-                    alert("Unable to import CSV: " + error.message);
-
-                })
-                .finally(function () {
-
-                    if (overlay) overlay.style.display = "none";
-
-                });
-
-            });
+const tableHead  = document.getElementById("itemPriceTableHead");
+const tableBody  = document.getElementById("itemPriceTableBody");
+const saveButton = document.getElementById("saveUpdateBtn");
+const pagination = document.getElementById("paginationControls");
 
 
+/* =========================================================
+   HELPERS
+   ========================================================= */
 
-        /* =====================================================
-           ITEM NO + BUTTON
-           ====================================================== */
+function rowId(item) {
+    // Prefer the DB primary key; fall back to the legacy keys
+    // so rows still work if the API hasn't been updated yet.
+    return item.id ?? item.condition_id ?? item.unique_key ?? null;
+}
 
-        const itemNoContainer =
-            document.getElementById(
-                "itemNoContainer"
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function toBackendDateTime(value) {
+
+    if (!value) {
+        return "";
+    }
+
+    let text = String(value).trim().replace("T", " ");
+
+    // 2026-08-21 23:59  ->  2026-08-21 23:59:00
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(text)) {
+        text += ":00";
+    }
+
+    return text;
+}
+
+function toInputDateTime(value) {
+
+    // Backend sends "2026-08-21 23:59:59"; datetime-local needs a T.
+    return String(value ?? "").trim().replace(" ", "T");
+}
+
+function nowForInput() {
+
+    const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    return now.toISOString().slice(0, 19);
+}
+
+function endOfTodayForInput() {
+
+    const now = new Date();
+
+    return now.getFullYear() + "-" +
+        String(now.getMonth() + 1).padStart(2, "0") + "-" +
+        String(now.getDate()).padStart(2, "0") + "T23:59:59";
+}
+
+
+/* =========================================================
+   VALIDATION
+
+   Mirrors the original priority matrix. Sales Organization
+   isn't a table column here, so its value is read from the
+   "Sales Organization" filter chip when that rule applies.
+   ========================================================= */
+
+const PRIORITY_CONFIG = [
+    ["distribution_channel", "customer",         "location_code", "item_no", "uom"],
+    ["distribution_channel", "customer_grp",     "location_code", "item_no", "uom"],
+    ["distribution_channel", "customer",         "item_no", "uom"],
+    ["distribution_channel", "customer_grp",     "item_no", "uom"],
+    ["customer_grp",         "item_no",          "uom"],
+    ["customer_hierarchy",   "location_code",    "item_no", "uom"],
+    ["customer_hierarchy",   "item_no",          "uom"],
+    ["distribution_channel", "location_code",    "item_no", "zone_code", "uom"],
+    ["distribution_channel", "location_code",    "item_no", "uom"],
+    ["distribution_channel", "item_no",          "uom"],
+    ["item_no",              "uom"]
+];
+
+const FIELD_LABELS = {
+    sales_organization:   "Sales Organization",
+    distribution_channel: "Distribution Channel",
+    customer:             "Customer No",
+    customer_grp:         "Customer Group",
+    customer_hierarchy:   "Customer Hierarchy",
+    location_code:        "Location Code",
+    item_no:              "Item No",
+    uom:                  "Unit of Measure",
+    zone_code:            "Transportation Zone Code",
+    condition_type:       "Condition Type",
+    sales_price:          "Sales Price",
+    starting_date:        "Starting Date",
+    ending_date:          "Ending Date",
+    lower_limit:          "Lower Limit",
+    upper_limit:          "Upper Limit",
+    priority:             "Priority",
+    currency:             "Currency"
+};
+
+const REQUIRED_FIELDS = [
+    "condition_type",
+    "sales_price",
+    "starting_date",
+    "ending_date",
+    "lower_limit",
+    "upper_limit",
+    "priority",
+    "currency"
+];
+
+const FREE_FIELDS = new Set([
+    "min_qty",
+    "offer_article",
+    "active",
+    "id",
+    "sales_organization"
+]);
+
+
+
+function validateItem(data, mode) {
+
+    const errors   = [];
+    const isUpdate = mode === "update";
+
+    const lower = data.lower_limit !== undefined && data.lower_limit !== ""
+        ? Number(data.lower_limit) : undefined;
+
+    const upper = data.upper_limit !== undefined && data.upper_limit !== ""
+        ? Number(data.upper_limit) : undefined;
+
+    const sales = data.sales_price !== undefined && data.sales_price !== ""
+        ? Number(data.sales_price) : undefined;
+
+
+    /* ---- numeric ---- */
+
+    ["sales_price", "lower_limit", "upper_limit", "min_qty", "priority"].forEach(function (field) {
+
+        if (
+            data[field] !== undefined &&
+            data[field] !== "" &&
+            isNaN(Number(data[field]))
+        ) {
+            errors.push((FIELD_LABELS[field] || field) + " must be a number");
+        }
+    });
+
+
+    /* ---- positive values ---- */
+
+    if (lower !== undefined && !isNaN(lower) && lower <= 0) {
+        errors.push("Lower Limit must be greater than 0");
+    }
+
+    if (upper !== undefined && !isNaN(upper) && upper <= 0) {
+        errors.push("Upper Limit must be greater than 0");
+    }
+
+    if (sales !== undefined && !isNaN(sales) && sales <= 0) {
+        errors.push("Sales Price must be greater than 0");
+    }
+
+
+    /* ---- relations ---- */
+
+    if (lower !== undefined && upper !== undefined && !isNaN(lower) && !isNaN(upper) && lower > upper) {
+        errors.push("Lower Limit cannot be greater than Upper Limit");
+    }
+
+    if (sales !== undefined && lower !== undefined && !isNaN(sales) && !isNaN(lower) && sales < lower) {
+        errors.push("Sales Price cannot be less than Lower Limit");
+    }
+
+    if (sales !== undefined && upper !== undefined && !isNaN(sales) && !isNaN(upper) && sales > upper) {
+        errors.push("Sales Price cannot be greater than Upper Limit");
+    }
+
+
+    /* ---- dates ---- */
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+
+    ["starting_date", "ending_date"].forEach(function (field) {
+
+        if (data[field]) {
+
+            data[field] = toBackendDateTime(data[field]);
+
+            if (!dateRegex.test(data[field])) {
+                errors.push((FIELD_LABELS[field] || field) + " must be YYYY-MM-DD HH:mm:ss");
+            }
+        }
+    });
+
+    if (
+        data.starting_date &&
+        data.ending_date &&
+        dateRegex.test(data.starting_date) &&
+        dateRegex.test(data.ending_date) &&
+        data.starting_date > data.ending_date
+    ) {
+        errors.push("Starting Date cannot be after Ending Date");
+    }
+
+
+    /* ---- priority ---- */
+
+    const hasPriority =
+        data.priority !== undefined &&
+        data.priority !== null &&
+        data.priority !== "";
+
+    const priority = hasPriority ? Number(data.priority) : null;
+
+    if (isUpdate) {
+
+        // On update, only check priority when it's being changed.
+        if (hasPriority && (isNaN(priority) || priority < 1 || priority > PRIORITY_CONFIG.length)) {
+
+            errors.push(
+                "Invalid priority value: " + data.priority +
+                ". Valid values are 1 to " + PRIORITY_CONFIG.length
             );
+        }
 
+    } else {
 
-        itemNoContainer.addEventListener(
-            "click",
-            function (event) {
-
-
-                /* =============================================
-                   ADD ITEM NO
-                   ============================================== */
-
-                const addButton =
-                    event.target.closest(
-                        ".addItemNoBtn"
-                    );
-
-
-                if (addButton) {
-
-
-                    const newRow =
-                        document.createElement(
-                            "div"
-                        );
-
-
-                    newRow.className =
-                        "item-no-row";
-
-
-                    newRow.innerHTML = `
-
-                        <input
-                            type="text"
-                            class="form-control itemNoInput"
-                            name="item_no[]"
-                            placeholder="Item No"
-                        >
-
-                        <button
-                            type="button"
-                            class="removeItemNoBtn"
-                            title="Remove Item No"
-                        >
-                            −
-                        </button>
-
-                    `;
-
-
-                    itemNoContainer.appendChild(
-                        newRow
-                    );
-
-
-                    newRow
-                        .querySelector(
-                            ".itemNoInput"
-                        )
-                        .focus();
-
-
-                    return;
-
-                }
-
-
-                /* =============================================
-                   REMOVE ITEM NO
-                   ============================================== */
-
-                const removeButton =
-                    event.target.closest(
-                        ".removeItemNoBtn"
-                    );
-
-
-                if (removeButton) {
-
-
-                    const rows =
-                        itemNoContainer.querySelectorAll(
-                            ".item-no-row"
-                        );
-
-
-                    if (rows.length > 1) {
-
-                        removeButton
-                            .closest(
-                                ".item-no-row"
-                            )
-                            .remove();
-
-                    }
-
-                }
-
-            }
-        );
-
-
-
-        /* =====================================================
-           ADD ITEM BUTTON
-           ====================================================== */
-
-        const addItemBtn =
-            document.getElementById(
-                "addItemBtn"
-            );
-
-
-        const tableBody =
-            document.getElementById(
-                "itemPriceTableBody"
-            );
-
-
-        addItemBtn.addEventListener(
-            "click",
-            function () {
-
-
-                const row =
-                    document.createElement(
-                        "tr"
-                    );
-
-
-                row.className =
-                    "new-item-row";
-
-
-                row.innerHTML = `
-
-                    <td>
-                        <div class="active-tick-wrapper">
-                            <button
-                                type="button"
-                                class="active-tick-btn"
-                                title="Active"
-                            >
-                                ✓
-                            </button>
-                            <input
-                                type="hidden"
-                                class="active-value"
-                                value="true"
-                            >
-                        </div>
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Condition"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Item No"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Customer"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Customer Grp"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Customer Hierarchy"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Distribution"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Location"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Priority"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Currency"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="number"
-                            placeholder="0.00"
-                            step="0.01"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="UOM"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="number"
-                            placeholder="0"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="datetime-local"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="datetime-local"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="number"
-                            placeholder="0.00"
-                            step="0.01"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="number"
-                            placeholder="0.00"
-                            step="0.01"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            placeholder="Zone Code"
-                        >
-                    </td>
-
-
-
-                    
-<td>
-                        <input
-                            type="text"
-                            placeholder="Offer Article"
-                        >
-                    </td>
-
-
-
-                    <td class="fixed-action-column">
-
-
-                        <button
-                            type="button"
-                            class="row-action-btn save-row"
-                            title="Save"
-                        >
-                            Save
-                        </button>
-
-
-                        <button
-                            type="button"
-                            class="delete-row-btn delete-row"
-                            title="Delete"
-                        >
-
-                            <i class="fas fa-trash"></i>
-
-                        </button>
-
-
-                    </td>
-
-                `;
-
-
-                tableBody.appendChild(
-                    row
-                );
-
-
-                /* =============================================
-                   ACTIVE TICK BUTTON
-                   ============================================== */
-
-                const activeTickBtn =
-                    row.querySelector(
-                        ".active-tick-btn"
-                    );
-
-                const activeValue =
-                    row.querySelector(
-                        ".active-value"
-                    );
-
-                activeTickBtn.addEventListener(
-                    "click",
-                    function () {
-
-                        const isActive =
-                            activeValue.value === "true";
-
-                        activeValue.value =
-                            isActive ? "false" : "true";
-
-                        activeTickBtn.textContent =
-                            isActive ? "" : "✓";
-
-                        activeTickBtn.classList.toggle(
-                            "inactive",
-                            isActive
-                        );
-                    }
-                );
-
-
-                /* =============================================
-                   DELETE NEW ROW
-                   ============================================== */
-
-                row
-                    .querySelector(
-                        ".delete-row"
-                    )
-                    .addEventListener(
-                        "click",
-                        function () {
-
-                            row.remove();
-
-                        }
-                    );
-
-
-                /* =============================================
-                   SAVE NEW ROW
-                   ============================================== */
-
-                row
-                    .querySelector(
-                        ".save-row"
-                    )
-                    .addEventListener(
-                        "click",
-                        function () {
-
-
-                            const fields =
-                                row.querySelectorAll(
-                                    "input, select"
-                                );
-
-
-                            const data = [];
-
-
-                            fields.forEach(
-                                function (field) {
-
-                                    data.push(
-                                        field.value
-                                    );
-
-                                }
-                            );
-
-
-                            console.log(
-                                "Item data:",
-                                data
-                            );
-
-
-                            alert(
-                                "Item data collected successfully."
-                            );
-
-                        }
-                    );
-
-
-            }
-        );
-
-
-
-        /* =====================================================
-           FETCH
-           ====================================================== */
-
-/* =====================================================
-   FETCH
-   ====================================================== */
-
-document
-    .getElementById("fetchForm")
-    .addEventListener("submit", function (event) {
-
-        event.preventDefault();
-
-        /* -------------------------------
-           GET ITEM NUMBERS
-        -------------------------------- */
-
-        const itemInputs =
-            document.querySelectorAll(".itemNoInput");
-
-        const itemNumbers = [];
-
-        itemInputs.forEach(function (input) {
-
-            const value = input.value.trim();
-
-            if (value) {
-                itemNumbers.push(value);
-            }
-
-        });
-
-
-        /* -------------------------------
-           GET ACTIVE FILTER
-        -------------------------------- */
-
-        const activeFilter =
-            document.getElementById("fetchActive").value;
-
-
-        /* -------------------------------
-           GET ADDITIONAL FILTERS
-        -------------------------------- */
-
-        const filters = {};
-
-        document
-            .querySelectorAll("#activeFilters .filter-chip")
-            .forEach(function (chip) {
-
-                /* CUSTOMER / GROUP / HIERARCHY */
-                if (
-                    chip.classList.contains(
-                        "customer-hierarchy-filter"
-                    )
-                ) {
-
-                    const filterType =
-                        chip.querySelector(
-                            ".customer-filter-type"
-                        )?.value;
-
-                    const filterValue =
-                        chip.querySelector(
-                            ".customer-filter-value"
-                        )?.value.trim();
-
-                    if (
-                        filterType &&
-                        filterValue
-                    ) {
-
-                        filters[filterType] =
-                            filterValue;
-
-                    }
-
-                    return;
-                }
-
-
-                /* NORMAL FILTERS */
-
-                const filterId =
-                    chip.id.replace(
-                        "filter-",
-                        ""
-                    );
-
-                const input =
-                    chip.querySelector("input");
-
-                if (
-                    filterId &&
-                    input &&
-                    input.value.trim()
-                ) {
-
-                    filters[filterId] =
-                        input.value.trim();
-
-                }
-
-            });
-
-
-        console.log(
-            "Item Numbers:",
-            itemNumbers
-        );
-
-        console.log(
-            "Active:",
-            activeFilter
-        );
-
-        console.log(
-            "Filters:",
-            filters
-        );
-
-
-        /* -------------------------------
-           SEND TO FLASK
-           (no Item No entered = fetch everything
-           matching the other filters)
-        -------------------------------- */
-
-        fetch(
-            "/api/fetch_all_prices",
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body: JSON.stringify({
-
-                    item_no:
-                        itemNumbers,
-
-                    active:
-                        activeFilter,
-
-                    filters:
-                        filters
-
-                })
-            }
-        )
-
-        .then(function (response) {
-
-            if (!response.ok) {
-
-                throw new Error(
-                    "Failed to fetch items"
-                );
-
-            }
-
-            return response.json();
-
-        })
-
-        .then(function (data) {
-
-            console.log(
-                "Flask response:",
-                data
-            );
-
-
-            const tbody =
-                document.getElementById(
-                    "itemPriceTableBody"
-                );
-
-            tbody.innerHTML = "";
-
-
-            /* -------------------------------
-               NO RESULTS
-            -------------------------------- */
+        REQUIRED_FIELDS.forEach(function (field) {
 
             if (
-                !Array.isArray(data.data) ||
-                data.data.length === 0
+                data[field] === undefined ||
+                data[field] === null ||
+                String(data[field]).trim() === ""
             ) {
+                errors.push((FIELD_LABELS[field] || field) + " is required");
+            }
+        });
 
-                const row =
-                    document.createElement("tr");
+        if (!hasPriority || isNaN(priority)) {
 
-                row.innerHTML = `
-                    <td
-                        colspan="26"
-                        style="
-                            text-align:center;
-                            padding:20px;
-                            color:#777;
-                        "
-                    >
-                        No items found
-                    </td>
-                `;
+            errors.push("Priority is required");
 
-                tbody.appendChild(row);
+        } else if (priority < 1 || priority > PRIORITY_CONFIG.length) {
+
+            errors.push(
+                "Invalid priority value: " + data.priority +
+                ". Valid values are 1 to " + PRIORITY_CONFIG.length
+            );
+
+        } else {
+
+            const mandatory = PRIORITY_CONFIG[priority - 1];
+
+            mandatory.forEach(function (field) {
+
+                if (
+                    data[field] === undefined ||
+                    data[field] === null ||
+                    String(data[field]).trim() === ""
+                ) {
+
+                    errors.push(
+                        (FIELD_LABELS[field] || field) +
+                        " is required for priority " + priority
+                    );
+                }
+            });
+
+
+            // Fields that must stay empty for this priority
+            Object.keys(data).forEach(function (field) {
+
+                if (
+                    REQUIRED_FIELDS.indexOf(field) === -1 &&
+                    mandatory.indexOf(field) === -1 &&
+                    !FREE_FIELDS.has(field) &&
+                    data[field] !== undefined &&
+                    data[field] !== null &&
+                    String(data[field]).trim() !== ""
+                ) {
+
+                    errors.push(
+                        "'" + (FIELD_LABELS[field] || field) +
+                        "' must be empty for priority " + priority
+                    );
+                }
+            });
+        }
+    }
+
+
+    if (errors.length > 0) {
+        alert("Validation failed:\n\n" + errors.join("\n"));
+        return false;
+    }
+
+    return true;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+function renderHead() {
+
+    let html = "";
+
+    COLUMNS.forEach(function (column) {
+        html += "<th>" + escapeHtml(column.label) + "</th>";
+    });
+
+    html += '<th class="fixed-action-column">Action</th>';
+
+    tableHead.innerHTML = html;
+}
+
+
+/* =========================================================
+   SAVE BUTTON STATE
+   ========================================================= */
+
+function hasPendingNewRows() {
+
+    return Array.from(tableBody.querySelectorAll(".new-item-row")).some(function (row) {
+
+        const input = row.querySelector('[data-field="item_no"]');
+        return input && input.value.trim() !== "";
+    });
+}
+
+function refreshSaveButtonState() {
+
+    saveButton.disabled = pendingUpdates.size === 0 && !hasPendingNewRows();
+}
+
+
+/* =========================================================
+   RENDER FETCHED ROWS
+   ========================================================= */
+
+function displayValue(item, column) {
+
+    const pending = pendingUpdates.get(rowId(item));
+
+    if (pending && Object.prototype.hasOwnProperty.call(pending, column.key)) {
+        return pending[column.key];
+    }
+
+    return item[column.key];
+}
+
+function renderTable() {
+
+    tableBody.innerHTML = "";
+
+    if (items.length === 0) {
+
+        tableBody.innerHTML =
+            '<tr><td colspan="' + (COLUMNS.length + 1) + '"' +
+            ' style="text-align:center; padding:20px; color:#777;">' +
+            "No items found</td></tr>";
+
+        return;
+    }
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const slice = items.slice(start, start + PAGE_SIZE);
+
+    slice.forEach(function (item) {
+
+        const id      = rowId(item);
+        const pending = pendingUpdates.get(id);
+        const row     = document.createElement("tr");
+
+        row.dataset.id = id === null ? "" : id;
+
+        if (pending) {
+            row.classList.add("row-dirty");
+        }
+
+        let html = "";
+
+        COLUMNS.forEach(function (column) {
+
+            const value   = displayValue(item, column);
+            const changed = pending &&
+                Object.prototype.hasOwnProperty.call(pending, column.key);
+
+            if (column.type === "active") {
+
+                const isActive = value === true || value === "true" || value === 1;
+
+                html +=
+                    '<td class="col-active">' +
+                        '<button type="button" class="active-tick-btn' +
+                        (isActive ? "" : " inactive") + '" title="Toggle active">' +
+                        (isActive ? "\u2713" : "") +
+                        "</button>" +
+                    "</td>";
 
                 return;
             }
 
-
-            /* -------------------------------
-               DISPLAY RESULTS
-            -------------------------------- */
-
-            data.data.forEach(function (item) {
-
-                const row =
-                    document.createElement("tr");
-
-
-                row.innerHTML = `
-
-                    <td>
-                        ${
-                            item.active
-                                ? `
-                                    <button
-                                        type="button"
-                                        class="active-tick-btn active"
-                                    >
-                                        ✓
-                                    </button>
-                                  `
-                                : `
-                                    <button
-                                        type="button"
-                                        class="active-tick-btn inactive"
-                                    >
-                                    </button>
-                                  `
-                        }
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.condition_type || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.item_no || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.customer || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.customer_grp || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.customer_hierarchy || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.distribution_channel || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.location_code || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.priority || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.currency || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="number"
-                            value="${item.sales_price ?? ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.uom || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="number"
-                            value="${item.min_qty ?? ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="date"
-                            value="${item.starting_date || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="date"
-                            value="${item.ending_date || ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="number"
-                            value="${item.lower_limit ?? ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="number"
-                            value="${item.upper_limit ?? ""}"
-                        >
-                    </td>
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.zone_code || ""}"
-                        >
-                    </td>
-
-
-                    <td>
-                        <input
-                            type="text"
-                            value="${item.offer_article || ""}"
-                        >
-                    </td>
-
-
-                    <td>
-                        <button
-                            type="button"
-                            class="row-action-btn save-row"
-                        >
-                            Save
-                        </button>
-
-                        <button
-                            type="button"
-                            class="delete-row"
-                        >
-                            🗑
-                        </button>
-                    </td>
-
-                `;
-
-                tbody.appendChild(row);
-
-            });
-
-        })
-
-        .catch(function (error) {
-
-            console.error(
-                "Fetch error:",
-                error
-            );
-
-            alert(
-                "Unable to fetch items from Flask."
-            );
-
+            html +=
+                '<td class="col-' + column.key +
+                (column.editable ? " editable-cell" : "") +
+                (changed ? " cell-dirty" : "") +
+                '" data-field="' + column.key + '">' +
+                escapeHtml(value ?? "") +
+                "</td>";
         });
 
+        html +=
+            "<td>" +
+                '<button type="button" class="delete-row-btn delete-row" title="Delete">' +
+                    '<i class="fas fa-trash"></i>' +
+                "</button>" +
+            "</td>";
+
+        row.innerHTML = html;
+
+        tableBody.appendChild(row);
     });
+}
 
-document
-    .getElementById("fetchForm")
-    .requestSubmit();
+function renderPagination() {
 
-    /* =====================================================
-   SAVE FETCHED ROW
-   ===================================================== */
+    totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
 
-tableBody.addEventListener(
-    "click",
-    function (event) {
-        const deleteButton = event.target.closest(".delete-row");
+    if (currentPage > totalPages) {
+        currentPage = totalPages;
+    }
 
-        if (deleteButton) {
+    if (items.length === 0) {
+        pagination.innerHTML = "";
+        return;
+    }
 
-            const row = deleteButton.closest("tr");
+    pagination.innerHTML =
+        '<button type="button" id="prevPage"' +
+        (currentPage === 1 ? " disabled" : "") + ">Previous</button>" +
+        "<span>Page " + currentPage + " / " + totalPages +
+        " &nbsp;·&nbsp; " + items.length + " rows</span>" +
+        '<button type="button" id="nextPage"' +
+        (currentPage === totalPages ? " disabled" : "") + ">Next</button>";
 
-            if (row) {
-                row.remove();
+    const prev = document.getElementById("prevPage");
+    const next = document.getElementById("nextPage");
+
+    if (prev) {
+        prev.addEventListener("click", function () {
+
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+                renderPagination();
             }
+        });
+    }
 
+    if (next) {
+        next.addEventListener("click", function () {
+
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+                renderPagination();
+            }
+        });
+    }
+}
+
+
+/* =========================================================
+   INLINE CELL EDITING
+   ========================================================= */
+
+function recordChange(row, field, value) {
+
+    const id = row.dataset.id;
+
+    if (!id) {
+        alert("This row has no id, so the change can't be saved.");
+        return false;
+    }
+
+    const entry = pendingUpdates.get(id) || { id: id };
+
+    entry[field] = value;
+
+    pendingUpdates.set(id, entry);
+
+    row.classList.add("row-dirty");
+
+    refreshSaveButtonState();
+
+    return true;
+}
+
+function cellValue(row, field) {
+
+    const cell = row.querySelector('[data-field="' + field + '"]');
+    return cell ? cell.innerText.trim() : "";
+}
+
+function makeCellEditable(cell) {
+
+    if (cell.querySelector("input")) {
+        return;
+    }
+
+    const row    = cell.parentNode;
+    const field  = cell.dataset.field;
+    const column = COLUMNS.find(function (c) { return c.key === field; });
+
+    if (!column || !column.editable) {
+        return;
+    }
+
+    const oldValue = cell.innerText.trim();
+    const input    = document.createElement("input");
+
+    if (column.type === "number") {
+
+        input.type = "number";
+        input.step = "any";
+        input.value = oldValue;
+
+    } else if (column.type === "datetime") {
+
+        input.type  = "datetime-local";
+        input.step  = "1";
+        input.value = toInputDateTime(oldValue);
+
+    } else {
+
+        input.type  = "text";
+        input.value = oldValue;
+    }
+
+    let finished = false;
+
+    function commit() {
+
+        if (finished) {
             return;
         }
-        const saveButton =
-            event.target.closest(".save-row");
 
-        if (!saveButton) {
+        finished = true;
+
+        let newValue = input.value;
+
+        if (column.type === "datetime") {
+            newValue = toBackendDateTime(newValue);
+        }
+
+        newValue = String(newValue).trim();
+
+        cell.innerText = newValue;
+
+        if (newValue === oldValue) {
             return;
         }
 
-        const row =
-            saveButton.closest("tr");
-
-        if (!row) {
-            return;
-        }
-
-        const fields =
-            row.querySelectorAll("input");
-
-        const activeButton =
-            row.querySelector(".active-tick-btn");
-
-        const data = {
-            active:
-                !activeButton.classList.contains("inactive"),
-
-            condition_type:
-                fields[0]?.value || "",
-
-            item_no:
-                fields[1]?.value || "",
-
-            customer:
-                fields[2]?.value || "",
-
-            customer_grp:
-                fields[3]?.value || "",
-
-            customer_hierarchy:
-                fields[4]?.value || "",
-
-            distribution_channel:
-                fields[5]?.value || "",
-
-            location_code:
-                fields[6]?.value || "",
-
-            priority:
-                fields[7]?.value || "",
-
-            currency:
-                fields[8]?.value || "",
-
-            sales_price:
-                fields[9]?.value || "",
-
-            uom:
-                fields[10]?.value || "",
-
-            min_qty:
-                fields[11]?.value || "",
-
-            starting_date:
-                fields[12]?.value || "",
-
-            ending_date:
-                fields[13]?.value || "",
-
-            lower_limit:
-                fields[14]?.value || "",
-
-            upper_limit:
-                fields[15]?.value || "",
-
-            zone_code:
-                fields[16]?.value || "",
-
-            offer_article: fields[17]?.value || "",
+        // Validate the change against the row's other values
+        const candidate = {
+            priority:      field === "priority"      ? newValue : cellValue(row, "priority"),
+            sales_price:   field === "sales_price"   ? newValue : cellValue(row, "sales_price"),
+            lower_limit:   field === "lower_limit"   ? newValue : cellValue(row, "lower_limit"),
+            upper_limit:   field === "upper_limit"   ? newValue : cellValue(row, "upper_limit"),
+            min_qty:       field === "min_qty"       ? newValue : cellValue(row, "min_qty"),
+            starting_date: field === "starting_date" ? newValue : cellValue(row, "starting_date"),
+            ending_date:   field === "ending_date"   ? newValue : cellValue(row, "ending_date")
         };
 
-        
-        console.log(
-            "Saving fetched item:",
-            data
-        );
+        if (!validateItem(candidate, "update")) {
+            cell.innerText = oldValue;
+            return;
+        }
 
-        fetch("/api/items/singel_price", {
+        if (!recordChange(row, field, newValue)) {
+            cell.innerText = oldValue;
+            return;
+        }
+
+        cell.classList.add("cell-dirty");
+    }
+
+    input.addEventListener("blur", commit);
+
+    input.addEventListener("keydown", function (event) {
+
+        if (event.key === "Enter") {
+            event.preventDefault();
+            input.blur();
+        }
+
+        if (event.key === "Escape") {
+            finished = true;
+            cell.innerText = oldValue;
+        }
+    });
+
+    cell.innerText = "";
+    cell.appendChild(input);
+    input.focus();
+}
+
+
+/* =========================================================
+   ADD ITEM ROW
+   ========================================================= */
+
+function createNewRow() {
+
+    const row = document.createElement("tr");
+
+    row.className = "new-item-row";
+
+    let html = "";
+
+    COLUMNS.forEach(function (column) {
+
+        if (column.type === "active") {
+
+            html +=
+                "<td>" +
+                    '<button type="button" class="active-tick-btn" title="Toggle active">\u2713</button>' +
+                    '<input type="hidden" data-field="active" value="true">' +
+                "</td>";
+
+            return;
+        }
+
+        if (column.type === "datetime") {
+
+            const value = column.key === "starting_date"
+                ? nowForInput()
+                : endOfTodayForInput();
+
+            html +=
+                "<td>" +
+                    '<input type="datetime-local" step="1" data-field="' +
+                    column.key + '" value="' + value + '">' +
+                "</td>";
+
+            return;
+        }
+
+        const defaults = { condition_type: "ZEN1", currency: "AED" };
+
+        html +=
+            "<td>" +
+                '<input type="' + (column.type === "number" ? "number" : "text") + '"' +
+                (column.type === "number" ? ' step="any"' : "") +
+                ' data-field="' + column.key + '"' +
+                ' placeholder="' + escapeHtml(column.label) + '"' +
+                ' value="' + (defaults[column.key] || "") + '"' +
+                ' autocomplete="off">' +
+            "</td>";
+    });
+
+    html +=
+        "<td>" +
+            '<button type="button" class="delete-row-btn delete-row" title="Remove row">' +
+                '<i class="fas fa-trash"></i>' +
+            "</button>" +
+        "</td>";
+
+    row.innerHTML = html;
+
+    tableBody.prepend(row);
+
+    const itemInput = row.querySelector('[data-field="item_no"]');
+
+    if (itemInput) {
+        itemInput.focus();
+    }
+
+    refreshSaveButtonState();
+
+    return row;
+}
+
+function readNewRow(row) {
+
+    const data = {};
+
+    COLUMNS.forEach(function (column) {
+
+        const input = row.querySelector('[data-field="' + column.key + '"]');
+
+        if (!input) {
+            data[column.key] = "";
+            return;
+        }
+
+        if (column.type === "active") {
+            data.active = input.value === "true";
+            return;
+        }
+
+        let value = (input.value ?? "").toString().trim();
+
+        if (column.type === "datetime") {
+            value = toBackendDateTime(value);
+        }
+
+        data[column.key] = value;
+    });
+
+    return data;
+}
+
+function collectNewRows() {
+
+    return Array.from(tableBody.querySelectorAll(".new-item-row"))
+        .map(function (row) {
+            return { row: row, data: readNewRow(row) };
+        })
+        .filter(function (entry) {
+            return entry.data.item_no !== "";
+        });
+}
+
+
+/* =========================================================
+   TABLE EVENT DELEGATION
+   ========================================================= */
+
+tableBody.addEventListener("click", function (event) {
+
+    /* ---- active toggle ---- */
+
+    const tick = event.target.closest(".active-tick-btn");
+
+    if (tick) {
+
+        const isActive = !tick.classList.contains("inactive");
+        const row      = tick.closest("tr");
+
+        tick.classList.toggle("inactive", isActive);
+        tick.textContent = isActive ? "" : "\u2713";
+
+        if (row.classList.contains("new-item-row")) {
+
+            const hidden = row.querySelector('[data-field="active"]');
+
+            if (hidden) {
+                hidden.value = isActive ? "false" : "true";
+            }
+
+            refreshSaveButtonState();
+            return;
+        }
+
+        const nowActive = !isActive;
+
+        recordChange(row, "active", nowActive);
+
+        // Deactivating stamps the ending date with "now",
+        // matching the original behaviour.
+        if (!nowActive) {
+
+            const now = new Date();
+
+            const stamp =
+                now.getFullYear() + "-" +
+                String(now.getMonth() + 1).padStart(2, "0") + "-" +
+                String(now.getDate()).padStart(2, "0") + " " +
+                String(now.getHours()).padStart(2, "0") + ":" +
+                String(now.getMinutes()).padStart(2, "0") + ":" +
+                String(now.getSeconds()).padStart(2, "0");
+
+            const endCell = row.querySelector('[data-field="ending_date"]');
+
+            if (endCell) {
+                endCell.innerText = stamp;
+                endCell.classList.add("cell-dirty");
+            }
+
+            recordChange(row, "ending_date", stamp);
+        }
+
+        return;
+    }
+
+
+    /* ---- delete ---- */
+
+    const deleteButton = event.target.closest(".delete-row");
+
+    if (deleteButton) {
+
+        const row = deleteButton.closest("tr");
+
+        if (row.classList.contains("new-item-row")) {
+            row.remove();
+            refreshSaveButtonState();
+            return;
+        }
+
+        const id = row.dataset.id;
+
+        if (!id) {
+            alert("This row has no id, so it can't be deleted.");
+            return;
+        }
+
+        if (!confirm("Delete this item condition? This cannot be undone.")) {
+            return;
+        }
+
+        deleteButton.disabled = true;
+
+        fetch(API.remove, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: id })
         })
         .then(function (response) {
 
             return response.json().then(function (result) {
 
                 if (!response.ok) {
-                    throw new Error(
-                        result.error || "Save failed"
-                    );
+                    throw new Error(result.error || "Delete failed");
                 }
 
                 return result;
             });
-
         })
-        .then(function (result) {
+        .then(function () {
 
-            console.log(
-                "Saved successfully:",
-                result
-            );
+            items = items.filter(function (item) {
+                return String(rowId(item)) !== String(id);
+            });
 
-            alert(
-                result.message ||
-                "Item saved successfully."
-            );
+            pendingUpdates.delete(id);
 
+            renderTable();
+            renderPagination();
+            refreshSaveButtonState();
         })
         .catch(function (error) {
 
-            console.error(
-                "Save error:",
-                error
-            );
+            console.error("Delete error:", error);
+            alert("Unable to delete item: " + error.message);
+            deleteButton.disabled = false;
+        });
 
-            alert(
-                "Unable to save item: " +
-                error.message
-            );
-
-        });        
+        return;
     }
-);  
 
 
-        /* =====================================================
-        ADD FILTER
-        ====================================================== */
+    /* ---- inline edit ---- */
 
-        const addFilterSelect =
-            document.getElementById("addFilterSelect");
+    const cell = event.target.closest("td.editable-cell");
 
-        const activeFilters =
-            document.getElementById("activeFilters");
+    if (cell) {
+        makeCellEditable(cell);
+    }
+});
 
+tableBody.addEventListener("input", function (event) {
 
-        addFilterSelect.addEventListener(
-            "change",
-            function () {
+    if (event.target.closest(".new-item-row")) {
+        refreshSaveButtonState();
+    }
+});
 
-                const value = this.value;
+// Enter inside a new row must not submit the fetch form
+tableBody.addEventListener("keydown", function (event) {
 
-                if (!value) {
-                    return;
-                }
+    if (
+        event.key === "Enter" &&
+        event.target.matches(".new-item-row input")
+    ) {
+        event.preventDefault();
+    }
+});
 
 
-                /* =================================================
-                CUSTOMER / GROUP / HIERARCHY
-                ================================================= */
+/* =========================================================
+   ITEM NO ROWS
+   ========================================================= */
 
-                if (value === "customer_group_hierarchy") {
+const itemNoContainer = document.getElementById("itemNoContainer");
 
-                    const existing =
-                        document.getElementById(
-                            "filter-customer_group_hierarchy"
-                        );
+itemNoContainer.addEventListener("click", function (event) {
 
-                    if (existing) {
-                        this.value = "";
-                        return;
-                    }
+    if (event.target.closest(".addItemNoBtn")) {
 
+        const row = document.createElement("div");
 
-                    const chip =
-                        document.createElement("div");
+        row.className = "item-no-row";
 
-                    chip.className =
-                        "filter-chip customer-hierarchy-filter";
+        row.innerHTML =
+            '<input type="text" class="form-control itemNoInput"' +
+            ' name="item_no[]" placeholder="Item No" autocomplete="off">' +
+            '<button type="button" class="removeItemNoBtn" title="Remove Item No">\u2212</button>';
 
-                    chip.id =
-                        "filter-customer_group_hierarchy";
+        itemNoContainer.appendChild(row);
 
+        row.querySelector(".itemNoInput").focus();
 
-                    chip.innerHTML = `
+        return;
+    }
 
-                        <label class="customer-filter-label">
-                            CUSTOMER
-                        </label>
+    const removeButton = event.target.closest(".removeItemNoBtn");
 
-                        <select
-                            class="customer-filter-type"
-                        >
-                            <option value="customer_no">
-                                Customer No
-                            </option>
+    if (removeButton && itemNoContainer.querySelectorAll(".item-no-row").length > 1) {
+        removeButton.closest(".item-no-row").remove();
+    }
+});
 
-                            <option value="customer_group">
-                                Customer Group
-                            </option>
 
-                            <option value="customer_hierarchy">
-                                Customer Hierarchy
-                            </option>
-                        </select>
+/* =========================================================
+   FILTER CHIPS
+   ========================================================= */
 
-                        <input
-                            type="text"
-                            class="customer-filter-value"
-                            placeholder="Value"
-                        >
+const addFilterSelect = document.getElementById("addFilterSelect");
+const activeFilters   = document.getElementById("activeFilters");
 
-                        <button
-                            type="button"
-                            class="customer-filter-remove"
-                            title="Remove filter"
-                        >
-                            ×
-                        </button>
+const DATE_FILTERS   = ["starting_date", "ending_date"];
+const NUMBER_FILTERS = ["sales_price", "min_qty", "lower_limit", "upper_limit", "priority"];
 
-                    `;
+addFilterSelect.addEventListener("change", function () {
 
+    const value = this.value;
 
-                    activeFilters.appendChild(chip);
+    this.value = "";
 
-                    this.value = "";
+    if (!value || document.getElementById("filter-" + value)) {
+        return;
+    }
 
-                    return;
-                }
+    const chip = document.createElement("div");
 
+    chip.id = "filter-" + value;
 
-                /* =================================================
-                OTHER FILTERS - EXISTING BEHAVIOUR
-                ================================================= */
 
-                const existing =
-                    document.getElementById(
-                        "filter-" + value
-                    );
+    /* ---- customer / group / hierarchy ---- */
 
-                if (existing) {
-                    this.value = "";
-                    return;
-                }
+    if (value === "customer_group_hierarchy") {
 
+        chip.className = "filter-chip customer-hierarchy-filter";
 
-                const chip =
-                    document.createElement("div");
+        chip.innerHTML =
+            '<label class="customer-filter-label">CUSTOMER</label>' +
+            '<select class="customer-filter-type">' +
+                '<option value="customer">Customer No</option>' +
+                '<option value="customer_grp">Customer Group</option>' +
+                '<option value="customer_hierarchy">Customer Hierarchy</option>' +
+            "</select>" +
+            '<input type="text" class="customer-filter-value" placeholder="Value">' +
+            '<button type="button" class="customer-filter-remove" title="Remove filter">\u00d7</button>';
 
-                chip.className =
-                    "filter-chip";
+        activeFilters.appendChild(chip);
+        return;
+    }
 
-                chip.id =
-                    "filter-" + value;
 
+    /* ---- sort by ---- */
 
-                const label =
-                    value
-                        .replace(/_/g, " ")
-                        .replace(/\b\w/g, function (c) {
-                            return c.toUpperCase();
-                        });
+    if (value === "sort_by") {
 
+        chip.className = "filter-chip";
 
-                chip.innerHTML = `
+        chip.innerHTML =
+            "<label>Sort By</label>" +
+            "<select>" +
+                '<option value="">-- Select --</option>' +
+                '<option value="starting_date">Starting Date</option>' +
+                '<option value="ending_date">Ending Date</option>' +
+                '<option value="item_no">Item No</option>' +
+                '<option value="sales_price">Sales Price</option>' +
+            "</select>" +
+            '<button type="button" class="remove-filter" title="Remove filter">\u00d7</button>';
 
-                    <label>
-                        ${label}
-                    </label>
+        activeFilters.appendChild(chip);
+        return;
+    }
 
-                    <input
-                        type="text"
-                        placeholder="${label}"
-                    >
 
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-outline remove-filter"
-                    >
-                        ×
-                    </button>
+    /* ---- generic ---- */
 
-                `;
+    const label = value
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
 
+    let inputType = "text";
 
-                activeFilters.appendChild(chip);
+    if (DATE_FILTERS.indexOf(value) !== -1) {
+        inputType = "datetime-local";
+    } else if (NUMBER_FILTERS.indexOf(value) !== -1) {
+        inputType = "number";
+    }
 
-                this.value = "";
+    chip.className = "filter-chip";
 
-            }
-        );
+    chip.innerHTML =
+        "<label>" + escapeHtml(label) + "</label>" +
+        '<input type="' + inputType + '"' +
+        (inputType === "datetime-local" ? ' step="1"' : "") +
+        (inputType === "number" ? ' step="any"' : "") +
+        ' placeholder="' + escapeHtml(label) + '">' +
+        '<button type="button" class="remove-filter" title="Remove filter">\u00d7</button>';
 
+    activeFilters.appendChild(chip);
 
-        /* =====================================================
-        REMOVE FILTER
-        ====================================================== */
+    const focusable = chip.querySelector("input, select");
 
-        activeFilters.addEventListener(
-            "click",
-            function (event) {
+    if (focusable) {
+        focusable.focus();
+    }
+});
 
-                const removeButton =
-                    event.target.closest(
-                        ".customer-filter-remove, .remove-filter"
-                    );
+activeFilters.addEventListener("click", function (event) {
 
-                if (!removeButton) {
-                    return;
-                }
+    const removeButton = event.target.closest(".customer-filter-remove, .remove-filter");
 
-                const filter =
-                    removeButton.closest(".filter-chip");
+    if (!removeButton) {
+        return;
+    }
 
-                if (filter) {
-                    filter.remove();
-                }
+    const chip = removeButton.closest(".filter-chip");
 
-            }
-        );
+    if (chip) {
+        chip.remove();
+    }
+});
 
-        /* =====================================================
-           CSV BUTTON
-           ====================================================== */
+function collectFilters() {
 
-        const csvPopup =
-            document.getElementById(
-                "csvPopUp"
-            );
+    const filters = {};
 
+    activeFilters.querySelectorAll(".filter-chip").forEach(function (chip) {
 
-        document
-            .getElementById(
-                "importBtnUnique"
-            )
-            .addEventListener(
-                "click",
-                function () {
+        /* customer / group / hierarchy */
+        if (chip.classList.contains("customer-hierarchy-filter")) {
 
-                    csvPopup.style.display =
-                        "block";
+            const type  = chip.querySelector(".customer-filter-type");
+            const value = chip.querySelector(".customer-filter-value");
 
-                }
-            );
-
-
-        document
-            .getElementById(
-                "closeCsvPopup"
-            )
-            .addEventListener(
-                "click",
-                function () {
-
-                    csvPopup.style.display =
-                        "none";
-
-                }
-            );
-
-
-        document
-            .getElementById(
-                "cancelCsvBtn"
-            )
-            .addEventListener(
-                "click",
-                function () {
-
-                    csvPopup.style.display =
-                        "none";
-
-                }
-            );
-
-
-
-        /* =====================================================
-           CSV DOWNLOAD
-           ====================================================== */
-
-        document
-            .getElementById(
-                "downloadCsvBtn"
-            )
-            .addEventListener(
-                "click",
-                function () {
-
-
-                    const headers = [
-
-                        "Active",
-                        "Condition Type",
-                        "Item No",
-                        "Customer",
-                        "Customer Grp",
-                        "Customer Hierarchy",
-                        "Distribution Channel",
-                        "Location Code",
-                        "Priority",
-                        "Currency",
-                        "Sales Price",
-                        "UOM",
-                        "Min Qty",
-                        "Starting Date",
-                        "Ending Date",
-                        "Lower Limit",
-                        "Upper Limit",
-                        "Zone Code",
-                        "Offer Article",
-
-                    ];
-
-
-                    const csv =
-                        headers.join(",") +
-                        "\n";
-
-
-                    const blob =
-                        new Blob(
-                            [csv],
-                            {
-                                type:
-                                    "text/csv;charset=utf-8;"
-                            }
-                        );
-
-
-                    const url =
-                        URL.createObjectURL(
-                            blob
-                        );
-
-
-                    const link =
-                        document.createElement(
-                            "a"
-                        );
-
-
-                    link.href = url;
-
-                    link.download =
-                        "item_management.csv";
-
-
-                    link.click();
-
-
-                    URL.revokeObjectURL(
-                        url
-                    );
-
-                }
-            );
-
-
-
-        /* =====================================================
-           SAVE BUTTON
-           ====================================================== */
-
-        document.getElementById("saveUpdateBtn").addEventListener("click", function () {
-
-            const rows = document.querySelectorAll("#itemPriceTableBody tr");
-
-            if (!rows.length) {
-                alert("There are no items to save.");
-                return;
+            if (type && value && value.value.trim()) {
+                filters[type.value] = value.value.trim();
             }
 
-            const items = [];
+            return;
+        }
 
-            rows.forEach(function (row) {
+        const key   = chip.id.replace("filter-", "");
+        const field = chip.querySelector("input, select");
 
-                const fields = row.querySelectorAll("input");
-                const activeButton = row.querySelector(".active-tick-btn");
+        if (!field || !field.value.trim()) {
+            return;
+        }
 
-                const data = {
-                    active: activeButton
-                        ? !activeButton.classList.contains("inactive")
-                        : true,
+        let value = field.value.trim();
 
-                    condition_type: fields[0]?.value || "",
-                    item_no: fields[1]?.value || "",
-                    customer: fields[2]?.value || "",
-                    customer_grp: fields[3]?.value || "",
-                    customer_hierarchy: fields[4]?.value || "",
-                    distribution_channel: fields[5]?.value || "",
-                    location_code: fields[6]?.value || "",
-                    priority: fields[7]?.value || "",
-                    currency: fields[8]?.value || "",
-                    sales_price: fields[9]?.value || "",
-                    uom: fields[10]?.value || "",
-                    min_qty: fields[11]?.value || "",
-                    starting_date: fields[12]?.value || "",
-                    ending_date: fields[13]?.value || "",
-                    lower_limit: fields[14]?.value || "",
-                    upper_limit: fields[15]?.value || "",
-                    zone_code: fields[16]?.value || "",
-                    offer_article: fields[17]?.value || "",
-                };
+        if (field.type === "datetime-local") {
+            value = toBackendDateTime(value);
+        }
 
-                if (data.item_no.trim() !== "") {
-                    items.push(data);
-                }
-            });
+        filters[key] = value;
+    });
 
-            if (!items.length) {
-                alert("No valid items found to save.");
-                return;
+    return filters;
+}
+
+
+/* =========================================================
+   FETCH
+   ========================================================= */
+
+function discardPendingOrConfirm() {
+
+    if (pendingUpdates.size === 0 && !hasPendingNewRows()) {
+        return true;
+    }
+
+    return confirm("You have unsaved changes. Fetching will discard them. Continue?");
+}
+
+function fetchAndPopulate() {
+
+    const itemNumbers = Array.from(document.querySelectorAll(".itemNoInput"))
+        .map(function (input) { return input.value.trim(); })
+        .filter(function (value) { return value !== ""; });
+
+    const payload = {
+        item_no: itemNumbers,
+        active:  document.getElementById("fetchActive").value,
+        filters: collectFilters()
+    };
+
+    console.log("Fetch payload:", payload);
+
+    tableBody.innerHTML =
+        '<tr><td colspan="' + (COLUMNS.length + 1) + '"' +
+        ' style="text-align:center; padding:20px; color:#777;">Loading…</td></tr>';
+
+    fetch(API.fetch, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(function (response) {
+
+        return response.json().then(function (result) {
+
+            if (!response.ok) {
+                throw new Error(result.error || "Failed to fetch items");
             }
 
-            console.log("Saving all items:", items);
+            return result;
+        });
+    })
+    .then(function (result) {
 
-            const saveButton = document.getElementById("saveUpdateBtn");
+        // Accept a bare array or {message: [...]} / {items: [...]}
+        items = Array.isArray(result.data)
+            ? result.data
+            : (result.data.items || result.data.message || []);
 
-            saveButton.disabled = true;
-            saveButton.innerText = "Saving...";
+        pendingUpdates.clear();
 
-            fetch("/api/item-management/save", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(items)
-            })
-            .then(function (response) {
-                return response.json().then(function (result) {
+        currentPage = 1;
 
-                    if (!response.ok) {
-                        throw new Error(result.error || "Save failed");
-                    }
+        renderTable();
+        renderPagination();
+        refreshSaveButtonState();
+    })
+    .catch(function (error) {
 
-                    return result;
-                });
+        console.error("Fetch error:", error);
+
+        tableBody.innerHTML =
+            '<tr><td colspan="' + (COLUMNS.length + 1) + '"' +
+            ' style="text-align:center; padding:20px; color:#b91c1c;">' +
+            " No Items Found</td></tr>";
+
+        alert("Unable to fetch items: " );
+    });
+
+    
+
+}
+
+document.getElementById("fetchForm").addEventListener("submit", function (event) {
+
+    event.preventDefault();
+
+    if (discardPendingOrConfirm()) {
+        fetchAndPopulate();
+    }
+});
+
+document.getElementById("fetchActive").addEventListener("change", function () {
+
+    if (discardPendingOrConfirm()) {
+        fetchAndPopulate();
+    }
+});
+
+
+/* =========================================================
+   ADD ITEM
+   ========================================================= */
+
+document.getElementById("addItemBtn").addEventListener("click", function () {
+    createNewRow();
+});
+
+
+/* =========================================================
+   SAVE
+   ========================================================= */
+
+saveButton.addEventListener("click", function () {
+
+    // Commit any editor still open
+    const openEditor = tableBody.querySelector("td.editable-cell input");
+
+    if (openEditor) {
+        openEditor.blur();
+    }
+
+    const newRows = collectNewRows();
+    const updates = Array.from(pendingUpdates.values());
+
+    if (newRows.length === 0 && updates.length === 0) {
+        alert("No changes to save.");
+        return;
+    }
+
+    // Validate new rows up front — nothing is sent if one fails
+    for (let index = 0; index < newRows.length; index++) {
+
+        if (!validateItem(newRows[index].data, "insert")) {
+
+            const input = newRows[index].row.querySelector('[data-field="item_no"]');
+
+            if (input) {
+                input.focus();
+            }
+
+            return;
+        }
+    }
+
+    const payload = newRows.map(function (entry) { return entry.data; })
+        .concat(updates);
+
+    console.log("Save payload:", payload);
+
+    saveButton.disabled = true;
+
+    const originalText = saveButton.innerText;
+
+    saveButton.innerText = "Saving...";
+
+    fetch(API.save, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(function (response) {
+
+        return response.json().then(function (result) {
+
+            if (!response.ok) {
+                throw new Error(result.error || "Save failed");
+            }
+
+            return result;
+        });
+    })
+    .then(function (result) {
+
+        alert(result.message || "Saved successfully.");
+
+        newRows.forEach(function (entry) { entry.row.remove(); });
+
+        pendingUpdates.clear();
+
+        fetchAndPopulate();
+    })
+    .catch(function (error) {
+
+        console.error("Save error:", error);
+        alert("Unable to save: " + error.message);
+    })
+    .finally(function () {
+
+        saveButton.innerText = originalText;
+        refreshSaveButtonState();
+    });
+});
+
+
+/* =========================================================
+   CSV EXPORT (client-side, from the current result set)
+   ========================================================= */
+
+document.getElementById("downloadCsvBtn").addEventListener("click", function () {
+
+    const headers = COLUMNS.map(function (column) { return column.label; });
+
+    function cell(value) {
+        return '"' + String(value ?? "").replace(/"/g, '""') + '"';
+    }
+
+    const rows = items.map(function (item) {
+
+        return COLUMNS.map(function (column) {
+
+            if (column.type === "active") {
+                return cell(item.active ? "TRUE" : "FALSE");
+            }
+
+            return cell(item[column.key]);
+
+        }).join(",");
+    });
+
+    const csv  = [headers.join(",")].concat(rows).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href     = url;
+    link.download = "item_management.csv";
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+});
+
+
+/* =========================================================
+   CSV IMPORT
+   ========================================================= */
+
+const csvPopup   = document.getElementById("csvPopUp");
+const csvOverlay = document.getElementById("csvLoadingOverlay");
+
+document.getElementById("importBtnUnique").addEventListener("click", function () {
+    csvPopup.style.display = "block";
+});
+
+document.getElementById("closeCsvPopup").addEventListener("click", function () {
+    csvPopup.style.display = "none";
+});
+
+document.getElementById("cancelCsvBtn").addEventListener("click", function () {
+    csvPopup.style.display = "none";
+});
+
+window.addEventListener("click", function (event) {
+
+    if (event.target === csvPopup) {
+        csvPopup.style.display = "none";
+    }
+});
+
+document.getElementById("downloadSampleBtn").addEventListener("click", function () {
+
+    const action = document.getElementById("actionSelect").value;
+
+    window.location.href = API.sampleCsv + "?action=" + encodeURIComponent(action);
+});
+
+document.getElementById("uploadBtn").addEventListener("click", function () {
+
+    const uploadButton = this;
+    const fileInput    = document.getElementById("fileUpload");
+    const file         = fileInput.files[0];
+
+    if (!file) {
+        alert("Please choose a CSV file to upload.");
+        return;
+    }
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+    formData.append("action", document.getElementById("actionSelect").value);
+
+    csvOverlay.style.display = "flex";
+
+    uploadButton.disabled = true;
+
+    const originalHtml = uploadButton.innerHTML;
+
+    uploadButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+    fetch(API.import, { method: "POST", body: formData })
+    .then(function (response) {
+
+        // A 400 can still carry rejected_rows, so read the body first.
+        return response.json()
+            .catch(function () {
+                throw new Error("Server returned HTTP " + response.status);
             })
             .then(function (result) {
-
-                console.log("All items saved:", result);
-
-                alert(result.message || "All items saved successfully.");
-
-            })
-            .catch(function (error) {
-
-                console.error("Save error:", error);
-
-                alert("Unable to save items: " + error.message);
-
-            })
-            .finally(function () {
-
-                saveButton.disabled = false;
-                saveButton.innerText = "Save";
-
+                return { ok: response.ok, result: result };
             });
-        });        
+    })
+    .then(function (payload) {
+
+        const result   = payload.result;
+        const rejected = result.rejected_rows;
+
+        if (rejected && rejected.length > 0) {
+
+            const headers = Object.keys(rejected[0].row).concat("error");
+
+            const csvRows = [headers.join(",")].concat(
+
+                rejected.map(function (entry) {
+
+                    return headers.map(function (header) {
+
+                        const value = header === "error"
+                            ? entry.error
+                            : entry.row[header];
+
+                        return '"' + String(value ?? "").replace(/"/g, '""') + '"';
+
+                    }).join(",");
+                })
+            );
+
+            const blob = new Blob([csvRows.join("\n")], {
+                type: "text/csv;charset=utf-8;"
+            });
+
+            const url  = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href     = url;
+            link.download = "rejected_rows.csv";
+
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            URL.revokeObjectURL(url);
+        }
+
+        if (!payload.ok || result.success === false) {
+            throw new Error(result.error || "Import failed");
+        }
+
+        alert(result.message || "CSV imported successfully.");
+
+        csvPopup.style.display = "none";
+
+        fileInput.value = "";
+
+        fetchAndPopulate();
+    })
+    .catch(function (error) {
+
+        console.error("Import error:", error);
+        alert("Unable to import CSV: " + error.message);
+    })
+    .finally(function () {
+
+        csvOverlay.style.display = "none";
+
+        uploadButton.disabled  = false;
+        uploadButton.innerHTML = originalHtml;
+    });
+});
 
 
+/* =========================================================
+   WARN ON LEAVING WITH UNSAVED CHANGES
+   ========================================================= */
+
+window.addEventListener("beforeunload", function (event) {
+
+    if (pendingUpdates.size > 0 || hasPendingNewRows()) {
+        event.preventDefault();
+        event.returnValue = "";
     }
-);
+});
 
 
+/* =========================================================
+   BOOT
+   ========================================================= */
+
+renderHead();
+refreshSaveButtonState();
+fetchAndPopulate();
+
+});
 </script>
-
 
 </body>
 
