@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from database.mysql_connection import get_db_connection
-from database.query import select_all_prices, insert_price_query, update_price, check_price_exists, filter_prices, deactive_exp_items
+from database.query import select_all_prices, insert_price_query, update_price, check_price_exists, filter_prices, deactive_exp_items, get_item_price_details
 import logging
 import pymysql
 from datetime import datetime, date
@@ -17,27 +17,20 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def convert_datetime(value):
- 
     if not value:
         return None
- 
     value = value.strip()
- 
     formats = [
         "%m/%d/%Y %H:%M",
         "%m/%d/%Y %H:%M:%S",
         "%m/%d/%Y",
     ]
- 
     for date_format in formats:
         try:
             date_value = datetime.strptime(value, date_format)
- 
             return date_value.strftime("%Y-%m-%d %H:%M:%S")
- 
         except ValueError:
             continue
- 
     raise ValueError(f"Invalid datetime format: {value}")
 
 def fetch_all_prices():
@@ -47,7 +40,7 @@ def fetch_all_prices():
     try:
         # Get pagination values
         page = request.args.get("page", default=1, type=int)
-        limit = request.args.get("limit", default=20, type=int)
+        limit = request.args.get("limit", default=100, type=int)
         # Validate pagination
         if page < 1:
             return jsonify({
@@ -187,12 +180,9 @@ def create_price(records):
             con.close()
 
 def create_single_price():
-
     logger.info("Entered in create_single_price")
-
     con = None
     cursor = None
-
     try:
         data = request.get_json()
         if not data:
@@ -200,97 +190,70 @@ def create_single_price():
                 "status": "error",
                 "message": "Request data is empty"
             }), 400
-
         logger.info("Connecting to database")
-
         con = get_db_connection("PRICING_DATABASE")
-
         logger.info("Database connection successful")
-
         cursor = con.cursor()
         print("start date ",data.get("starting_date"))
         # Convert datetime values
         data["starting_date"] = convert_datetime(
             data.get("starting_date")
         )
-
         data["ending_date"] = convert_datetime(
             data.get("ending_date")
         )
-
         logger.info("Calling Insert Query")
-
         sql_query, params = insert_price_query(data)
-
         cursor.execute(
             sql_query,
             params
         )
-
         inserted_id = cursor.lastrowid
-
         con.commit()
-
         logger.info(
             f"Price inserted successfully. ID: {inserted_id}"
         )
-
         return jsonify({
             "status": "success",
             "message": "Price created successfully",
             "id": inserted_id
         }), 201
-
     except ConnectionError as e:
-
         logger.error(
             f"Database connection error: {e}"
         )
-
         return jsonify({
             "status": "error",
             "message": "Unable to connect to database",
             "error": str(e)
         }), 503
-
     except pymysql.MySQLError as e:
-
         if con:
             con.rollback()
-
         logger.exception(
             "Database error while creating price"
         )
-
         return jsonify({
             "status": "error",
             "message": "Database error",
             "error": str(e)
         }), 500
-
     except Exception as e:
-
         if con:
             con.rollback()
-
         logger.exception(
             "Unexpected error while creating price"
         )
-
         return jsonify({
             "status": "error",
             "message": "Something went wrong",
             "error": str(e)
         }), 500
-
     finally:
-
         if cursor:
             cursor.close()
-
         if con:
             con.close()
-
 
 def update_price_data(price_id):
     logger.info(
@@ -443,119 +406,132 @@ def filter_price_data():
             con.close()
 
 def deactive_items():
-
     logger.info("Entered in deactive_items function")
-
     con = None
     cursor = None
-
     try:
-
         logger.info("Connecting to database")
-
         con = get_db_connection("PRICING_DATABASE")
-
         logger.info("Database connection successful")
-
         cursor = con.cursor()
-
         logger.info("Calling Update Query")
-
         today = date.today()
-
         sql_query = deactive_exp_items()
-
         logger.info("Executing update query")
-
         cursor.execute(sql_query, today)
-
         updated_rows = cursor.rowcount
-
         con.commit()
-
         logger.info(
             f"Updated successfully. Rows affected: {updated_rows}"
         )
-
         return {
             "status": "success",
             "message": "Items updated successfully",
             "updated_rows": updated_rows
         }
-
     except ConnectionError:
-
         if con:
             con.rollback()
-
         logger.exception(
             "Database connection error"
         )
-
         raise
-
     except pymysql.MySQLError:
-
         if con:
             con.rollback()
-
         logger.exception(
             "Database error while updating price"
         )
-
         raise
-
     except Exception:
-
         if con:
             con.rollback()
-
         logger.exception(
             "Unexpected error while updating price"
         )
-
         raise
-
     finally:
-
         if cursor:
             cursor.close()
-
         if con:
             con.close()
 
 def get_prices():
     logger.info("Enter into get price function")
-    data = request.get_json()
-    if not data:
-        return jsonify({
-            "status": "error",
-            "message": "Request data is empty"
-        }), 400
-    condition_type = bool(data["Condition_Type"])
-    item_no = bool(data["Item_No"])
-    customer_no = bool(data["Customer_No"])
-    customer_group = bool(data["Customer_Group"])
-    customer_hierarchy = bool(data["Customer_Hierarchy"])
-    distribution_channel_code = bool(data["Distribution_Channel_Code"])
-    location_code = bool(data["Location_Code"])
-    priority = bool(data["Priority"])
-    sales_division_code = bool(data["Sales_Division_Code"])
-    sales_organization_code = bool(data["Sales_Organization_Code"])
-    currency = bool(data["Currency"])
-    sales_price = bool(data["Sales_Price"])
-    unit_of_measure_code = bool(data["Unit_of_Measure_Code"])
-    starting_date = bool(data["Starting_Date"])
-    ending_date = bool(data["Ending_Date"])
-    change_type = bool(data["Change_Type"])
-    lower_limit = bool(data["Lower_Limit"])
-    upper_limit = bool(data["Upper_Limit"])
-    map = bool(data["MAP"])
-    updated_from_sap = bool(data["Updated_From_SAP"])
-    offer_article = bool(data["Offer_Article"])
-    price_with_tax = bool(data["Price_with_TAX"])
-    tax_percent = bool(data["Tax_Percent"])
-    transportation_zone_code = bool(data["Transportation_Zone_Code"])
-    print(condition_type)
-    print(data)
-    return {"status" : "Success"}
+    con = None
+    cursor = None
+    try:
+        data = request.get_json()
+        logger.info("Connecting to database")
+        con = get_db_connection("PRICING_DATABASE")
+        logger.info("Database connection successful")
+        cursor = con.cursor()
+        if not data:
+            return jsonify({
+                "status": "error",
+                "message": "Request data is empty"
+            }), 400
+        customer_no = bool(data["Customer_No"])
+        customer_group = bool(data["Customer_Group"])
+        customer_hierarchy = bool(data["Customer_Hierarchy"])
+        distribution_channel_code = bool(data["Distribution_Channel_Code"])
+        location_code = bool(data["Location_Code"])
+        sales_organization_code = bool(data["Sales_Organization_Code"])
+        uom = bool(data["uom"])
+        transportation_zone_code = bool(data["Transportation_Zone_Code"])
+        sql_query = get_item_price_details()
+        if sales_organization_code and distribution_channel_code and customer_no and location_code and uom:
+            cursor.execute(sql_query, 1)
+        elif sales_organization_code and distribution_channel_code and customer_group and location_code and uom:
+            cursor.execute(sql_query, 2)
+        elif sales_organization_code and distribution_channel_code and customer_no and uom:
+            cursor.execute(sql_query, 3)
+        elif sales_organization_code and distribution_channel_code and customer_group and uom:
+            cursor.execute(sql_query, 4)
+        elif sales_organization_code and customer_group and uom:
+            cursor.execute(sql_query, 5)
+        elif sales_organization_code and customer_hierarchy and location_code and uom:
+            cursor.execute(sql_query, 6)
+        elif sales_organization_code and customer_hierarchy and uom:
+            cursor.execute(sql_query, 7)
+        elif sales_organization_code and distribution_channel_code and location_code and transportation_zone_code and uom:
+            cursor.execute(sql_query, 8)
+        elif sales_organization_code and distribution_channel_code and location_code and uom:
+            cursor.execute(sql_query, 9)
+        elif sales_organization_code and distribution_channel_code and uom:
+            cursor.execute(sql_query, 10)
+        elif sales_organization_code and uom:
+            cursor.execute(sql_query, 11)
+        else:
+            cursor.execute(sql_query, 0)
+        items_datas = cursor.fetchall()
+        return {
+            "status" : "Success",
+            "data" : items_datas
+            }
+    except ConnectionError:
+        if con:
+            con.rollback()
+        logger.exception(
+            "Database connection error"
+        )
+        raise
+    except pymysql.MySQLError:
+        if con:
+            con.rollback()
+        logger.exception(
+            "Database error while updating price"
+        )
+        raise
+    except Exception:
+        if con:
+            con.rollback()
+        logger.exception(
+            "Unexpected error while updating price"
+        )
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if con:
+            con.close()

@@ -37,6 +37,157 @@ def create_pricing_table_query(table_name):
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """
 
+def create_pricing_location_query():
+    return f"""
+            CREATE TABLE IF NOT EXISTS pricing_location (
+
+                id INT AUTO_INCREMENT PRIMARY KEY,
+
+                location INT NOT NULL,
+
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP,
+
+                UNIQUE KEY uq_location (location),
+
+                KEY idx_location_active (location, is_active)
+
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """
+
+def create_pricing_distribution_channel_query():
+    return f"""
+            CREATE TABLE IF NOT EXISTS pricing_distribution_channel (
+
+                id INT AUTO_INCREMENT PRIMARY KEY,
+
+                distribution_channel_code VARCHAR(20) NOT NULL,
+
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP,
+
+                UNIQUE KEY uq_distribution_channel (
+                    distribution_channel_code
+                ),
+
+                KEY idx_distribution_channel_active (
+                    distribution_channel_code,
+                    is_active
+                )
+
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """
+
+def create_pricing_priority_query():
+    return f"""
+            CREATE TABLE IF NOT EXISTS pricing_priority (
+
+                id INT AUTO_INCREMENT PRIMARY KEY,
+
+                priority INT NOT NULL,
+
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP,
+
+                UNIQUE KEY uq_priority (priority),
+
+                KEY idx_priority_active (
+                    priority,
+                    is_active
+                )
+
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """
+
+def create_pricing_currency_query():
+    return f"""
+            CREATE TABLE IF NOT EXISTS pricing_currency (
+
+                id INT AUTO_INCREMENT PRIMARY KEY,
+
+                currency VARCHAR(20) NOT NULL,
+
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP,
+
+                UNIQUE KEY uq_currency (currency),
+
+                KEY idx_currency_active (
+                    currency,
+                    is_active
+                )
+
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """
+
+def create_pricing_transportation_zone_query():
+    return f"""
+            CREATE TABLE IF NOT EXISTS pricing_transportation_zone (
+
+                id INT AUTO_INCREMENT PRIMARY KEY,
+
+                transportation_zone_code VARCHAR(20) NOT NULL,
+
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP,
+
+                UNIQUE KEY uq_transportation_zone (
+                    transportation_zone_code
+                ),
+
+                KEY idx_transportation_zone_active (
+                    transportation_zone_code,
+                    is_active
+                )
+
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """
+
+def create_pricing_uom_query():
+    return f"""
+            CREATE TABLE IF NOT EXISTS pricing_uom (
+
+                id INT AUTO_INCREMENT PRIMARY KEY,
+
+                UOM VARCHAR(20) NOT NULL,
+
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP,
+
+                UNIQUE KEY uq_uom (UOM),
+
+                KEY idx_uom_active (
+                    UOM,
+                    is_active
+                )
+
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """
+
 def select_all_prices(page, limit):
     offset = (page - 1) * limit
     sql_query = """
@@ -276,5 +427,11 @@ def filter_prices(data):
 def deactive_exp_items():
     sql_query = """
         update PRICING_TABLE set active = false where ending_date < %s
+    """
+    return sql_query
+
+def get_item_price_details():
+    sql_query = """
+        select * from PRICING_TABLE where priority = %s
     """
     return sql_query
