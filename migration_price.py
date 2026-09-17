@@ -1,6 +1,4 @@
 import os
- 
-import pymysql
 from dotenv import load_dotenv
 from database.mysql_connection import get_db_connection
 from database.query import (
@@ -15,7 +13,6 @@ from database.query import (
     )
  
 load_dotenv()
- 
 DB_NAME = os.getenv("PRICING_DB")
 PRICING_TABLE = os.getenv("PRICING_TABLE")
  
@@ -41,7 +38,6 @@ def create_pricing_table():
  
  
 def create_pricing_submaster():
- 
     """
     Create separate master tables for pricing lookup values:
     location,
@@ -51,35 +47,23 @@ def create_pricing_submaster():
     transportation zone,
     unit of measure.
     """
- 
     con = get_db_connection()
- 
     try:
- 
         with con.cursor() as cursor:
- 
             # Location
             cursor.execute(create_pricing_location_query())
- 
             # Distribution Channel
             cursor.execute(create_pricing_distribution_channel_query())
- 
             # Priority
             cursor.execute(create_pricing_priority_query())
- 
             # Currency
             cursor.execute(create_pricing_currency_query())
- 
             # Transportation Zone
             cursor.execute(create_pricing_transportation_zone_query())
- 
             # Unit of Measure
             cursor.execute(create_pricing_uom_query())
- 
         con.commit()
- 
     finally:
- 
         con.close()
  
  

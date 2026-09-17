@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request
 import csv
 from api import create_price
  

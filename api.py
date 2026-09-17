@@ -1,37 +1,18 @@
 from flask import Flask, jsonify, request
 from database.mysql_connection import get_db_connection
-from database.query import select_all_prices, insert_price_query, update_price, check_price_exists, filter_prices, deactive_exp_items, get_item_price_details
-import logging
+from database.query import (
+    select_all_prices, 
+    insert_price_query, 
+    update_price, check_price_exists, 
+    filter_prices, 
+    deactive_exp_price_items, 
+    get_item_price_details
+    )
 import pymysql
-from datetime import datetime, date
+from datetime import date
+from utils.date_converter import convert_datetime
+from utils.log_error import logger
 
-app = Flask(__name__)
-
-
-# Logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-logger = logging.getLogger(__name__)
-
-def convert_datetime(value):
-    if not value:
-        return None
-    value = value.strip()
-    formats = [
-        "%m/%d/%Y %H:%M",
-        "%m/%d/%Y %H:%M:%S",
-        "%m/%d/%Y",
-    ]
-    for date_format in formats:
-        try:
-            date_value = datetime.strptime(value, date_format)
-            return date_value.strftime("%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            continue
-    raise ValueError(f"Invalid datetime format: {value}")
 
 def fetch_all_prices():
     logger.info("Entered in fetch all prices")
@@ -40,7 +21,7 @@ def fetch_all_prices():
     try:
         # Get pagination values
         page = request.args.get("page", default=1, type=int)
-        limit = request.args.get("limit", default=100, type=int)
+        limit = request.args.get("limit", default=10, type=int)
         # Validate pagination
         if page < 1:
             return jsonify({
@@ -405,7 +386,7 @@ def filter_price_data():
         if con:
             con.close()
 
-def deactive_items():
+def deactive_price_items():
     logger.info("Entered in deactive_items function")
     con = None
     cursor = None
@@ -416,7 +397,7 @@ def deactive_items():
         cursor = con.cursor()
         logger.info("Calling Update Query")
         today = date.today()
-        sql_query = deactive_exp_items()
+        sql_query = deactive_exp_price_items()
         logger.info("Executing update query")
         cursor.execute(sql_query, today)
         updated_rows = cursor.rowcount
