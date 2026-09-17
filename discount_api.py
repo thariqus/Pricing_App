@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from database.mysql_connection import get_db_connection, DISCOUNT_DB
+from database.mysql_connection import get_db_connection
 import pymysql
 from database.query import (
     select_all_discounts,
@@ -13,6 +13,10 @@ from database.query import (
 from datetime import date
 from utils.date_converter import convert_datetime
 from utils.log_error import logger
+from dotenv import load_dotenv
+import os
+load_dotenv()
+DISCOUNT_DB = os.getenv("DB_D_NAME")
  
  
 def fetch_all_discounts():

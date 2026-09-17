@@ -896,14 +896,134 @@ const COLUMNS = [
 ];
 
 const API = {
-    fetch:     "/api/fetch_all_prices",
-    save:      "/api/create_manual_price",
+    fetch:     "/api/items/fetch_all_item_prices",
+    save:      "/api/items/create_singel_item_price",
     remove:    "/api/item-management/delete",
-    import:    "/api/create_price",
-    sampleCsv: "/api/create_price"
+    import:    "/api/items/upload",
+    sampleCsv: "/api/items/upload"
 };
 
-const PAGE_SIZE = 20;
+/* =========================================================
+   JS FIELD  ->  MySQL COLUMN
+
+   The table columns don't all match the UI field names,
+   so every payload is translated through this map before
+   it leaves the browser.
+   ========================================================= */
+
+const DB_COLUMNS = {
+    active:               "active",
+    condition_type:       "condition_type",
+    item_no:              "item_no",
+    customer:             "customer",
+    customer_grp:         "customer_grp",
+    customer_hierarchy:   "customer_hierarchy",
+    distribution_channel: "distribution_channel_code",
+    location_code:        "location_code",
+    priority:             "priority",
+    currency:             "currency",
+    sales_price:          "sales_price",
+    uom:                  "unit_of_measure",
+    min_qty:              "minimum_quantity",
+    starting_date:        "starting_date",
+    ending_date:          "ending_date",
+    lower_limit:          "lower_limit",
+    upper_limit:          "upper_limit",
+    zone_code:            "transportation_zone_code",
+    offer_article:        "offer_article"
+};
+
+/* Columns MySQL declares as INT / FLOAT — an empty string is
+   rejected for these, so blanks are sent as null instead. */
+const NUMERIC_COLUMNS = new Set([
+    "customer_grp",
+    "customer_hierarchy",
+    "distribution_channel_code",
+    "location_code",
+    "priority",
+    "sales_price",
+    "unit_of_measure",      // remove if this is VARCHAR in your table
+    "minimum_quantity",
+    "lower_limit",
+    "upper_limit"
+]);
+
+/* Columns MySQL declares as BOOLEAN / TINYINT(1) */
+const BOOLEAN_COLUMNS = new Set([
+    "active",
+    "offer_article",
+    "updated_from_sap"
+]);
+
+/* Columns MySQL declares as DATE / DATETIME */
+const DATE_COLUMNS = new Set(["starting_date", "ending_date"]);
+
+
+function toDbPayload(data) {
+
+    const payload = {};
+
+    Object.keys(data).forEach(function (key) {
+
+        if (key === "id") {
+            payload.id = data[key];
+            return;
+        }
+
+        const column = DB_COLUMNS[key];
+
+        if (!column) {
+            return;
+        }
+
+                if (BOOLEAN_COLUMNS.has(column)) {
+
+            let value = data[key];
+
+            if (typeof value === "string") {
+                value = value.trim().toLowerCase();
+            }
+
+            if (value === "" || value === null || value === undefined) {
+                payload[column] = 0;
+                return;
+            }
+
+            payload[column] =
+                (value === true || value === "true" || value === "1" || value === 1)
+                    ? 1 : 0;
+
+            return;
+        }
+
+        let value = data[key];
+
+        if (typeof value === "string") {
+            value = value.trim();
+        }
+
+        // Blank -> NULL for anything MySQL types as a number or date
+        if (
+            value === "" &&
+            (NUMERIC_COLUMNS.has(column) || DATE_COLUMNS.has(column))
+        ) {
+            payload[column] = null;
+            return;
+        }
+
+        if (value !== "" && NUMERIC_COLUMNS.has(column)) {
+            const number = Number(value);
+            payload[column] = isNaN(number) ? null : number;
+            return;
+        }
+
+        payload[column] = value;
+    });
+
+    return payload;
+}
+
+const PAGE_SIZE = 500;
 
 
 /* =========================================================
@@ -913,6 +1033,7 @@ const PAGE_SIZE = 20;
 let items       = [];          // rows returned by the last fetch
 let currentPage = 1;
 let totalPages  = 1;
+let totalRows   = 0;
 
 // Pending edits to existing rows, keyed by row id:
 //   Map<id, { id, ...changedFields }>
@@ -958,6 +1079,24 @@ function toBackendDateTime(value) {
 
     return text;
 }
+
+    // CSV wants US-style dates; the table holds YYYY-MM-DD HH:MM:SS
+    function csvDate(value) {
+
+        if (!value) {
+            return "";
+        }
+
+        const parsed = new Date(String(value).replace(" ", "T"));
+
+        if (isNaN(parsed)) {
+            return value;
+        }
+
+        return String(parsed.getMonth() + 1).padStart(2, "0") + "/" +
+               String(parsed.getDate()).padStart(2, "0") + "/" +
+               parsed.getFullYear();
+    }
 
 function toInputDateTime(value) {
 
@@ -1291,10 +1430,7 @@ function renderTable() {
         return;
     }
 
-    const start = (currentPage - 1) * PAGE_SIZE;
-    const slice = items.slice(start, start + PAGE_SIZE);
-
-    slice.forEach(function (item) {
+        items.forEach(function (item) {
 
         const id      = rowId(item);
         const pending = pendingUpdates.get(id);
@@ -1353,11 +1489,7 @@ function renderTable() {
 
 function renderPagination() {
 
-    totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
-
-    if (currentPage > totalPages) {
-        currentPage = totalPages;
-    }
+    totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
 
     if (items.length === 0) {
         pagination.innerHTML = "";
@@ -1368,31 +1500,25 @@ function renderPagination() {
         '<button type="button" id="prevPage"' +
         (currentPage === 1 ? " disabled" : "") + ">Previous</button>" +
         "<span>Page " + currentPage + " / " + totalPages +
-        " &nbsp;·&nbsp; " + items.length + " rows</span>" +
+        " &nbsp;·&nbsp; " + totalRows.toLocaleString() + " rows</span>" +
         '<button type="button" id="nextPage"' +
-        (currentPage === totalPages ? " disabled" : "") + ">Next</button>";
+        (currentPage >= totalPages ? " disabled" : "") + ">Next</button>";
 
     const prev = document.getElementById("prevPage");
     const next = document.getElementById("nextPage");
 
     if (prev) {
         prev.addEventListener("click", function () {
-
-            if (currentPage > 1) {
-                currentPage--;
-                renderTable();
-                renderPagination();
+            if (currentPage > 1 && discardPendingOrConfirm()) {
+                fetchAndPopulate(currentPage - 1);
             }
         });
     }
 
     if (next) {
         next.addEventListener("click", function () {
-
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderTable();
-                renderPagination();
+            if (currentPage < totalPages && discardPendingOrConfirm()) {
+                fetchAndPopulate(currentPage + 1);
             }
         });
     }
@@ -2010,7 +2136,9 @@ function discardPendingOrConfirm() {
     return confirm("You have unsaved changes. Fetching will discard them. Continue?");
 }
 
-function fetchAndPopulate() {
+function fetchAndPopulate(page) {
+
+    currentPage = page || 1;
 
     const itemNumbers = Array.from(document.querySelectorAll(".itemNoInput"))
         .map(function (input) { return input.value.trim(); })
@@ -2019,7 +2147,9 @@ function fetchAndPopulate() {
     const payload = {
         item_no: itemNumbers,
         active:  document.getElementById("fetchActive").value,
-        filters: collectFilters()
+        filters: collectFilters(),
+        page:    currentPage,
+        limit:   PAGE_SIZE
     };
 
     console.log("Fetch payload:", payload);
@@ -2046,14 +2176,11 @@ function fetchAndPopulate() {
     })
     .then(function (result) {
 
-        // Accept a bare array or {message: [...]} / {items: [...]}
-        items = Array.isArray(result.data)
-            ? result.data
-            : (result.data.items || result.data.message || []);
+        items = result.data || result.items || result.message || [];
+
+        totalRows = result.total || items.length;
 
         pendingUpdates.clear();
-
-        currentPage = 1;
 
         renderTable();
         renderPagination();
@@ -2065,16 +2192,12 @@ function fetchAndPopulate() {
 
         tableBody.innerHTML =
             '<tr><td colspan="' + (COLUMNS.length + 1) + '"' +
-            ' style="text-align:center; padding:20px; color:#b91c1c;">' +
-            " No Items Found</td></tr>";
+            ' style="text-align:center; padding:20px; color:#777;">' +
+            "No Items Found</td></tr>";
 
-        alert("Unable to fetch items: " );
+        alert("Unable to fetch data");
     });
-
-    
-
 }
-
 document.getElementById("fetchForm").addEventListener("submit", function (event) {
 
     event.preventDefault();
@@ -2140,7 +2263,8 @@ saveButton.addEventListener("click", function () {
     const payload = newRows.map(function (entry) { return entry.data; })
         .concat(updates);
 
-    console.log("Save payload:", payload);
+        console.log("Saving", newRows.length, "new row(s),",
+                updates.length, "update(s)");
 
     saveButton.disabled = true;
 
@@ -2148,42 +2272,57 @@ saveButton.addEventListener("click", function () {
 
     saveButton.innerText = "Saving...";
 
-    fetch(API.save, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    })
-    .then(function (response) {
+    function postOne(url, data) {
 
-        return response.json().then(function (result) {
+        return fetch(API.save, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(toDbPayload(data))
+        })
+        .then(function (response) {
 
-            if (!response.ok) {
-                throw new Error(result.error || "Save failed");
-            }
+            return response.json()
+                .catch(function () {
+                    throw new Error("Server returned HTTP " + response.status);
+                })
+                .then(function (result) {
 
-            return result;
+                    if (!response.ok || result.success === false) {
+                        throw new Error(result.error || result.message || "Save failed");
+                    }
+
+                    return result;
+                });
         });
-    })
-    .then(function (result) {
+    }
 
-        alert(result.message || "Saved successfully.");
+    // Each row goes as its own JSON object, so the view's
+    // request.get_json().get(...) works as written.
+    const jobs = newRows
+        .map(function (entry) { return postOne(API.save, entry.data); })
+        .concat(updates.map(function (update) { return postOne(API.save, update); }));
 
-        newRows.forEach(function (entry) { entry.row.remove(); });
+    Promise.all(jobs)
+        .then(function () {
 
-        pendingUpdates.clear();
+            alert(jobs.length + " row(s) saved successfully.");
 
-        fetchAndPopulate();
-    })
-    .catch(function (error) {
+            newRows.forEach(function (entry) { entry.row.remove(); });
 
-        console.error("Save error:", error);
-        alert("Unable to save: " + error.message);
-    })
-    .finally(function () {
+            pendingUpdates.clear();
 
-        saveButton.innerText = originalText;
-        refreshSaveButtonState();
-    });
+            fetchAndPopulate();
+        })
+        .catch(function (error) {
+
+            console.error("Save error:", error);
+            alert("Unable to save: " + error.message);
+        })
+        .finally(function () {
+
+            saveButton.innerText = originalText;
+            refreshSaveButtonState();
+        });
 });
 
 

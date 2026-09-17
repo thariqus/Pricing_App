@@ -2,6 +2,56 @@
 def create_pricing_database_query(db_name):
     return f"CREATE DATABASE IF NOT EXISTS {db_name}"
 
+def create_table_query(table_name, table_definition):
+    columns = []
+    indexes = []
+    for field_name, definition in table_definition.items():
+        if field_name == "indexes":
+            for index_name, index_definition in definition.items():
+                index_type = index_definition.get("type", "INDEX")
+                index_columns = index_definition["columns"]
+                columns_list = ", ".join(index_columns)
+                if index_type == "UNIQUE":
+                    indexes.append(
+                        f"UNIQUE KEY {index_name} ({columns_list})"
+                    )
+                else:
+                    indexes.append(
+                        f"KEY {index_name} ({columns_list})"
+                    )
+            continue
+        if field_name in ("engine", "charset"):
+            continue
+        column_sql = f"{field_name} {definition['type']}"
+        if definition.get("not_null"):
+            column_sql += " NOT NULL"
+        if definition.get("auto_increment"):
+            column_sql += " AUTO_INCREMENT"
+        if definition.get("primary_key"):
+            column_sql += " PRIMARY KEY"
+        if "default" in definition:
+            column_sql += f" DEFAULT {definition['default']}"
+        if "on_update" in definition:
+            column_sql += f" ON UPDATE {definition['on_update']}"
+        columns.append(column_sql)
+    columns.extend(indexes)
+    engine = table_definition.get(
+        "engine",
+        "InnoDB"
+    )
+    charset = table_definition.get(
+        "charset",
+        "utf8mb4"
+    )
+    query = f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+
+            {",\n            ".join(columns)}
+
+        ) ENGINE={engine} DEFAULT CHARSET={charset}
+    """
+    return query
+
 #Sub Master Table Creation Query for Pricing
 def create_pricing_table_query(table_name):
     return f"""

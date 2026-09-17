@@ -23,9 +23,9 @@ def main_function():
     prices = fetch_all_prices()
     return prices
 
-@app.route('/api/items/create_csv_item_prices', methods=['POST'])
-def main_create_price():
-    return create_price()
+# @app.route('/api/items/create_csv_item_prices', methods=['POST'])
+# def main_create_price():
+#     return create_price()
 
 @app.route('/api/items/update_item_prices/<int:price_id>',methods=['PUT'])
 def main_update_price(price_id):

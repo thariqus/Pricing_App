@@ -12,6 +12,10 @@ import pymysql
 from datetime import date
 from utils.date_converter import convert_datetime
 from utils.log_error import logger
+from dotenv import load_dotenv
+import os
+load_dotenv()
+PRICE_DB = os.getenv("DB_P_NAME")
 
 
 def fetch_all_prices():
@@ -21,7 +25,7 @@ def fetch_all_prices():
     try:
         # Get pagination values
         page = request.args.get("page", default=1, type=int)
-        limit = request.args.get("limit", default=10, type=int)
+        limit = request.args.get("limit", default=100, type=int)
         # Validate pagination
         if page < 1:
             return jsonify({
@@ -38,7 +42,7 @@ def fetch_all_prices():
         )
         # Database connection
         logger.info("Connecting to database")
-        con = get_db_connection("PRICING_DATABASE")
+        con = get_db_connection(PRICE_DB)
         logger.info("Database connection successful")
         cursor = con.cursor()
         # Execute query
@@ -99,7 +103,7 @@ def create_price(records):
             f"Received {len(records)} pricing records"
         )
         logger.info("Connecting to database")
-        con = get_db_connection("PRICING_DATABASE")
+        con = get_db_connection(PRICE_DB)
         logger.info("Database connection successful")
         cursor = con.cursor()
         for data in records:
@@ -172,7 +176,7 @@ def create_single_price():
                 "message": "Request data is empty"
             }), 400
         logger.info("Connecting to database")
-        con = get_db_connection("PRICING_DATABASE")
+        con = get_db_connection(PRICE_DB)
         logger.info("Database connection successful")
         cursor = con.cursor()
         print("start date ",data.get("starting_date"))
@@ -253,7 +257,7 @@ def update_price_data(price_id):
         logger.info("Received pricing update data")
         # Database connection
         logger.info("Connecting to database")
-        con = get_db_connection("PRICING_DATABASE")
+        con = get_db_connection(PRICE_DB)
         logger.info("Database connection successful")
         cursor = con.cursor()
         # Check whether record exists
@@ -341,7 +345,7 @@ def filter_price_data():
                 "message": "Request must contain valid JSON"
             }), 400
         logger.info("Received filter data")
-        con = get_db_connection("PRICING_DATABASE")
+        con = get_db_connection(PRICE_DB)
         logger.info("Database connection successful")
         cursor = con.cursor()
         logger.info("Calling Filter Query")
@@ -392,7 +396,7 @@ def deactive_price_items():
     cursor = None
     try:
         logger.info("Connecting to database")
-        con = get_db_connection("PRICING_DATABASE")
+        con = get_db_connection(PRICE_DB)
         logger.info("Database connection successful")
         cursor = con.cursor()
         logger.info("Calling Update Query")
@@ -444,7 +448,7 @@ def get_prices():
     try:
         data = request.get_json()
         logger.info("Connecting to database")
-        con = get_db_connection("PRICING_DATABASE")
+        con = get_db_connection(PRICE_DB)
         logger.info("Database connection successful")
         cursor = con.cursor()
         if not data:
