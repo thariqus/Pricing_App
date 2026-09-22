@@ -81,6 +81,15 @@ Pricing_Table = {
     "tax_percent": {
         "type": "FLOAT"
     },
+    "created": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP"
+    },
+    "updated": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP",
+        "on_update": "CURRENT_TIMESTAMP"
+    },
     "indexes": {
         "idx_item_uom": {
             "type": "INDEX",

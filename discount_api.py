@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 DISCOUNT_DB = os.getenv("DB_D_NAME")
+PRICING_DB = os.getenv("DB_P_NAME")
  
  
 def fetch_all_discounts():
@@ -53,9 +54,11 @@ def fetch_all_discounts():
         cursor.execute(sel_query, params)
         discount_data = cursor.fetchall()
         logger.info("Returning Data")
-        # logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching All Discount Data")
-        # cursor.execute(logger_sql_query, logger_params)
-        # con.commit()
+        connection = get_db_connection(PRICING_DB)
+        pricing_cursor = connection.cursor()
+        logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching All Discount Data")
+        pricing_cursor.execute(logger_sql_query, logger_params)
+        connection.commit()
         return jsonify({
             "status": "success",
             "page": page,
@@ -124,8 +127,11 @@ def create_discount(records, file):
             sql_query, params = insert_discount_query(data)
             cursor.execute(sql_query, params)
         # Save changes
-        # logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Item Discount CSV Data")
-        # cursor.execute(logger_sql_query, logger_params)
+        connection = get_db_connection(PRICING_DB)
+        pricing_cursor = connection.cursor()
+        logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Item Discount CSV Data")
+        pricing_cursor.execute(logger_sql_query, logger_params)
+        connection.commit()
         con.commit()
         # Get newly created ID
         inserted_id = cursor.lastrowid
@@ -200,8 +206,11 @@ def create_single_discount():
             params
         )
         inserted_id = cursor.lastrowid
-        # logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Single item discount data")
-        # cursor.execute(logger_sql_query, logger_params)
+        connection = get_db_connection(PRICING_DB)
+        pricing_cursor = connection.cursor()
+        logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Single item discount data")
+        pricing_cursor.execute(logger_sql_query, logger_params)
+        connection.commit()
         con.commit()
         logger.info(
             f"Discount inserted successfully. ID: {inserted_id}"
@@ -295,8 +304,11 @@ def update_discount_data(discount_id):
             params
         )
         # Save changes
-        # logger_sql_query, logger_params = create_logger(request.remote_addr,f"Item discount number {discount_id} updated")
-        # cursor.execute(logger_sql_query, logger_params)
+        connection = get_db_connection(PRICING_DB)
+        pricing_cursor = connection.cursor()
+        logger_sql_query, logger_params = create_logger(request.remote_addr,f"Item discount number {discount_id} updated")
+        pricing_cursor.execute(logger_sql_query, logger_params)
+        connection.commit()
         con.commit()
         logger.info(
             f"Discount ID {discount_id} updated successfully"
@@ -415,8 +427,11 @@ def deactive_discount_items():
         logger.info("Executing update query")
         cursor.execute(sql_query, today)
         updated_rows = cursor.rowcount
-        # logger_sql_query, logger_params = create_logger(request.remote_addr,f"{updated_rows} item discount expired")
-        # cursor.execute(logger_sql_query, logger_params)
+        connection = get_db_connection(PRICING_DB)
+        pricing_cursor = connection.cursor()
+        logger_sql_query, logger_params = create_logger(request.remote_addr,f"{updated_rows} item discount expired")
+        pricing_cursor.execute(logger_sql_query, logger_params)
+        connection.commit()
         con.commit()
         logger.info(
             f"Updated successfully. Rows affected: {updated_rows}"
@@ -502,9 +517,11 @@ def get_discounts():
         else:
             cursor.execute(sql_query, 0)
         items_datas = cursor.fetchall()
-        # logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching discount item price priority")
-        # cursor.execute(logger_sql_query, logger_params)
-        # con.commit()
+        connection = get_db_connection(PRICING_DB)
+        pricing_cursor = connection.cursor()
+        logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching discount item price priority")
+        pricing_cursor.execute(logger_sql_query, logger_params)
+        connection.commit()
         return {
             "status" : "Success",
             "data" : items_datas

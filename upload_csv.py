@@ -1,6 +1,6 @@
 from flask import render_template, request
 import csv
-from api import create_price
+from create_price import create_price
 from discount_api import create_discount
  
 def index():

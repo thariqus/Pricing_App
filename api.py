@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+import requests
 from database.mysql_connection import get_db_connection
 from database.query import (
     select_all_prices, 
@@ -16,9 +17,11 @@ from utils.log_error import logger
 from utils.file_path import upload_price_directory
 from dotenv import load_dotenv
 import os
+from upload_csv import upload_csv
 load_dotenv()
 PRICE_DB = os.getenv("DB_P_NAME")
-
+VALIDATION_API = os.getenv("VALIDATION_API")
+IS_CENTRAL = os.getenv("IS_CENTRAL")
 
 def fetch_all_prices():
     logger.info("Entered in fetch all prices")
@@ -82,88 +85,6 @@ def fetch_all_prices():
     except Exception as e:
         logger.exception(
             "Unexpected error while fetching prices data"
-        )
-        return jsonify({
-            "status": "error",
-            "message": "Something went wrong",
-            "error": str(e)
-        }), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if con:
-            con.close()
-
-def create_price(records, file):
-    logger.info("Entered in create price")
-    con = None
-    cursor = None
-    try:
-        if not records:
-            return jsonify({
-                "status": "error",
-                "message": "CSV file contains no records"
-            }), 400
-        logger.info(
-            f"Received {len(records)} pricing records"
-        )
-        logger.info("Connecting to database")
-        con = get_db_connection(PRICE_DB)
-        logger.info("Database connection successful")
-        cursor = con.cursor()
-        for data in records:
-            logger.info("Calling Insert Query")
-            data["starting_date"] = convert_datetime(
-                data.get("Starting Date")
-            )
- 
-            data["ending_date"] = convert_datetime(
-                data.get("Ending Date")
-            )
- 
-            sql_query, params = insert_price_query(data)
-            cursor.execute(sql_query, params)
-        file_path = os.path.join(
-            upload_price_directory,
-            file.filename
-        )
-        file.save(file_path)
-        logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Item Price CSV Data",file_path)
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
-        logger.info(
-            f"{len(records)} price records inserted successfully"
-        )
-        return jsonify({
-            "status": "success",
-            "message": "CSV data inserted successfully",
-            "count": len(records)
-        }), 201
-    except ConnectionError as e:
-        logger.error(
-            f"Database connection error: {e}"
-        )
-        return jsonify({
-            "status": "error",
-            "message": "Unable to connect to database",
-            "error": str(e)
-        }), 503
-    except pymysql.MySQLError as e:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Database error while inserting CSV data"
-        )
-        return jsonify({
-            "status": "error",
-            "message": "Database error",
-            "error": str(e)
-        }), 500
-    except Exception as e:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Unexpected error while inserting CSV data"
         )
         return jsonify({
             "status": "error",
@@ -541,3 +462,19 @@ def get_prices():
             cursor.close()
         if con:
             con.close()
+
+def central_price():
+    try:
+        if IS_CENTRAL == '1':
+            return upload_csv()
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "NO permission to upload"
+            })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": "Something went wrong",
+            "error": str(e)
+        }), 500

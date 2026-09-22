@@ -1,10 +1,25 @@
 from flask import Flask
-from api import fetch_all_prices, create_price, update_price_data, filter_price_data, create_single_price, get_prices
+from api import fetch_all_prices, update_price_data, filter_price_data, create_single_price, get_prices, central_price
 from discount_api import fetch_all_discounts, create_discount, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from upload_csv import upload_csv, index, upload_discount_csv
+from datetime import datetime, date
+from flask.json.provider import DefaultJSONProvider
 # from scheduler import scheduler
 
 app = Flask(__name__)
+
+ 
+class CustomJSONProvider(DefaultJSONProvider):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.strftime("%Y-%m-%d %H:%M:%S")
+        if isinstance(obj, date):
+            return obj.strftime("%Y-%m-%d")
+        return super().default(obj)
+ 
+ 
+app.json = CustomJSONProvider(app)
+ 
 
 @app.get("/")
 def index_call():
@@ -22,9 +37,9 @@ def add_single_price():
 def main_function():
     return fetch_all_prices()
 
-@app.route('/api/items/create_csv_item_prices', methods=['POST'])
-def main_create_price():
-    return upload_csv()
+# @app.route('/api/items/create_csv_item_prices', methods=['POST'])
+# def main_create_price():
+#     return upload_csv()
 
 @app.route('/api/items/update_item_prices/<int:price_id>',methods=['PUT'])
 def main_update_price(price_id):
@@ -61,6 +76,10 @@ def update_discount(discount_id):
 @app.route('/api/items/get_priority_item_discount')
 def get_priority_discount():
     return get_discounts()
+
+@app.route("/api/items/central_app", methods=['POST'])
+def central_app():
+    return central_price()
 
 if __name__ == "__main__":
     app.run(debug=True)

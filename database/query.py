@@ -430,7 +430,7 @@ def select_all_prices(page, limit):
     sql_query = """
         SELECT *
         FROM PRICING_TABLE
-        ORDER BY item_no
+        ORDER BY updated DESC
         LIMIT %s OFFSET %s
     """
     count_query = """
@@ -489,7 +489,7 @@ def insert_price_query(data):
         data.get("priority"),
         data.get("currency"),
         data.get("sales_price"),
-        data.get("unit_of_measure"),
+        data.get("uom"),
         data.get("minimum_quantity"),
         data.get("starting_date"),
         data.get("ending_date"),

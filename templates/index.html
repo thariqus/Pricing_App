@@ -874,32 +874,32 @@ document.addEventListener("DOMContentLoaded", function () {
    ========================================================= */
 
 const COLUMNS = [
-    { key: "active",               label: "Active",               type: "active"                    },
-    { key: "condition_type",       label: "Condition Type",       type: "text"                      },
-    { key: "item_no",              label: "Item No",              type: "text"                      },
-    { key: "customer",             label: "Customer",             type: "text"                      },
-    { key: "customer_grp",         label: "Customer Grp",         type: "text"                      },
-    { key: "customer_hierarchy",   label: "Customer Hierarchy",   type: "text"                      },
-    { key: "distribution_channel", label: "Distribution Channel", type: "text"                      },
-    { key: "location_code",        label: "Location Code",        type: "text"                      },
-    { key: "priority",             label: "Priority",             type: "number",   editable: true  },
-    { key: "currency",             label: "Currency",             type: "text"                      },
-    { key: "sales_price",          label: "Sales Price",          type: "number",   editable: true  },
-    { key: "uom",                  label: "UOM",                  type: "text"                      },
-    { key: "min_qty",              label: "Min Qty",              type: "number",   editable: true  },
-    { key: "starting_date",        label: "Starting Date",        type: "datetime", editable: true  },
-    { key: "ending_date",          label: "Ending Date",          type: "datetime", editable: true  },
-    { key: "lower_limit",          label: "Lower Limit",          type: "number",   editable: true  },
-    { key: "upper_limit",          label: "Upper Limit",          type: "number",   editable: true  },
-    { key: "zone_code",            label: "Zone Code",            type: "text",     editable: true  },
-    { key: "offer_article",        label: "Offer Article",        type: "text",     editable: true  }
+    { key: "active",                    label: "Active",               type: "active"                    },
+    { key: "condition_type",            label: "Condition Type",       type: "text"                      },
+    { key: "item_no",                   label: "Item No",              type: "text"                      },
+    { key: "customer",                  label: "Customer",             type: "text"                      },
+    { key: "customer_grp",              label: "Customer Grp",         type: "text"                      },
+    { key: "customer_hierarchy",        label: "Customer Hierarchy",   type: "text"                      },
+    { key: "distribution_channel_code", label: "Distribution Channel", type: "text"                      },
+    { key: "location_code",             label: "Location Code",        type: "text"                      },
+    { key: "priority",                  label: "Priority",             type: "number",   editable: true  },
+    { key: "currency",                  label: "Currency",             type: "text"                      },
+    { key: "sales_price",               label: "Sales Price",          type: "number",   editable: true  },
+    { key: "unit_of_measure",           label: "UOM",                  type: "text"                      },
+    { key: "minimum_quantity",          label: "Min Qty",              type: "number",   editable: true  },
+    { key: "starting_date",             label: "Starting Date",        type: "datetime", editable: true  },
+    { key: "ending_date",               label: "Ending Date",          type: "datetime", editable: true  },
+    { key: "lower_limit",               label: "Lower Limit",          type: "number",   editable: true  },
+    { key: "upper_limit",               label: "Upper Limit",          type: "number",   editable: true  },
+    { key: "transportation_zone_code",  label: "Zone Code",            type: "text",     editable: true  },
+    { key: "offer_article",             label: "Offer Article",        type: "text",     editable: true  }
 ];
 
 const API = {
     fetch:     "/api/items/fetch_all_item_prices",
     save:      "/api/items/create_singel_item_price",
     remove:    "/api/item-management/delete",
-    import:    "/api/items/create_csv_item_prices",
+    import:    "/api/items/central_app",
     sampleCsv: "/api/items/create_csv_item_prices"
 };
 
@@ -1137,17 +1137,17 @@ function endOfTodayForInput() {
    ========================================================= */
 
 const PRIORITY_CONFIG = [
-    ["distribution_channel", "customer",         "location_code", "item_no", "uom"],
-    ["distribution_channel", "customer_grp",     "location_code", "item_no", "uom"],
-    ["distribution_channel", "customer",         "item_no", "uom"],
-    ["distribution_channel", "customer_grp",     "item_no", "uom"],
-    ["customer_grp",         "item_no",          "uom"],
-    ["customer_hierarchy",   "location_code",    "item_no", "uom"],
-    ["customer_hierarchy",   "item_no",          "uom"],
-    ["distribution_channel", "location_code",    "item_no", "zone_code", "uom"],
-    ["distribution_channel", "location_code",    "item_no", "uom"],
-    ["distribution_channel", "item_no",          "uom"],
-    ["item_no",              "uom"]
+    ["distribution_channel", "customer",         "location_code", "item_no", "unit_of_measure"],
+    ["distribution_channel", "customer_grp",     "location_code", "item_no", "unit_of_measure"],
+    ["distribution_channel", "customer",         "item_no", "unit_of_measure"],
+    ["distribution_channel", "customer_grp",     "item_no", "unit_of_measure"],
+    ["customer_grp",         "item_no",          "unit_of_measure"],
+    ["customer_hierarchy",   "location_code",    "item_no", "unit_of_measure"],
+    ["customer_hierarchy",   "item_no",          "unit_of_measure"],
+    ["distribution_channel", "location_code",    "item_no", "zone_code", "unit_of_measure"],
+    ["distribution_channel", "location_code",    "item_no", "unit_of_measure"],
+    ["distribution_channel", "item_no",          "unit_of_measure"],
+    ["item_no",              "unit_of_measure"]
 ];
 
 const FIELD_LABELS = {
