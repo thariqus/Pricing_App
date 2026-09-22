@@ -1,7 +1,7 @@
 from flask import Flask
 from api import fetch_all_prices, create_price, update_price_data, filter_price_data, create_single_price, get_prices
 from discount_api import fetch_all_discounts, create_discount, create_single_discount, update_discount_data, filter_discount_data, get_discounts
-from upload_csv import upload_csv, index
+from upload_csv import upload_csv, index, upload_discount_csv
 # from scheduler import scheduler
 
 app = Flask(__name__)
@@ -10,9 +10,9 @@ app = Flask(__name__)
 def index_call():
     return index()
 
-@app.post("/api/items/upload")
-def upload_csv_call():
-    return upload_csv()
+# @app.post("/api/items/upload")
+# def upload_csv_call():
+#     return upload_csv()
 
 @app.post("/api/items/create_singel_item_price")
 def add_single_price():
@@ -20,12 +20,11 @@ def add_single_price():
 
 @app.route('/api/items/fetch_all_item_prices', methods=['POST'])
 def main_function():
-    prices = fetch_all_prices()
-    return prices
+    return fetch_all_prices()
 
-# @app.route('/api/items/create_csv_item_prices', methods=['POST'])
-# def main_create_price():
-#     return create_price()
+@app.route('/api/items/create_csv_item_prices', methods=['POST'])
+def main_create_price():
+    return upload_csv()
 
 @app.route('/api/items/update_item_prices/<int:price_id>',methods=['PUT'])
 def main_update_price(price_id):
@@ -45,7 +44,7 @@ def create_single_discount():
 
 @app.route('/api/items/create_csv_item_discount', methods=['POST'])
 def create_csv_discount():
-    return create_discount()
+    return upload_discount_csv()
 
 @app.route('/api/items/fetch_all_discount_prices', methods=['POST'])
 def fetch_discount():

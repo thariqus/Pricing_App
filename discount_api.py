@@ -8,7 +8,8 @@ from database.query import (
     check_discount_exists,
     filter_discounts,
     deactive_exp_discount_items,
-    get_item_discount_details
+    get_item_discount_details,
+    create_logger
 )
 from datetime import date
 from utils.date_converter import convert_datetime
@@ -26,7 +27,7 @@ def fetch_all_discounts():
     try:
         # Get pagination values
         page = request.args.get("page", default=1, type=int)
-        limit = request.args.get("limit", default=10, type=int)
+        limit = request.args.get("limit", default=100, type=int)
         # Validate pagination
         if page < 1:
             return jsonify({
@@ -52,6 +53,9 @@ def fetch_all_discounts():
         cursor.execute(sel_query, params)
         discount_data = cursor.fetchall()
         logger.info("Returning Data")
+        # logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching All Discount Data")
+        # cursor.execute(logger_sql_query, logger_params)
+        # con.commit()
         return jsonify({
             "status": "success",
             "page": page,
@@ -87,19 +91,19 @@ def fetch_all_discounts():
         if con:
             con.close()
  
-def create_discount():
+def create_discount(records, file):
     logger.info("Entered in create discount")
     con = None
     cursor = None
     try:
-        # Get JSON data
-        data = request.get_json()
-        if not data:
+        if not records:
             return jsonify({
                 "status": "error",
-                "message": "Request body is empty"
+                "message": "CSV file contains no records"
             }), 400
-        logger.info("Received discount data")
+        logger.info(
+            f"Received {len(records)} discount records"
+        )
         # Database connection
         logger.info(f"Connecting to discount DB: {DISCOUNT_DB}")
         con = get_db_connection(DISCOUNT_DB)
@@ -107,10 +111,21 @@ def create_discount():
         cursor = con.cursor()
         # Get insert query
         logger.info("Calling Insert Query")
-        sql_query, params = insert_discount_query(data)
-        # Execute insert
-        cursor.execute(sql_query, params)
+        for data in records:
+            logger.info("Calling Insert Query")
+            data["starting_date"] = convert_datetime(
+                data.get("Starting Date")
+            )
+    
+            data["ending_date"] = convert_datetime(
+                data.get("Ending Date")
+            )
+    
+            sql_query, params = insert_discount_query(data)
+            cursor.execute(sql_query, params)
         # Save changes
+        # logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Item Discount CSV Data")
+        # cursor.execute(logger_sql_query, logger_params)
         con.commit()
         # Get newly created ID
         inserted_id = cursor.lastrowid
@@ -185,6 +200,8 @@ def create_single_discount():
             params
         )
         inserted_id = cursor.lastrowid
+        # logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Single item discount data")
+        # cursor.execute(logger_sql_query, logger_params)
         con.commit()
         logger.info(
             f"Discount inserted successfully. ID: {inserted_id}"
@@ -278,6 +295,8 @@ def update_discount_data(discount_id):
             params
         )
         # Save changes
+        # logger_sql_query, logger_params = create_logger(request.remote_addr,f"Item discount number {discount_id} updated")
+        # cursor.execute(logger_sql_query, logger_params)
         con.commit()
         logger.info(
             f"Discount ID {discount_id} updated successfully"
@@ -396,6 +415,8 @@ def deactive_discount_items():
         logger.info("Executing update query")
         cursor.execute(sql_query, today)
         updated_rows = cursor.rowcount
+        # logger_sql_query, logger_params = create_logger(request.remote_addr,f"{updated_rows} item discount expired")
+        # cursor.execute(logger_sql_query, logger_params)
         con.commit()
         logger.info(
             f"Updated successfully. Rows affected: {updated_rows}"
@@ -481,6 +502,9 @@ def get_discounts():
         else:
             cursor.execute(sql_query, 0)
         items_datas = cursor.fetchall()
+        # logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching discount item price priority")
+        # cursor.execute(logger_sql_query, logger_params)
+        # con.commit()
         return {
             "status" : "Success",
             "data" : items_datas

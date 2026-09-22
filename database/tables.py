@@ -6,6 +6,7 @@ PRICE_LOCATION = "pricing_location"
 PRICING_PRIORITY = "pricing_priority"
 PRICING_TRANSPORTATION_ZONE = "pricing_transportation_zone"
 PRICING_UOM = "pricing_uom"
+LOGGER = "logger_table"
 
 #Discount Tables Names
 DISCOUNT_TABLE = "DISCOUNT_TABLE"

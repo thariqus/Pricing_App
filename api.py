@@ -6,12 +6,14 @@ from database.query import (
     update_price, check_price_exists, 
     filter_prices, 
     deactive_exp_price_items, 
-    get_item_price_details
+    get_item_price_details,
+    create_logger
     )
 import pymysql
 from datetime import date
 from utils.date_converter import convert_datetime
 from utils.log_error import logger
+from utils.file_path import upload_price_directory
 from dotenv import load_dotenv
 import os
 load_dotenv()
@@ -53,6 +55,9 @@ def fetch_all_prices():
         cursor.execute(count_query)
         total_records = cursor.fetchone()["total"]
         logger.info("Returning Data")
+        logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching All Price Data")
+        cursor.execute(logger_sql_query, logger_params)
+        con.commit()
         return jsonify({
             "status": "success",
             "page": page,
@@ -89,7 +94,7 @@ def fetch_all_prices():
         if con:
             con.close()
 
-def create_price(records):
+def create_price(records, file):
     logger.info("Entered in create price")
     con = None
     cursor = None
@@ -118,6 +123,13 @@ def create_price(records):
  
             sql_query, params = insert_price_query(data)
             cursor.execute(sql_query, params)
+        file_path = os.path.join(
+            upload_price_directory,
+            file.filename
+        )
+        file.save(file_path)
+        logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Item Price CSV Data",file_path)
+        cursor.execute(logger_sql_query, logger_params)
         con.commit()
         logger.info(
             f"{len(records)} price records inserted successfully"
@@ -179,7 +191,6 @@ def create_single_price():
         con = get_db_connection(PRICE_DB)
         logger.info("Database connection successful")
         cursor = con.cursor()
-        print("start date ",data.get("starting_date"))
         # Convert datetime values
         data["starting_date"] = convert_datetime(
             data.get("starting_date")
@@ -198,6 +209,9 @@ def create_single_price():
         logger.info(
             f"Price inserted successfully. ID: {inserted_id}"
         )
+        logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Single Item Price Data")
+        cursor.execute(logger_sql_query, logger_params)
+        con.commit()
         return jsonify({
             "status": "success",
             "message": "Price created successfully",
@@ -287,6 +301,8 @@ def update_price_data(price_id):
             params
         )
         # Save changes
+        logger_sql_query, logger_params = create_logger(request.remote_addr,f"Item price number {price_id} Update")
+        cursor.execute(logger_sql_query, logger_params)
         con.commit()
         logger.info(
             f"Price ID {price_id} updated successfully"
@@ -405,6 +421,8 @@ def deactive_price_items():
         logger.info("Executing update query")
         cursor.execute(sql_query, today)
         updated_rows = cursor.rowcount
+        logger_sql_query, logger_params = create_logger(request.remote_addr,f"{updated_rows} items price expired")
+        cursor.execute(logger_sql_query, logger_params)
         con.commit()
         logger.info(
             f"Updated successfully. Rows affected: {updated_rows}"
@@ -490,6 +508,9 @@ def get_prices():
         else:
             cursor.execute(sql_query, 0)
         items_datas = cursor.fetchall()
+        logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching item pricing prioritys")
+        cursor.execute(logger_sql_query, logger_params)
+        con.commit()
         return {
             "status" : "Success",
             "data" : items_datas

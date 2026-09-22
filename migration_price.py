@@ -2,8 +2,26 @@ import os
 from dotenv import load_dotenv
 from database.mysql_connection import get_db_connection
 from database.query import create_pricing_database_query, create_table_query 
-from database.tables import PRICING_TABLE, PRICE_LOCATION, PRICING_DISTRIBUTION_CHANNEL, PRICING_PRIORITY,PRICING_CURRENCY, PRICING_TRANSPORTATION_ZONE, PRICING_UOM
-from database.fields import Pricing_Table, Pricing_Location, Pricing_Distribution_Channel, Pricing_Priority, Pricing_Currency, Pricing_Transportation_Zone, Pricing_UOM
+from database.tables import (
+    PRICING_TABLE, 
+    PRICE_LOCATION, 
+    PRICING_DISTRIBUTION_CHANNEL, 
+    PRICING_PRIORITY,
+    PRICING_CURRENCY, 
+    PRICING_TRANSPORTATION_ZONE, 
+    PRICING_UOM,
+    LOGGER
+    )
+from database.fields import (
+    Pricing_Table, 
+    Pricing_Location, 
+    Pricing_Distribution_Channel, 
+    Pricing_Priority, 
+    Pricing_Currency, 
+    Pricing_Transportation_Zone, 
+    Pricing_UOM,
+    logger_table
+    )
 from utils.log_error import logger
  
 load_dotenv()
@@ -138,6 +156,21 @@ def create_pricing_uom():
         if con:
             con.close()
 
+def create_logger():
+    con = None
+    try:
+        con = get_db_connection(DB_NAME)
+        with con.cursor() as cursor:
+            cursor.execute(create_table_query(LOGGER,logger_table))
+        con.commit()
+        logger.info("Table '%s' successfully created",LOGGER)
+    except Exception:
+        logger.exception("Failed to create table '%s'",LOGGER)
+        raise
+    finally:
+        if con:
+            con.close()
+
 
 if __name__ == "__main__":
     create_database()
@@ -148,4 +181,5 @@ if __name__ == "__main__":
     create_pricing_currency()
     create_pricing_transportation_zone()
     create_pricing_uom()
+    create_logger()
  

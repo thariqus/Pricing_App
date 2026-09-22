@@ -916,3 +916,20 @@ def get_item_discount_details():
         select * from DISCOUNT_TABLE where priority = %s
     """
     return sql_query
+
+def create_logger(ipaddress, log, file_path=""):
+    sql_query = """
+        insert into logger_table(
+            ipaddress,
+            log_details,
+            log_files
+        )
+        values(
+        %s,%s,%s)
+    """
+    params = (
+        ipaddress, 
+        log,
+        file_path
+    )
+    return sql_query, params
