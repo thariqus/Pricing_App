@@ -68,7 +68,7 @@ def create_pricing_table_query(table_name):
             priority INT,
             currency VARCHAR(100),
             sales_price FLOAT,
-            unit_of_measure VARCHAR(100),
+            uom VARCHAR(100),
             minimum_quantity INT,
             starting_date DATETIME,
             ending_date DATETIME,
@@ -82,7 +82,7 @@ def create_pricing_table_query(table_name):
             offer_article BOOLEAN,
             price_with_tax FLOAT,
             tax_percent FLOAT,
-            KEY idx_item_uom (item_no, unit_of_measure),
+            KEY idx_item_uom (item_no, uom),
             KEY idx_dates (starting_date, ending_date)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """
@@ -254,7 +254,7 @@ def create_discount_table_query(table_name):
             priority INT,
             currency VARCHAR(100),
             sales_price FLOAT,
-            unit_of_measure VARCHAR(100),
+            uom VARCHAR(100),
             minimum_quantity INT,
             starting_date DATE,
             ending_date DATE,
@@ -268,7 +268,7 @@ def create_discount_table_query(table_name):
             offer_article BOOLEAN,
             price_with_tax FLOAT,
             tax_percent FLOAT,
-            KEY idx_item_uom (item_no, unit_of_measure),
+            KEY idx_item_uom (item_no, uom),
             KEY idx_dates (starting_date, ending_date)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """
@@ -454,7 +454,7 @@ def insert_price_query(data):
             priority,
             currency,
             sales_price,
-            unit_of_measure,
+            uom,
             minimum_quantity,
             starting_date,
             ending_date,
@@ -507,65 +507,54 @@ def insert_price_query(data):
     return sql_query, params
  
 def update_price(price_id, data):
-    sql_query = """
+    allowed_fields = {
+        "active",
+        "condition_type",
+        "item_no",
+        "customer",
+        "customer_grp",
+        "customer_hierarchy",
+        "distribution_channel_code",
+        "location_code",
+        "priority",
+        "currency",
+        "sales_price",
+        "uom",
+        "minimum_quantity",
+        "starting_date",
+        "ending_date",
+        "lower_limit",
+        "upper_limit",
+        "transportation_zone_code",
+        "map",
+        "change_type",
+        "updated_from_sap",
+        "sales_division_code",
+        "offer_article",
+        "price_with_tax",
+        "tax_percent"
+    }
+    update_fields = {
+        key: value
+        for key, value in data.items()
+        if key in allowed_fields
+    }
+    if not update_fields:
+        raise ValueError(
+            "No valid fields provided for update"
+        )
+    set_clause = ", ".join(
+        f"{field} = %s"
+        for field in update_fields
+    )
+    sql_query = f"""
         UPDATE PRICING_TABLE
-        SET
-            active = %s,
-            condition_type = %s,
-            item_no = %s,
-            customer = %s,
-            customer_grp = %s,
-            customer_hierarchy = %s,
-            distribution_channel_code = %s,
-            location_code = %s,
-            priority = %s,
-            currency = %s,
-            sales_price = %s,
-            unit_of_measure = %s,
-            minimum_quantity = %s,
-            starting_date = %s,
-            ending_date = %s,
-            lower_limit = %s,
-            upper_limit = %s,
-            transportation_zone_code = %s,
-            map = %s,
-            change_type = %s,
-            updated_from_sap = %s,
-            sales_division_code = %s,
-            offer_article = %s,
-            price_with_tax = %s,
-            tax_percent = %s
+        SET {set_clause}
         WHERE id = %s
     """
-    params = (
-        data.get("active"),
-        data.get("condition_type"),
-        data.get("item_no"),
-        data.get("customer"),
-        data.get("customer_grp"),
-        data.get("customer_hierarchy"),
-        data.get("distribution_channel_code"),
-        data.get("location_code"),
-        data.get("priority"),
-        data.get("currency"),
-        data.get("sales_price"),
-        data.get("unit_of_measure"),
-        data.get("minimum_quantity"),
-        data.get("starting_date"),
-        data.get("ending_date"),
-        data.get("lower_limit"),
-        data.get("upper_limit"),
-        data.get("transportation_zone_code"),
-        data.get("map"),
-        data.get("change_type"),
-        data.get("updated_from_sap"),
-        data.get("sales_division_code"),
-        data.get("offer_article"),
-        data.get("price_with_tax"),
-        data.get("tax_percent"),
-        price_id
-    )
-    return sql_query, params
+    params = list(update_fields.values())
+    params.append(price_id)
+    return sql_query, tuple(params)
  
 def check_price_exists(price_id):
     sql_query = """
@@ -616,9 +605,9 @@ def filter_prices(data):
     if data.get("sales_price") is not None:
         sql_query += " AND sales_price = %s"
         params.append(data.get("sales_price"))
-    if data.get("unit_of_measure"):
-        sql_query += " AND unit_of_measure = %s"
-        params.append(data.get("unit_of_measure"))
+    if data.get("uom"):
+        sql_query += " AND uom = %s"
+        params.append(data.get("uom"))
     if data.get("minimum_quantity") is not None:
         sql_query += " AND minimum_quantity = %s"
         params.append(data.get("minimum_quantity"))
@@ -698,7 +687,7 @@ def insert_discount_query(data):
             priority,
             currency,
             sales_price,
-            unit_of_measure,
+            uom,
             minimum_quantity,
             starting_date,
             ending_date,
@@ -733,7 +722,7 @@ def insert_discount_query(data):
         data.get("priority"),
         data.get("currency"),
         data.get("sales_price"),
-        data.get("unit_of_measure"),
+        data.get("uom"),
         data.get("minimum_quantity"),
         data.get("starting_date"),
         data.get("ending_date"),
@@ -765,7 +754,7 @@ def update_discount(discount_id, data):
             priority = %s,
             currency = %s,
             sales_price = %s,
-            unit_of_measure = %s,
+            uom = %s,
             minimum_quantity = %s,
             starting_date = %s,
             ending_date = %s,
@@ -793,7 +782,7 @@ def update_discount(discount_id, data):
         data.get("priority"),
         data.get("currency"),
         data.get("sales_price"),
-        data.get("unit_of_measure"),
+        data.get("uom"),
         data.get("minimum_quantity"),
         data.get("starting_date"),
         data.get("ending_date"),
@@ -860,9 +849,9 @@ def filter_discounts(data):
     if data.get("sales_price") is not None:
         sql_query += " AND sales_price = %s"
         params.append(data.get("sales_price"))
-    if data.get("unit_of_measure"):
-        sql_query += " AND unit_of_measure = %s"
-        params.append(data.get("unit_of_measure"))
+    if data.get("uom"):
+        sql_query += " AND uom = %s"
+        params.append(data.get("uom"))
     if data.get("minimum_quantity") is not None:
         sql_query += " AND minimum_quantity = %s"
         params.append(data.get("minimum_quantity"))

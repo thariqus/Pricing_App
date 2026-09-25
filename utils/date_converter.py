@@ -1,19 +1,14 @@
 from datetime import datetime
 
-def convert_datetime(value):
+def converter(value):
     if not value:
         return None
     value = value.strip()
     formats = [
-        # MySQL / API formats
         "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%d %H:%M",
-
-        # CSV formats
         "%m/%d/%Y %H:%M:%S",
         "%m/%d/%Y %H:%M",
-
-        # Date only
         "%Y-%m-%d",
         "%m/%d/%Y",
     ]
@@ -31,3 +26,19 @@ def convert_datetime(value):
     raise ValueError(
         f"Invalid datetime format: {value}"
     )
+
+def convert_datetime(data):
+    if not data:
+        return data
+    try:
+        data["starting_date"] = converter(
+            data.get("starting_date")
+        )
+        data["ending_date"] = converter(
+            data.get("ending_date")
+        )
+        return data
+    except Exception as e:
+        raise ValueError(
+            f"Failed to convert datetime: {e}"
+        ) from e

@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
-from database.mysql_connection import get_db_connection
-from database.query import create_pricing_database_query, create_table_query 
-from database.tables import (
+from repository.mysql_connection import get_db_connection
+from repository.query import create_pricing_database_query, create_table_query 
+from repository.tables import (
     PRICING_TABLE, 
     PRICE_LOCATION, 
     PRICING_DISTRIBUTION_CHANNEL, 
@@ -12,7 +12,7 @@ from database.tables import (
     PRICING_UOM,
     LOGGER
     )
-from database.fields import (
+from repository.fields import (
     Pricing_Table, 
     Pricing_Location, 
     Pricing_Distribution_Channel, 

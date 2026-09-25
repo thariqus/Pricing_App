@@ -1,8 +1,8 @@
 from flask import jsonify, request
-from database.mysql_connection import get_db_connection, DISCOUNT_DB
+from repository.mysql_connection import get_db_connection, DISCOUNT_DB
 import logging
 import pymysql
-from query import (
+from repository.query import (
     select_all_discounts
 )
 

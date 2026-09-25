@@ -39,7 +39,7 @@ Pricing_Table = {
     "sales_price": {
         "type": "FLOAT"
     },
-    "unit_of_measure": {
+    "uom": {
         "type": "VARCHAR(100)"
     },
     "minimum_quantity": {
@@ -95,7 +95,7 @@ Pricing_Table = {
             "type": "INDEX",
             "columns": [
                 "item_no",
-                "unit_of_measure"
+                "uom"
             ]
         },
         "idx_dates": {
@@ -446,7 +446,7 @@ Discount_Table = {
     "sales_price": {
         "type": "FLOAT"
     },
-    "unit_of_measure": {
+    "uom": {
         "type": "VARCHAR(100)"
     },
     "minimum_quantity": {
@@ -493,7 +493,7 @@ Discount_Table = {
             "type": "INDEX",
             "columns": [
                 "item_no",
-                "unit_of_measure"
+                "uom"
             ]
         },
         "idx_dates": {

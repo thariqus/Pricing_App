@@ -1,7 +1,7 @@
 from flask import jsonify, request
-from database.mysql_connection import get_db_connection
+from repository.mysql_connection import get_db_connection
 import pymysql
-from database.query import (
+from repository.query import (
     select_all_discounts,
     insert_discount_query,
     update_discount,
@@ -191,7 +191,6 @@ def create_single_discount():
         con = get_db_connection("DISCOUNT_DATABASE")
         logger.info("Database connection successful")
         cursor = con.cursor()
-        print("start date ",data.get("starting_date"))
         # Convert datetime values
         data["starting_date"] = convert_datetime(
             data.get("starting_date")
