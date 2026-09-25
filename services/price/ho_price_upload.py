@@ -2,7 +2,7 @@ from flask import request, render_template, jsonify
 import requests
 import os
 from data.csv_upload.price_csv_upload import upload_csv
-from repository.price.create_price import create_price
+from repository.price.ho_create_price import ho_create_price
 from data.csv_upload.price_csv_check import check_price_csv_items
 IS_CENTRAL = os.getenv("IS_CENTRAL")
 VALIDATION_API = os.getenv("VALIDATION_API")
@@ -36,7 +36,7 @@ def ho_price_upload():
         )
         response_message = response.json()
         valid_data, invalid_data = check_price_csv_items(csv_record, response_message)
-        mysql = create_price(valid_data, file, invalid_data)
+        mysql = ho_create_price(valid_data, file, invalid_data)
         return mysql
     else:
         return jsonify({

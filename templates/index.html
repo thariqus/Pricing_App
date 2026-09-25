@@ -869,38 +869,45 @@ document.addEventListener("DOMContentLoaded", function () {
    payload are all generated from this array — so adding or
    removing a column here is the only change needed.
 
-   type:     text | number | datetime
+   type:     text | number | datetime | select
    editable: inline-editable on an existing (fetched) row
    ========================================================= */
+const UOM_OPTIONS = ["PAC", "EA", "CAR"];
+const LOCATION_OPTIONS = ["2112", "2113", "2132"];
+const CURRENCY_OPTIONS = ["AED","USD", "EUR", "GBP", "JPY", "CAD", "AUD"];
+const PRIORITY_OPTIONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10","11"];
 
 const COLUMNS = [
-    { key: "active",                    label: "Active",               type: "active"                    },
-    { key: "condition_type",            label: "Condition Type",       type: "text"                      },
-    { key: "item_no",                   label: "Item No",              type: "text"                      },
-    { key: "customer",                  label: "Customer",             type: "text"                      },
-    { key: "customer_grp",              label: "Customer Grp",         type: "text"                      },
-    { key: "customer_hierarchy",        label: "Customer Hierarchy",   type: "text"                      },
-    { key: "distribution_channel_code", label: "Distribution Channel", type: "text"                      },
-    { key: "location_code",             label: "Location Code",        type: "text"                      },
-    { key: "priority",                  label: "Priority",             type: "number",   editable: true  },
-    { key: "currency",                  label: "Currency",             type: "text"                      },
-    { key: "sales_price",               label: "Sales Price",          type: "number",   editable: true  },
-    { key: "uom",                       label: "UOM",                  type: "text"                      },
-    { key: "minimum_quantity",          label: "Min Qty",              type: "number",   editable: true  },
-    { key: "starting_date",             label: "Starting Date",        type: "datetime", editable: true  },
-    { key: "ending_date",               label: "Ending Date",          type: "datetime", editable: true  },
-    { key: "lower_limit",               label: "Lower Limit",          type: "number",   editable: true  },
-    { key: "upper_limit",               label: "Upper Limit",          type: "number",   editable: true  },
-    { key: "transportation_zone_code",  label: "Zone Code",            type: "text",     editable: true  },
-    { key: "offer_article",             label: "Offer Article",        type: "text",     editable: true  }
+    { key: "active",               label: "Active",               type: "active"                    },
+    { key: "condition_type",       label: "Condition Type",       type: "text"                      },
+    { key: "item_no",              label: "Item No",              type: "text"                      },
+    { key: "customer",             label: "Customer",             type: "text"                      },
+    { key: "customer_grp",         label: "Customer Grp",         type: "text"                      },
+    { key: "customer_hierarchy",   label: "Customer Hierarchy",   type: "text"                      },
+    { key: "distribution_channel", label: "Distribution Channel", type: "text"                      },
+    { key: "location_code",        label: "Location Code",        type: "select",   options: LOCATION_OPTIONS, editable: true },
+    { key: "priority",             label: "Priority",             type: "select",   options: PRIORITY_OPTIONS, editable: true  },
+    { key: "currency",             label: "Currency",             type: "select",   options: CURRENCY_OPTIONS, editable: true  },
+    { key: "sales_price",          label: "Sales Price",          type: "number",   editable: true  },
+    { key: "uom",                  label: "UOM",                  type: "select",   options: UOM_OPTIONS, editable: true  },
+    { key: "min_qty",              label: "Min Qty",              type: "number",   editable: true  },
+    { key: "starting_date",        label: "Starting Date",        type: "datetime", editable: true  },
+    { key: "ending_date",          label: "Ending Date",          type: "datetime", editable: true  },
+    { key: "lower_limit",          label: "Lower Limit",          type: "number",   editable: true  },
+    { key: "upper_limit",          label: "Upper Limit",          type: "number",   editable: true  },
+    { key: "zone_code",            label: "Zone Code",            type: "text",     editable: true  },
+    { key: "offer_article",        label: "Offer Article",        type: "text",     editable: true  }
 ];
+
+
 
 const API = {
     fetch:     "/api/items/fetch_all_item_prices",
     save:      "/api/items/create_singel_item_price",
     remove:    "/api/item-management/delete",
+    sampleCsv: "/api/items/central_app",
     import:    "/api/items/central_app",
-    sampleCsv: "/api/items/create_csv_item_prices",
+    filter:    "/api/items/filter_item_prices",
     upDate:    "/api/items/update_item_prices/"
 };
 
@@ -942,12 +949,10 @@ const DB_COLUMNS = {
     offer_article:        "offer_article"
 };
 
-// COLUMNS keys are already DB column names, so a key that is
-// itself a DB column must pass through untouched.
-const DB_COLUMN_NAMES = new Set(Object.values(DB_COLUMNS));
-
 /* Columns MySQL declares as INT / FLOAT — an empty string is
-   rejected for these, so blanks are sent as null instead. */
+   rejected for these, so blanks are sent as null instead.
+   NOTE: unit_of_measure is text (PAC/UA/CAR), so it must NOT
+   be in this list or every UOM gets nulled out. */
 const NUMERIC_COLUMNS = new Set([
     "customer_grp",
     "customer_hierarchy",
@@ -982,8 +987,7 @@ function toDbPayload(data) {
             return;
         }
 
-        // UI name -> DB name, or already a DB name -> keep as is
-        const column = DB_COLUMNS[key] || (DB_COLUMN_NAMES.has(key) ? key : null);
+        const column = DB_COLUMNS[key];
 
         if (!column) {
             return;
@@ -1093,23 +1097,23 @@ function toBackendDateTime(value) {
     return text;
 }
 
-// CSV wants US-style dates; the table holds YYYY-MM-DD HH:MM:SS
-function csvDate(value) {
+    // CSV wants US-style dates; the table holds YYYY-MM-DD HH:MM:SS
+    function csvDate(value) {
 
-    if (!value) {
-        return "";
+        if (!value) {
+            return "";
+        }
+
+        const parsed = new Date(String(value).replace(" ", "T"));
+
+        if (isNaN(parsed)) {
+            return value;
+        }
+
+        return String(parsed.getMonth() + 1).padStart(2, "0") + "/" +
+               String(parsed.getDate()).padStart(2, "0") + "/" +
+               parsed.getFullYear();
     }
-
-    const parsed = new Date(String(value).replace(" ", "T"));
-
-    if (isNaN(parsed)) {
-        return value;
-    }
-
-    return String(parsed.getMonth() + 1).padStart(2, "0") + "/" +
-           String(parsed.getDate()).padStart(2, "0") + "/" +
-           parsed.getFullYear();
-}
 
 function toInputDateTime(value) {
 
@@ -1443,7 +1447,7 @@ function renderTable() {
         return;
     }
 
-    items.forEach(function (item) {
+        items.forEach(function (item) {
 
         const id      = rowId(item);
         const pending = pendingUpdates.get(id);
@@ -1572,9 +1576,9 @@ function cellValue(row, field) {
 
 function makeCellEditable(cell) {
 
-    if (cell.querySelector("input")) {
-        return;
-    }
+    if (cell.querySelector("input, select")) {
+    return;
+}
 
     const row    = cell.parentNode;
     const field  = cell.dataset.field;
@@ -1585,25 +1589,46 @@ function makeCellEditable(cell) {
     }
 
     const oldValue = cell.innerText.trim();
-    const input    = document.createElement("input");
+    let input;
 
-    if (column.type === "number") {
+if (column.type === "select") {
 
-        input.type = "number";
-        input.step = "any";
-        input.value = oldValue;
+    input = document.createElement("select");
 
-    } else if (column.type === "datetime") {
+    const blank = document.createElement("option");
+    blank.value = "";
+    input.appendChild(blank);
 
-        input.type  = "datetime-local";
-        input.step  = "1";
-        input.value = toInputDateTime(oldValue);
+    column.options.forEach(function (code) {
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = code;
+        input.appendChild(option);
+    });
 
-    } else {
+    input.value = oldValue;
+    input.addEventListener("change", function () { input.blur(); });
 
-        input.type  = "text";
-        input.value = oldValue;
-    }
+} else if (column.type === "number") {
+
+    input = document.createElement("input");
+    input.type = "number";
+    input.step = "any";
+    input.value = oldValue;
+
+} else if (column.type === "datetime") {
+
+    input = document.createElement("input");
+    input.type  = "datetime-local";
+    input.step  = "1";
+    input.value = toInputDateTime(oldValue);
+
+} else {
+
+    input = document.createElement("input");
+    input.type  = "text";
+    input.value = oldValue;
+}
 
     let finished = false;
 
@@ -1700,19 +1725,31 @@ function createNewRow() {
         }
 
         if (column.type === "datetime") {
-
             const value = column.key === "starting_date"
                 ? nowForInput()
                 : endOfTodayForInput();
-
             html +=
                 "<td>" +
                     '<input type="datetime-local" step="1" data-field="' +
-                    column.key + '" value="' + value + '">' +
+                    column.key + '" value="' + value + '"' +
+                    ' min="' + nowForInput() + '">' +
                 "</td>";
-
             return;
         }
+
+        if (column.type === "select") {
+
+    let optionHtml = '<option value=""></option>';
+
+    column.options.forEach(function (code) {
+        optionHtml += '<option value="' + escapeHtml(code) + '">' +
+                      escapeHtml(code) + "</option>";
+    });
+
+    html += '<td><select data-field="' + column.key + '">' + optionHtml + "</select></td>";
+
+    return;
+}
 
         const defaults = { condition_type: "ZEN1", currency: "AED" };
 
@@ -2157,21 +2194,38 @@ function fetchAndPopulate(page) {
         .map(function (input) { return input.value.trim(); })
         .filter(function (value) { return value !== ""; });
 
+    const filters = collectFilters();
+
+    // sort_by isn't a column, so it travels outside the column map
+    const sortBy = filters.sort_by || "";
+    delete filters.sort_by;
+
+    // Anything filled in — an Item No box or any filter chip —
+    // goes to the filter endpoint; an empty toolbar gets the
+    // plain listing.
+    const hasFilters =
+        itemNumbers.length > 0 ||
+        sortBy !== "" ||
+        Object.keys(filters).length > 0;
+
+    const url = hasFilters ? API.filter : API.fetch;
+
     const payload = {
         item_no: itemNumbers,
         active:  document.getElementById("fetchActive").value,
-        filters: collectFilters(),
+        filters: toDbPayload(filters),   // UI keys -> DB column names
+        sort_by: sortBy,
         page:    currentPage,
         limit:   PAGE_SIZE
     };
 
-    console.log("Fetch payload:", payload);
+    console.log("Fetch:", url, payload);
 
     tableBody.innerHTML =
         '<tr><td colspan="' + (COLUMNS.length + 1) + '"' +
         ' style="text-align:center; padding:20px; color:#777;">Loading…</td></tr>';
 
-    fetch(API.fetch, {
+    fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -2203,14 +2257,21 @@ function fetchAndPopulate(page) {
 
         console.error("Fetch error:", error);
 
+        items     = [];
+        totalRows = 0;
+
         tableBody.innerHTML =
             '<tr><td colspan="' + (COLUMNS.length + 1) + '"' +
             ' style="text-align:center; padding:20px; color:#777;">' +
             "No Items Found</td></tr>";
 
+        pagination.innerHTML = "";
+
         alert("Unable to fetch data");
     });
 }
+
+
 document.getElementById("fetchForm").addEventListener("submit", function (event) {
 
     event.preventDefault();
@@ -2239,10 +2300,16 @@ document.getElementById("addItemBtn").addEventListener("click", function () {
 
 /* =========================================================
    SAVE
+
+   Two different requests leave here:
+     - each NEW row    -> POST  API.save   (one request per row,
+                          since the create endpoint takes a single
+                          object and replies with {status, message, id})
+     - all EDITED rows -> ONE PUT to API.upDate carrying a list,
+                          replying with {status, message,
+                          updated_count, updated, failed_count, failed}
    ========================================================= */
 
-/* Sends a payload to the server and parses the JSON reply.
-   `body` is already DB-ready (toDbPayload applied by the caller). */
 function sendJson(url, method, body) {
 
     return fetch(url, {
@@ -2271,12 +2338,12 @@ function sendJson(url, method, body) {
     });
 }
 
-/* NEW rows: one POST per row (the create endpoint takes a single object). */
-function sendRow(url, method, data) {
-    return sendJson(url, method, toDbPayload(data));
+// NEW rows: one POST per row
+function sendRow(url, data) {
+    return sendJson(url, "POST", toDbPayload(data));
 }
 
-/* EDITED rows: ONE PUT carrying the whole list. */
+// EDITED rows: one PUT with the whole list
 function sendUpdates(url, list) {
     return sendJson(url, "PUT", list.map(toDbPayload));
 }
@@ -2284,7 +2351,7 @@ function sendUpdates(url, list) {
 saveButton.addEventListener("click", function () {
 
     // Commit any editor still open
-    const openEditor = tableBody.querySelector("td.editable-cell input");
+    const openEditor = tableBody.querySelector("td.editable-cell input, td.editable-cell select");
 
     if (openEditor) {
         openEditor.blur();
@@ -2313,7 +2380,6 @@ saveButton.addEventListener("click", function () {
         }
     }
 
-    // Logged ONCE per Save click (not once per row)
     console.log("Saving", newRows.length, "new row(s),", updates.length, "update(s)");
     console.log("Updates:", updates);
 
@@ -2323,9 +2389,8 @@ saveButton.addEventListener("click", function () {
 
     saveButton.innerText = "Saving...";
 
-    // New rows: one POST each. Edits: a single PUT with a list.
     const jobs = newRows.map(function (entry) {
-        return sendRow(API.save, "POST", entry.data);
+        return sendRow(API.save, entry.data);
     });
 
     if (updates.length > 0) {
@@ -2335,7 +2400,7 @@ saveButton.addEventListener("click", function () {
     Promise.all(jobs)
         .then(function (results) {
 
-            // Results come back in the same order the jobs were pushed:
+            // Results are in the same order the jobs were pushed:
             //   [ create#1, create#2, ..., updateBatch ]
             const createResults = results.slice(0, newRows.length);
             const updateResult  = updates.length > 0
@@ -2374,7 +2439,7 @@ saveButton.addEventListener("click", function () {
 
                     failed.forEach(function (entry) {
 
-                        const id = entry.id ?? "?";
+                        const id  = entry.id ?? "?";
                         const why = entry.error || entry.reason ||
                                     entry.message || JSON.stringify(entry);
 

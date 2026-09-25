@@ -1,5 +1,5 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from api import deactive_price_items
+from schedule.scheduler import deactive_price_items
 from discount_api import deactive_discount_items
 from utils.log_error import logger
 

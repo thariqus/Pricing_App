@@ -565,90 +565,83 @@ def check_price_exists(price_id):
     params = (price_id,)
     return sql_query, params
  
-def filter_prices(data):
-    sql_query = """
-        SELECT *
-        FROM PRICING_TABLE
-        WHERE TRUE
-    """
+def filter_prices(data, page=1, limit=500):
+    FILTERABLE = {
+        "condition_type",
+        "item_no",
+        "customer",
+        "customer_grp",
+        "customer_hierarchy",
+        "distribution_channel_code",
+        "location_code",
+        "priority",
+        "currency",
+        "sales_price",
+        "unit_of_measure",
+        "minimum_quantity",
+        "lower_limit",
+        "upper_limit",
+        "transportation_zone_code",
+        "offer_article",
+        "map",
+        "change_type",
+        "updated_from_sap",
+        "sales_division_code",
+        "price_with_tax",
+        "tax_percent",
+    }
+    RANGE_FILTERS = {
+        "sales_price":      ">=",
+        "lower_limit":      ">=",
+        "upper_limit":      "<=",
+        "minimum_quantity": ">=",
+    }
+    SORTABLE = {"item_no", "sales_price", "starting_date", "ending_date"}
+    where = []
     params = []
-    if data.get("active") is not None:
-        sql_query += " AND active = %s"
-        params.append(data.get("active"))
-    if data.get("condition_type"):
-        sql_query += " AND condition_type = %s"
-        params.append(data.get("condition_type"))
-    if data.get("item_no"):
-        sql_query += " AND item_no = %s"
-        params.append(data.get("item_no"))
-    if data.get("customer"):
-        sql_query += " AND customer = %s"
-        params.append(data.get("customer"))
-    if data.get("customer_grp") is not None:
-        sql_query += " AND customer_grp = %s"
-        params.append(data.get("customer_grp"))
-    if data.get("customer_hierarchy") is not None:
-        sql_query += " AND customer_hierarchy = %s"
-        params.append(data.get("customer_hierarchy"))
-    if data.get("distribution_channel_code") is not None:
-        sql_query += " AND distribution_channel_code = %s"
-        params.append(data.get("distribution_channel_code"))
-    if data.get("location_code") is not None:
-        sql_query += " AND location_code = %s"
-        params.append(data.get("location_code"))
-    if data.get("priority") is not None:
-        sql_query += " AND priority = %s"
-        params.append(data.get("priority"))
-    if data.get("currency"):
-        sql_query += " AND currency = %s"
-        params.append(data.get("currency"))
-    if data.get("sales_price") is not None:
-        sql_query += " AND sales_price = %s"
-        params.append(data.get("sales_price"))
-    if data.get("uom"):
-        sql_query += " AND uom = %s"
-        params.append(data.get("uom"))
-    if data.get("minimum_quantity") is not None:
-        sql_query += " AND minimum_quantity = %s"
-        params.append(data.get("minimum_quantity"))
-    if data.get("starting_date"):
-        sql_query += " AND starting_date = %s"
-        params.append(data.get("starting_date"))
-    if data.get("ending_date"):
-        sql_query += " AND ending_date = %s"
-        params.append(data.get("ending_date"))
-    if data.get("lower_limit") is not None:
-        sql_query += " AND lower_limit = %s"
-        params.append(data.get("lower_limit"))
-    if data.get("upper_limit") is not None:
-        sql_query += " AND upper_limit = %s"
-        params.append(data.get("upper_limit"))
-    if data.get("transportation_zone_code"):
-        sql_query += " AND transportation_zone_code = %s"
-        params.append(data.get("transportation_zone_code"))
-    if data.get("map"):
-        sql_query += " AND map = %s"
-        params.append(data.get("map"))
-    if data.get("change_type"):
-        sql_query += " AND change_type = %s"
-        params.append(data.get("change_type"))
-    if data.get("updated_from_sap") is not None:
-        sql_query += " AND updated_from_sap = %s"
-        params.append(data.get("updated_from_sap"))
-    if data.get("sales_division_code") is not None:
-        sql_query += " AND sales_division_code = %s"
-        params.append(data.get("sales_division_code"))
-    if data.get("offer_article") is not None:
-        sql_query += " AND offer_article = %s"
-        params.append(data.get("offer_article"))
-    if data.get("price_with_tax") is not None:
-        sql_query += " AND price_with_tax = %s"
-        params.append(data.get("price_with_tax"))
-    if data.get("tax_percent") is not None:
-        sql_query += " AND tax_percent = %s"
-        params.append(data.get("tax_percent"))
-    sql_query += " ORDER BY item_no"
-    return sql_query, tuple(params)
+    item_no = data.get("item_no")
+    if item_no:
+        if isinstance(item_no, str):
+            item_no = [item_no]
+        values = [str(v).strip() for v in item_no if str(v).strip()]
+        if values:
+            where.append(
+                "item_no IN (" + ",".join(["%s"] * len(values)) + ")"
+            )
+            params.extend(values)
+    active = data.get("active")
+    if active in ("true", True, 1, "1"):
+        where.append("active = 1")
+    elif active in ("false", False, 0, "0"):
+        where.append("active = 0")
+    filters = data.get("filters") or {}
+    for column, value in filters.items():
+        if column in ("starting_date", "ending_date"):
+            continue   
+        if column not in FILTERABLE:
+            continue
+        if value is None or str(value).strip() == "":
+            continue
+        operator = RANGE_FILTERS.get(column, "=")
+        where.append(f"{column} {operator} %s")
+        params.append(value)
+    if filters.get("starting_date"):
+        where.append("starting_date >= %s")
+        params.append(filters["starting_date"])
+    if filters.get("ending_date"):
+        where.append("ending_date <= %s")
+        params.append(filters["ending_date"])
+    where_sql = (" WHERE " + " AND ".join(where)) if where else ""
+    sort_by = data.get("sort_by")
+    order_sql = (
+        f" ORDER BY {sort_by}" if sort_by in SORTABLE else " ORDER BY item_no"
+    )
+    count_sql = f"SELECT COUNT(*) AS total FROM PRICING_TABLE{where_sql}"
+    select_sql = (
+        f"SELECT * FROM PRICING_TABLE{where_sql}{order_sql} LIMIT %s OFFSET %s"
+    )
+    select_params = params + [limit, (page - 1) * limit]
+    return select_sql, count_sql, select_params, params
 
 def deactive_exp_price_items():
     sql_query = """

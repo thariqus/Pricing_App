@@ -39,6 +39,7 @@ def convert_datetime(data):
         )
         return data
     except Exception as e:
-        raise ValueError(
-            f"Failed to convert datetime: {e}"
-        ) from e
+        return {
+            "status" : "error",
+            "message" : "Faild to convert datetime : {e}" 
+        }

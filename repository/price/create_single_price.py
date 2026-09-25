@@ -9,7 +9,6 @@ PRICE_DB = os.getenv("DB_P_NAME")
 
 
 def create_single_price(data):
-    logger.info("Entered in create_single_price")
     con = None
     cursor = None
     try:
@@ -18,11 +17,8 @@ def create_single_price(data):
                 "status": "error",
                 "message": "Request data is empty"
             }), 400
-        logger.info("Connecting to database")
         con = get_db_connection(PRICE_DB)
-        logger.info("Database connection successful")
         cursor = con.cursor()
-        logger.info("Calling Insert Query")
         sql_query, params = insert_price_query(data)
         cursor.execute(
             sql_query,
@@ -30,17 +26,14 @@ def create_single_price(data):
         )
         inserted_id = cursor.lastrowid
         con.commit()
-        logger.info(
-            f"Price inserted successfully. ID: {inserted_id}"
-        )
         logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Single Item Price Data")
         cursor.execute(logger_sql_query, logger_params)
         con.commit()
-        return jsonify({
+        return {
             "status": "success",
             "message": "Price created successfully",
             "id": inserted_id
-        }), 201
+        }
     except ConnectionError as e:
         logger.error(
             f"Database connection error: {e}"

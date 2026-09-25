@@ -1,9 +1,7 @@
 import os
 from flask import jsonify, request
-import requests
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
-from utils.date_converter import convert_datetime
 from utils.file_path import upload_price_directory
 from repository.query import insert_price_query, create_logger
 import pymysql
@@ -12,7 +10,7 @@ import pymysql
 PRICE_DB = os.getenv("DB_P_NAME")
 VALIDATION_API = os.getenv("VALIDATION_API")
 
-def create_price(records, file, invalid_data):
+def ho_create_price(records, file, invalid_data):
     con = None
     cursor = None
     try:

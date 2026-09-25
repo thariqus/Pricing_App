@@ -9,17 +9,13 @@ PRICE_DB = os.getenv("DB_P_NAME")
 
 
 def update_price_data(data):
-    logger.info("Entered in update price.")
     con = None
     cursor = None
     try:
-        logger.info("Connecting to database")
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
-        logger.info("Database connection successful")
         updated_records = []
         failed_records = []
-        logger.info("Process records")
         for record in data:
             price_id = record.get("id")
             if not price_id:
@@ -28,10 +24,6 @@ def update_price_data(data):
                     "message": "Price ID is required"
                 })
                 continue
-            logger.info(
-                f"Checking whether price record {price_id} exists"
-            )
-            logger.info("Check the record exist")
             check_query, check_params = check_price_exists(price_id)
             cursor.execute(
                 check_query,
@@ -44,7 +36,6 @@ def update_price_data(data):
                     "message": "Price record not found"
                 })
                 continue
-            logger.info("Remove id before updating")
             update_data = {
                 key: value
                 for key, value in record.items()
@@ -56,9 +47,6 @@ def update_price_data(data):
                     "message": "No fields to update"
                 })
                 continue
-            logger.info(
-                f"Calling Update Query for price ID {price_id}"
-            )
             sql_query, params = update_price(
                 price_id,
                 update_data
@@ -78,13 +66,7 @@ def update_price_data(data):
             updated_records.append({
                 "id": price_id
             })
-            logger.info(
-                f"Price ID {price_id} updated successfully"
-            )
         con.commit()
-        logger.info(
-            f"{len(updated_records)} price record(s) updated successfully"
-        )
         return jsonify({
             "status": "success",
             "message": "Price update completed",
