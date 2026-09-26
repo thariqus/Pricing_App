@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -860,6 +861,30 @@
       color: #fff;
     }
 
+    .head-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .email-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border: 2px solid var(--ho);
+      border-radius: 999px;
+      background: var(--ho);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .email-btn:hover {
+      background: var(--ho-dark);
+      border-color: var(--ho-dark);
+    }
+
     /* Retry confirmation popup */
     .modal-backdrop {
       position: fixed;
@@ -937,6 +962,44 @@
       border-color: var(--ho-dark);
     }
 
+    .modal-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+      font-size: .85rem;
+      font-weight: 600;
+    }
+
+    .modal-field input {
+      height: 40px;
+      padding: 0 12px;
+      font: inherit;
+      font-weight: 400;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .modal-field input:focus {
+      border-color: var(--ho);
+      box-shadow: 0 0 0 2px rgba(179, 18, 31, .12);
+    }
+
+    .modal-error {
+      margin: 0 0 14px !important;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #fee2e2;
+      color: #991b1b;
+      font-size: .85rem;
+    }
+
+    .modal-error.ok {
+      background: rgba(22, 163, 74, .1);
+      color: #15803d;
+    }
+
     @keyframes pop {
       from {
         transform: scale(.95);
@@ -969,6 +1032,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="detail">
     <a class="back-link" href="{{ url_for('integration') }}">&larr; All sites</a>
@@ -977,9 +1041,18 @@
       <div>
         <h1>Site {{ site.code }}</h1>
       </div>
-      <button class="live-btn" id="live-btn" aria-pressed="false">
-        <span class="live-dot"></span> Live
-      </button>
+      <div class="head-actions">
+        <button class="email-btn" id="email-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"
+              d="M3 6h18v12H3z M3 6l9 7 9-7" />
+          </svg>
+          Send Email
+        </button>
+        <button class="live-btn" id="live-btn" aria-pressed="false">
+          <span class="live-dot"></span> Live
+        </button>
+      </div>
     </div>
 
     <div class="table-wrap">
@@ -998,7 +1071,7 @@
             <td>{{ item.sl_no }}</td>
             <td>{{ item.item }}</td>
             <td><span class="badge {{ item.status|lower }}">{{ item.status }}</span></td>
-            <td><button class="retry-btn" {% if item.status == 'Success' %}disabled{% endif %}>Retry</button></td>
+            <td><button class="retry-btn" {% if item.status=='Success' %}disabled{% endif %}>Retry</button></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -1019,6 +1092,24 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="email-modal" hidden>
+    <form class="modal-box" id="email-form" role="dialog" aria-modal="true" aria-labelledby="email-title" novalidate>
+      <h2 id="email-title">Send Email</h2>
+      <label class="modal-field">To
+        <input type="text" name="to" placeholder="name@example.com, other@example.com">
+      </label>
+      <label class="modal-field">CC
+        <input type="text" name="cc" placeholder="Optional">
+      </label>
+      <p class="modal-error" id="email-error" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="modal-close" id="email-close">Close</button>
+        <button type="submit" class="modal-ok" id="email-send">Send</button>
+      </div>
+    </form>
+  </div>
+
   <script src="{{ url_for('static', filename='site_detail.js') }}"></script>
 </body>
+
 </html>

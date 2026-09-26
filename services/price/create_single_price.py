@@ -38,6 +38,6 @@ def create_single_item_price():
             "message": "UOM not found"
         }
     else:
-        formatted_data = convert_datetime(response_message)
+        formatted_data = convert_datetime(data)
         mysql = create_single_price(formatted_data)
         return mysql

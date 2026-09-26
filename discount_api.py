@@ -417,7 +417,7 @@ def deactive_discount_items():
     cursor = None
     try:
         logger.info("Connecting to database")
-        con = get_db_connection("DISCOUNT_DATABASE")
+        con = get_db_connection(DISCOUNT_DB)
         logger.info("Database connection successful")
         cursor = con.cursor()
         logger.info("Calling Update Query")
@@ -428,7 +428,7 @@ def deactive_discount_items():
         updated_rows = cursor.rowcount
         connection = get_db_connection(PRICING_DB)
         pricing_cursor = connection.cursor()
-        logger_sql_query, logger_params = create_logger(request.remote_addr,f"{updated_rows} item discount expired")
+        logger_sql_query, logger_params = create_logger('',f"{updated_rows} item discount expired")
         pricing_cursor.execute(logger_sql_query, logger_params)
         connection.commit()
         con.commit()

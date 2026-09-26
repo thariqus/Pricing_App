@@ -3,10 +3,13 @@ from datetime import datetime
 def converter(value):
     if not value:
         return None
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M:%S")
     value = value.strip()
     formats = [
-        "%Y-%m-%d %H:%M:%S",
-        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d %H:%M:%S.%f",  # 2026-09-26 15:35:24.168619
+        "%Y-%m-%d %H:%M:%S",     # 2026-09-26 15:35:24
+        "%Y-%m-%d %H:%M",        # 2026-09-26 15:35
         "%m/%d/%Y %H:%M:%S",
         "%m/%d/%Y %H:%M",
         "%Y-%m-%d",
@@ -14,10 +17,8 @@ def converter(value):
     ]
     for date_format in formats:
         try:
-            date_value = datetime.strptime(
-                value,
-                date_format
-            )
+            date_value = datetime.strptime(value, date_format)
+
             return date_value.strftime(
                 "%Y-%m-%d %H:%M:%S"
             )

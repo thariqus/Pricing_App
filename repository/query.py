@@ -645,7 +645,22 @@ def filter_prices(data, page=1, limit=500):
 
 def deactive_exp_price_items():
     sql_query = """
-        update PRICING_TABLE set active = false where ending_date < %s
+        update PRICING_TABLE set active = false where ending_date < %s AND active = true
+    """
+    return sql_query
+
+def check_pending_active_items():
+    sql_query = """
+        select count(*) as pending_count from PRICING_TABLE where 
+        active = false and
+        starting_date <= %s and
+        ending_date > %s
+    """
+    return sql_query
+
+def active_valid_price_items():
+    sql_query = """
+        update PRICING_TABLE set active = true where starting_date = %s AND active = false
     """
     return sql_query
 

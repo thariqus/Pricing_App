@@ -1,5 +1,5 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from schedule.scheduler import deactive_price_items
+from modules.schedule.scheduler import deactive_price_items, active_price_items
 from discount_api import deactive_discount_items
 from utils.log_error import logger
 
@@ -14,6 +14,16 @@ def check_item_exp():
     except Exception:
         logger.exception(
             "Price item expiration check failed"
+        )
+    try:
+        result = active_price_items()
+        logger.info(
+            "Price item activation check completed: %s",
+            result
+        )
+    except Exception:
+        logger.exception(
+            "Price item activation check failed"
         )
     try:
         discount_result = deactive_discount_items()
@@ -31,7 +41,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(
     check_item_exp,
     trigger="interval",
-    minutes=1
+    seconds=1
 )
 
 scheduler.start()
