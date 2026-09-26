@@ -31,16 +31,26 @@ def index_call():
 
 @app.get("/integration")
 def integration():
-    return render_template("integration.html")
+    HEAD_OFFICE = {"code": "HO", "name": "Head Office"}
+    
+    
+    SITES = [
+        {"code": "2113","status": "connected", "last_sync": "2026-09-25 11:58"},
+        {"code": "2112","status": "connected", "last_sync": "2026-09-25 11:55"},
+        {"code": "2121","status": "disconnected", "last_sync": "2026-09-25 09:40"},
+        {"code": "2131", "status": "disconnected", "last_sync": "2026-09-25 08:15"},
+    ]
+    return render_template("integration.html", ho=HEAD_OFFICE, sites=SITES)
 
 @app.get("/settings")
 def settings():
     settings = []
     return render_template("settings.html", settings=settings)
 
-@app.get("/site-details")
-def site_details():
-    return render_template("site_detail.html")
+@app.get("/site-details/<siteid>")
+def site_details(siteid):
+    sites = []
+    return render_template("site_detail.html", site=sites)
 
 #functions
 @app.post("/api/items/create_singel_item_price")

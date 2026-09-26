@@ -1006,7 +1006,7 @@
             <span class="flag-label">{{ 'Stopped' if site.status == 'disconnected' else 'Running' }}</span>
           </span>
 
-          <a class="chevron" href="{{ url_for('site_detail_call', code=site.code) }}"
+          <a class="chevron" href=""
             aria-label="Open site {{ site.code }}">&rsaquo;</a>
 
           {% if loop.index is odd %}
@@ -1026,7 +1026,7 @@
 
           <div class="node site">{{ site.code }}</div>
 
-          <a class="info-btn" href="{{ url_for('site_detail_call', code=site.code) }}"
+          <a class="info-btn" href="{{ url_for('site_details', siteid=site.code) }}"
             aria-label="Info for site {{ site.code }}">i</a>
         </div>
         {% endfor %}
