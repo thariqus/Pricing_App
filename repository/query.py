@@ -43,10 +43,11 @@ def create_table_query(table_name, table_definition):
         "charset",
         "utf8mb4"
     )
+    columns_sql = ",\n            ".join(columns)
     query = f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
 
-            {",\n            ".join(columns)}
+            {columns_sql}
 
         ) ENGINE={engine} DEFAULT CHARSET={charset}
     """
@@ -508,7 +509,6 @@ def insert_price_query(data):
  
 def update_price(price_id, data):
 
-    print(data,"this is data +++++++++++++++++++++++++++++")
     allowed_fields = {
         "active",
         "condition_type",
