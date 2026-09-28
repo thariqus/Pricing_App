@@ -482,7 +482,7 @@ def insert_price_query(data):
         data.get("condition_type"),
         data.get("item_no"),
         data.get("customer"),
-        data.get("customer_grp"),
+        data.get("customer_group"),
         data.get("customer_hierarchy"),
         data.get("distribution_channel_code"),
         data.get("location_code"),
@@ -507,6 +507,8 @@ def insert_price_query(data):
     return sql_query, params
  
 def update_price(price_id, data):
+
+    print(data,"this is data +++++++++++++++++++++++++++++")
     allowed_fields = {
         "active",
         "condition_type",
@@ -929,4 +931,35 @@ def create_logger(ipaddress, log, file_path=""):
         log,
         file_path
     )
+    return sql_query, params
+
+
+# remove _first_value depenedency
+def _first_value(data, keys):
+    for key in keys:
+        value = data.get(key)
+        if value is not None and str(value).strip() != "":
+            return value
+    return None
+
+
+def deactivate_combination_query(data,combination):
+    """
+    Deactivate every active row with the same combination as `data`.
+    <=> is MariaDB's NULL-safe equals, so an empty customer (NULL)
+    matches another empty customer instead of never matching.
+    """
+    where = " AND ".join(f"{column} <=> %s" for column in combination)
+
+    sql_query = f"""
+        UPDATE PRICING_TABLE
+        SET active = 0
+        WHERE active = 1
+          AND {where}
+    """
+
+    params = tuple(
+        _first_value(data, keys) for keys in combination.values()
+    )
+
     return sql_query, params
