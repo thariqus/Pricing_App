@@ -3,12 +3,13 @@ from flask import jsonify, request
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
 from utils.file_path import upload_price_directory
-from repository.query import insert_price_query, create_logger
+from repository.query import insert_price_query, deactivate_combination_query, create_logger
+from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
 import pymysql
 
 
 PRICE_DB = os.getenv("DB_P_NAME")
-VALIDATION_API = os.getenv("VALIDATION_API")
+
 
 def ho_create_price(records, file, invalid_data):
     con = None
@@ -16,27 +17,47 @@ def ho_create_price(records, file, invalid_data):
     try:
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
+
+        inserted = 0
+        deactivated = 0
+
         for data in records:
+
+            if not isinstance(data, dict) or not data.get("item_no"):
+                logger.warning("Skipping record without item_no: %r", data)
+                continue
+
+            # 1. old prices for this combination -> inactive
+            deact_sql, deact_params = deactivate_combination_query(data,combination=combination)
+            cursor.execute(deact_sql, deact_params)
+            deactivated += cursor.rowcount
+
+            # 2. new price -> active
+            data["active"] = 1
             sql_query, params = insert_price_query(data)
             cursor.execute(sql_query, params)
-        file_path = os.path.join(
-            upload_price_directory,
-            file.filename
-        )
+            inserted += 1
+
+        file_path = os.path.join(upload_price_directory, file.filename)
         file.save(file_path)
-        logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Item Price CSV Data",file_path)
+
+        logger_sql_query, logger_params = create_logger(
+            request.remote_addr, "Insert Item Price CSV Data", file_path
+        )
         cursor.execute(logger_sql_query, logger_params)
-        con.commit()
+
+        con.commit()   # deactivations + inserts land together
+
         return jsonify({
             "status": "success",
-            "message": "CSV data inserted successfully",
-            "count": len(records),
+            "message": f"{inserted} price(s) inserted, {deactivated} old price(s) deactivated",
+            "count": inserted,
+            "deactivated": deactivated,
             "InvalidData": invalid_data
         }), 201
+
     except ConnectionError as e:
-        logger.error(
-            f"Database connection error: {e}"
-        )
+        logger.error(f"Database connection error: {e}")
         return jsonify({
             "status": "error",
             "message": "Unable to connect to database",
@@ -45,9 +66,7 @@ def ho_create_price(records, file, invalid_data):
     except pymysql.MySQLError as e:
         if con:
             con.rollback()
-        logger.exception(
-            "Database error while inserting CSV data"
-        )
+        logger.exception("Database error while inserting CSV data")
         return jsonify({
             "status": "error",
             "message": "Database error",
@@ -56,9 +75,7 @@ def ho_create_price(records, file, invalid_data):
     except Exception as e:
         if con:
             con.rollback()
-        logger.exception(
-            "Unexpected error while inserting CSV data"
-        )
+        logger.exception("Unexpected error while inserting CSV data")
         return jsonify({
             "status": "error",
             "message": "Something went wrong",
