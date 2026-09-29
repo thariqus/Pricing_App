@@ -13,4 +13,4 @@ atexit.register(stop_scheduler)
 # from modules.schedule.initiate_cheduler import scheduler
 
 if __name__ == "__main__":
-    app.run(debug=True, port=PORT_NUMBER)
+    app.run(debug=True, port=PORT_NUMBER, host="0.0.0.0")
