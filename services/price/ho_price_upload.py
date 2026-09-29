@@ -61,7 +61,7 @@ def ho_price_upload():
                 "message": "Failed to create HO prices"
             }), 500
         requests.post(
-                "http://172.16.51.67/api/items/store_csv_uploads",
+                "http://172.16.51.67:5000/api/items/store_csv_uploads",
                 json=valid_data
         )
         
