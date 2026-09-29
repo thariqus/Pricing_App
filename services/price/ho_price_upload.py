@@ -53,11 +53,8 @@ def ho_price_upload():
             timeout=60
         )
         response_message = response.json()
-        valid_data, invalid_data = check_price_csv_items(csv_record, response_message)
-        print("Validation API response: %r", response_message)
-        print("valid_data type=%s len=%s", type(valid_data).__name__, len(valid_data) if valid_data is not None else None)
-        print("valid_data[0]=%r", valid_data[0] if valid_data else None)
-        print("invalid_data=%r", invalid_data)    
+        print("API Response Message : ", response_message)
+        valid_data, invalid_data = check_price_csv_items(csv_record, response_message)  
         mysql = ho_create_price(valid_data, file, invalid_data)
         return mysql
     else:

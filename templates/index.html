@@ -735,6 +735,37 @@ html, body {
     .top-bar::after { font-size: 22px; letter-spacing: 3px; top: 12px; right: 16px; }
 }
 
+.popup-box {
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    background: rgba(255, 255, 255, .35);
+    border: 1px solid rgba(255, 255, 255, .7);
+    border-radius: 14px;
+}
+ 
+.popup-box .modal-footer {
+    padding: 4px 0 0;          /* footer now sits inside the box */
+}
+ 
+.result-box {
+    display: none;             /* shown after an upload finishes */
+    background: #fff;
+    border: 1px solid var(--jh-border);
+    border-left: 4px solid #dc2626;
+}
+ 
+.result-box p {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--jh-text);
+}
+ 
+.result-box #resultMsg {
+    font-weight: 700;
+    color: var(--jh-burgundy);
+}
+ 
+
 </style>
 
 </head>
@@ -885,38 +916,50 @@ html, body {
                 </div>
 
                 <div class="modal-body">
-
-                    <div class="form-group">
-                        <label>Select Action</label>
-                        <select id="actionSelect" class="form-control">
-                            <option value="add">Add Data</option>
-                            <option value="update">Update Data</option>
-                            <option value="bulk">Bulk Reset</option>
-                        </select>
+ 
+                    <!-- BOX 1: UPLOAD -->
+                    <div id="uploadBox" class="popup-box">
+ 
+                        <div class="form-group">
+                            <label>Select Action</label>
+                            <select id="actionSelect" class="form-control">
+                                <option value="add">Add Data</option>
+                                <option value="update">Update Data</option>
+                                <option value="bulk">Bulk Reset</option>
+                            </select>
+                        </div>
+ 
+                        <div class="form-group">
+                            <button type="button" id="downloadSampleBtn" class="btn btn-outline btn-block">
+                                <i class="fas fa-file-csv"></i> Download Sample CSV
+                            </button>
+                        </div>
+ 
+                        <div class="form-group">
+                            <label>Upload CSV File</label>
+                            <input type="file" id="fileUpload" class="form-control" accept=".csv">
+                        </div>
+ 
+                        <div class="modal-footer">
+                            <button type="button" id="cancelCsvBtn" class="btn btn-outline">Cancel</button>
+                            <button type="button" id="uploadBtn" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Upload CSV
+                            </button>
+                        </div>
+ 
                     </div>
-
-                    <div class="form-group">
-                        <button type="button" id="downloadSampleBtn" class="btn btn-outline btn-block">
-                            <i class="fas fa-file-csv"></i> Download Sample CSV
+ 
+                    <!-- BOX 2: RESPONSE + DOWNLOAD -->
+                    <div id="resultBox" class="popup-box result-box">
+                        <p id="resultMsg"></p>
+                        <p id="invalidMsg"></p>
+                        <button type="button" id="downloadInvalidBtn" class="btn btn-success btn-block">
+                            <i class="fas fa-download"></i> Download Invalid Data (CSV)
                         </button>
                     </div>
-
-                    <div class="form-group">
-                        <label>Upload CSV File</label>
-                        <input type="file" id="fileUpload" class="form-control" accept=".csv">
-                    </div>
-
+ 
                 </div>
-
-                <div class="modal-footer">
-
-                    <button type="button" id="cancelCsvBtn" class="btn btn-outline">Cancel</button>
-
-                    <button type="button" id="uploadBtn" class="btn btn-primary">
-                        <i class="fas fa-upload"></i> Upload CSV
-                    </button>
-
-                </div>
+ 
 
             </div>
 
@@ -2661,60 +2704,174 @@ document.getElementById("downloadCsvBtn").addEventListener("click", function () 
 
 const csvPopup   = document.getElementById("csvPopUp");
 const csvOverlay = document.getElementById("csvLoadingOverlay");
-
+ 
+let invalidRows = [];   // InvalidData from the last upload
+ 
+const resultBox = document.getElementById("resultBox");
+const resultMsg = document.getElementById("resultMsg");
+const invalidMsg = document.getElementById("invalidMsg");
+ 
+function resetInvalidBox() {
+    invalidRows = [];
+    resultBox.style.display = "none";
+    resultMsg.textContent = "";
+    invalidMsg.textContent = "";
+}
+ 
+function showResultBox(message, count) {
+    resultMsg.textContent = message;
+    invalidMsg.textContent =
+        count + " row(s) were invalid and were NOT inserted. " +
+        "Would you like to download them?";
+    resultBox.style.display = "block";
+}
+ 
+// Generic: works for any list of objects, whatever keys they have
+// Preferred column order (matches your upload template); "reason" goes last
+const INVALID_CSV_ORDER = [
+    "change_type", "sales_organization_code", "distribution_channel_code",
+    "sales_division_code", "condition_type", "customer_no", "customer_group",
+    "customer_hierarchy", "location_code", "transportation_zone_code",
+    "item_no", "uom", "minimum_quantity", "sales_price", "currency",
+    "lower_limit", "upper_limit", "priority", "starting_date", "ending_date",
+    "offer_article", "map", "tax_percent", "price_with_tax", "updated_from_sap"
+];
+ 
+// 2026-09-03 00:00:00  ->  09/03/2026 00:00   (US style, same as upload file)
+function normalizeCsvDate(value) {
+    const text = String(value ?? "").trim();
+    const m = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::\d{2})?$/);
+    return m ? m[2] + "/" + m[3] + "/" + m[1] + " " + m[4] + ":" + m[5] : text;
+}
+ 
+function downloadRowsAsCsv(rows, filename) {
+ 
+    if (!rows || rows.length === 0) {
+        return;
+    }
+ 
+    // All keys present in the data
+    const found = new Set();
+    rows.forEach(function (row) {
+        Object.keys(row).forEach(function (key) { found.add(key); });
+    });
+ 
+    // Known columns first, then any unknown ones, then "reason" last
+    const headers = INVALID_CSV_ORDER.filter(function (k) { return found.has(k); });
+    found.forEach(function (k) {
+        if (headers.indexOf(k) === -1 && k !== "reason") {
+            headers.push(k);
+        }
+    });
+    if (found.has("reason")) {
+        headers.push("reason");
+    }
+ 
+    function csvCell(value) {
+        if (value !== null && typeof value === "object") {
+            value = JSON.stringify(value);
+        }
+        return '"' + String(value ?? "").replace(/"/g, '""') + '"';
+    }
+ 
+    function cellFor(row, key) {
+        const value = row[key];
+        return (key === "starting_date" || key === "ending_date")
+            ? normalizeCsvDate(value)
+            : value;
+    }
+ 
+    // Group identical reasons together so the file is easy to read
+    const sorted = rows.slice().sort(function (a, b) {
+        return String(a.reason ?? "").localeCompare(String(b.reason ?? ""));
+    });
+ 
+    const lines = [headers.map(csvCell).join(",")].concat(
+        sorted.map(function (row) {
+            return headers.map(function (h) { return csvCell(cellFor(row, h)); }).join(",");
+        })
+    );
+ 
+    const blob = new Blob(["\uFEFF" + lines.join("\r\n")], {
+        type: "text/csv;charset=utf-8;"
+    });
+ 
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+ 
+    link.href     = url;
+    link.download = filename;
+ 
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+ 
+    URL.revokeObjectURL(url);
+}
+ 
+document.getElementById("downloadInvalidBtn").addEventListener("click", function () {
+    downloadRowsAsCsv(invalidRows, "Rejected_pricing_conditions.csv");
+});
+ 
 document.getElementById("importBtnUnique").addEventListener("click", function () {
+    resetInvalidBox();
     csvPopup.style.display = "block";
 });
-
+ 
+// document.getElementById("importBtnUnique").addEventListener("click", function () {
+//     csvPopup.style.display = "block";
+// });
+ 
 document.getElementById("closeCsvPopup").addEventListener("click", function () {
     csvPopup.style.display = "none";
 });
-
+ 
 document.getElementById("cancelCsvBtn").addEventListener("click", function () {
     csvPopup.style.display = "none";
 });
-
+ 
 window.addEventListener("click", function (event) {
-
+ 
     if (event.target === csvPopup) {
         csvPopup.style.display = "none";
     }
 });
-
+ 
 document.getElementById("downloadSampleBtn").addEventListener("click", function () {
-
+ 
     const action = document.getElementById("actionSelect").value;
-
+ 
     window.location.href = API.sampleCsv + "?action=" + encodeURIComponent(action);
 });
-
+ 
 document.getElementById("uploadBtn").addEventListener("click", function () {
-
+ 
     const uploadButton = this;
     const fileInput    = document.getElementById("fileUpload");
     const file         = fileInput.files[0];
-
+ 
     if (!file) {
         alert("Please choose a CSV file to upload.");
         return;
     }
-
+ 
     const formData = new FormData();
-
+ 
     formData.append("file", file);
     formData.append("action", document.getElementById("actionSelect").value);
-
+ 
+    resetInvalidBox();
     csvOverlay.style.display = "flex";
-
+ 
     uploadButton.disabled = true;
-
+ 
     const originalHtml = uploadButton.innerHTML;
-
+ 
     uploadButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-
+ 
     fetch(API.import, { method: "POST", body: formData })
     .then(function (response) {
-
+ 
         // A 400 can still carry rejected_rows, so read the body first.
         return response.json()
             .catch(function () {
@@ -2725,98 +2882,67 @@ document.getElementById("uploadBtn").addEventListener("click", function () {
             });
     })
     .then(function (payload) {
-
-        const result   = payload.result;
-        const rejected = result.rejected_rows;
-
-        if (rejected && rejected.length > 0) {
-
-            const headers = Object.keys(rejected[0].row).concat("error");
-
-            const csvRows = [headers.join(",")].concat(
-
-                rejected.map(function (entry) {
-
-                    return headers.map(function (header) {
-
-                        const value = header === "error"
-                            ? entry.error
-                            : entry.row[header];
-
-                        return '"' + String(value ?? "").replace(/"/g, '""') + '"';
-
-                    }).join(",");
-                })
-            );
-
-            const blob = new Blob([csvRows.join("\n")], {
-                type: "text/csv;charset=utf-8;"
-            });
-
-            const url  = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-
-            link.href     = url;
-            link.download = "rejected_rows.csv";
-
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-
-            URL.revokeObjectURL(url);
+ 
+        const result = payload.result;
+        
+ 
+        if (!payload.ok || result.success === false || result.status === "error") {
+            throw new Error(result.error || result.message || "Import failed");
         }
-
-        if (!payload.ok || result.success === false) {
-            throw new Error(result.error || "Import failed");
-        }
-
-        alert(result.message || "CSV imported successfully.");
-
-        csvPopup.style.display = "none";
-
+ 
+        invalidRows = result.InvalidData || result.rejected_rows || [];
+ 
         fileInput.value = "";
-
-        fetchAndPopulate();
+        fetchAndPopulate();          // refresh table with newly inserted rows
+ 
+        if (invalidRows.length > 0) {
+            // Keep popup open, show the response in the second box
+            showResultBox(result.message || "Upload finished", invalidRows.length);
+        } else {
+            alert(result.message || "CSV imported successfully.");
+            csvPopup.style.display = "none";
+        }
     })
     .catch(function (error) {
-
+ 
         console.error("Import error:", error);
         alert("Unable to import CSV: " + error.message);
     })
     .finally(function () {
-
+ 
         csvOverlay.style.display = "none";
-
+ 
         uploadButton.disabled  = false;
         uploadButton.innerHTML = originalHtml;
     });
 });
-
-
+ 
+ 
 /* =========================================================
    WARN ON LEAVING WITH UNSAVED CHANGES
    ========================================================= */
-
+ 
 window.addEventListener("beforeunload", function (event) {
-
+ 
     if (pendingUpdates.size > 0 || hasPendingNewRows()) {
         event.preventDefault();
         event.returnValue = "";
     }
 });
-
-
+ 
+ 
 /* =========================================================
    BOOT
    ========================================================= */
-
+ 
 renderHead();
 refreshSaveButtonState();
 fetchAndPopulate();
-
+ 
 });
 </script>
-
+ 
 </body>
-
+ 
 </html>
+ 

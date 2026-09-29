@@ -579,7 +579,7 @@ def filter_prices(data, page=1, limit=500):
         "priority",
         "currency",
         "sales_price",
-        "unit_of_measure",
+        "uom",
         "minimum_quantity",
         "lower_limit",
         "upper_limit",
