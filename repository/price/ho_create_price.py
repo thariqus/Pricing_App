@@ -86,3 +86,4 @@ def ho_create_price(records, file, invalid_data):
             cursor.close()
         if con:
             con.close()
+

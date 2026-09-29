@@ -1,109 +1,83 @@
-from flask import request
-from repository.mysql_connection import get_db_connection
-from utils.log_error import logger
-from datetime import date, datetime
-from repository.query import deactive_exp_price_items, create_logger, active_valid_price_items, check_pending_active_items
-from utils.date_converter import converter
 import os
-import pymysql
+from contextlib import contextmanager
+from datetime import datetime
+
+from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
+from repository.mysql_connection import get_db_connection
+from repository.query import (
+    create_logger,
+    deactivate_out_of_window_query,
+    future_boundaries_query,
+    price_fingerprint_query,
+    reactivate_valid_combination_query,
+)
+from utils.log_error import logger
+from utils.timezone import BUSINESS_TZ
+
 PRICE_DB = os.getenv("DB_P_NAME")
 
-def deactive_price_items():
-    con = None
-    cursor = None
+
+def _now():
+    """Naive current time in business TZ (matches DATETIME columns)."""
+    return datetime.now(BUSINESS_TZ).replace(tzinfo=None)
+
+
+@contextmanager
+def _cursor():
+    con = get_db_connection(PRICE_DB)
+    cursor = con.cursor()
     try:
-        con = get_db_connection(PRICE_DB)
-        cursor = con.cursor()
-        today = datetime.now()
-        sql_query = deactive_exp_price_items()
-        cursor.execute(sql_query, (today,))
-        updated_rows = cursor.rowcount
-        logger_sql_query, logger_params = create_logger('',f"{updated_rows} Invalid item deactivated.")
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
-        return {
-            "status": "success",
-            "message": "Items updated successfully",
-            "updated_rows": updated_rows
-        }
-    except ConnectionError:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Database connection error"
-        )
-        raise
-    except pymysql.MySQLError:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Database error while updating price"
-        )
-        raise
-    except Exception:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Unexpected error while updating price"
-        )
-        raise
+        yield con, cursor
     finally:
-        if cursor:
-            cursor.close()
-        if con:
-            con.close()
-
-def active_price_items():
-    con = None
-    cursor = None
-    try:
-        con = get_db_connection(PRICE_DB)
-        cursor = con.cursor()
-
-        today = datetime.now()
-        con_date = converter(today)
-        pending_check = check_pending_active_items()
-        cursor.execute(pending_check, (con_date,con_date))
-        data = cursor.fetchone()
-        print(data)
+        cursor.close()
+        con.close()
 
 
-        today = datetime.now()
-        convert_date = converter(today)
-        sql_query = active_valid_price_items()
-        cursor.execute(sql_query, (convert_date,))
-        updated_rows = cursor.rowcount
-        logger_sql_query, logger_params = create_logger('',f"{updated_rows} Valid items activated.")
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
-        return {
-            "status": "success",
-            "message": "Activation updated successfully",
-            "updated_rows": updated_rows
-        }
-    except ConnectionError:
-        if con:
+def refresh_price_status(now=None):
+    """Deactivate out-of-window prices and activate the latest valid one
+    per combination. `now`: optional naive datetime for testing."""
+    now = now or _now()
+
+    with _cursor() as (con, cursor):
+        try:
+            cursor.execute(deactivate_out_of_window_query(), (now, now))
+            deactivated = cursor.rowcount
+
+            cursor.execute(reactivate_valid_combination_query(combination), (now, now))
+            reactivated = cursor.rowcount
+
+            if deactivated or reactivated:
+                cursor.execute(*create_logger(
+                    "", f"{deactivated} expired item(s) deactivated, "
+                        f"{reactivated} flag(s) updated for valid items."
+                ))
+
+            con.commit()
+        except Exception:
             con.rollback()
-        logger.exception(
-            "Database connection error"
-        )
-        raise
-    except pymysql.MySQLError:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Database error while updating price"
-        )
-        raise
-    except Exception:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Unexpected error while updating price"
-        )
-        raise
-    finally:
-        if cursor:
-            cursor.close()
-        if con:
-            con.close()
+            logger.exception("Error while refreshing price status")
+            raise
+
+    return {
+        "status": "success",
+        "message": "Price status refreshed",
+        "checked_at": now.isoformat(sep=" "),
+        "deactivated_rows": deactivated,
+        "reactivated_rows": reactivated,
+    }
+
+
+def get_future_boundaries(now=None):
+    """Upcoming start/end moments that need a refresh job."""
+    now = now or _now()
+    with _cursor() as (_, cursor):
+        cursor.execute(future_boundaries_query(), (now, now, now, now))
+        return [row["t"] for row in cursor.fetchall() if row["t"]]
+
+
+def get_price_fingerprint():
+    """(max id, latest update, row count) — changes on any insert/edit/delete."""
+    with _cursor() as (_, cursor):
+        cursor.execute(price_fingerprint_query())
+        row = cursor.fetchone() or {}
+        return row.get("max_id"), row.get("max_updated"), row.get("total")

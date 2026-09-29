@@ -963,3 +963,77 @@ def deactivate_combination_query(data,combination):
     )
 
     return sql_query, params
+
+
+
+PRICE_TABLE = "PRICING_TABLE"
+
+
+def deactivate_out_of_window_query():
+    """Active records expired before today, or starting after today -> inactive.
+    Params: (today_start, tomorrow_start)"""
+    return f"""
+        UPDATE `{PRICE_TABLE}`
+        SET `active` = 0
+        WHERE `active` = 1
+          AND (`ending_date` < %s OR `starting_date` >= %s)
+    """
+
+
+def reactivate_valid_combination_query(combination):
+    """Per combination, activate the latest-uploaded record valid today.
+    Params: (tomorrow_start, today_start)"""
+    partition_cols = ", ".join(f"`{c}`" for c in combination)
+    return f"""
+        UPDATE `{PRICE_TABLE}` p
+        JOIN (
+            SELECT `id` AS pk,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY {partition_cols}
+                       ORDER BY `id` DESC
+                   ) AS rn
+            FROM `{PRICE_TABLE}`
+            WHERE `starting_date` < %s
+              AND `ending_date`  >= %s
+        ) r ON r.pk = p.`id`
+        SET p.`active` = IF(r.rn = 1, 1, 0)
+    """
+
+
+def next_boundary_query():
+    """Earliest future moment a price starts or expires. Params: (now, now)"""
+    return f"""
+        SELECT MIN(t) AS next_at FROM (
+            SELECT MIN(`starting_date`) AS t
+            FROM `{PRICE_TABLE}`
+            WHERE `starting_date` > %s
+            UNION ALL
+            SELECT MIN(`ending_date`) + INTERVAL 1 SECOND AS t
+            FROM `{PRICE_TABLE}`
+            WHERE `ending_date` >= %s
+        ) b
+    """
+
+
+def future_boundaries_query():
+    """All upcoming start/end moments (capped at ~1 year). Params: (now, now, now, now)"""
+    return f"""
+        SELECT DISTINCT `starting_date` AS t
+        FROM `{PRICE_TABLE}`
+        WHERE `starting_date` > %s
+          AND `starting_date` < %s + INTERVAL 400 DAY
+        UNION
+        SELECT DISTINCT `ending_date` + INTERVAL 1 SECOND AS t
+        FROM `{PRICE_TABLE}`
+        WHERE `ending_date` >= %s
+          AND `ending_date` < %s + INTERVAL 400 DAY
+    """
+
+
+def price_fingerprint_query():
+    return f"""
+        SELECT MAX(`id`) AS max_id,
+               MAX(`updated`) AS max_updated,
+               COUNT(*) AS total
+        FROM `{PRICE_TABLE}`
+    """
