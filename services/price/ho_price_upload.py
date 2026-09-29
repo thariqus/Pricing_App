@@ -53,9 +53,18 @@ def ho_price_upload():
             timeout=60
         )
         response_message = response.json()
-        print("API Response Message : ", response_message)
         valid_data, invalid_data = check_price_csv_items(csv_record, response_message)  
         mysql = ho_create_price(valid_data, file, invalid_data)
+        if mysql is False:
+            return jsonify({
+                "status": "error",
+                "message": "Failed to create HO prices"
+            }), 500
+        requests.post(
+                "http://172.16.51.67/api/items/store_csv_uploads",
+                json=valid_data
+        )
+        
         return mysql
     else:
         return jsonify({

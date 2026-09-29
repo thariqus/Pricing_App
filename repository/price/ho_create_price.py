@@ -38,13 +38,14 @@ def ho_create_price(records, file, invalid_data):
             cursor.execute(sql_query, params)
             inserted += 1
 
-        file_path = os.path.join(upload_price_directory, file.filename)
-        file.save(file_path)
+        if file:
+            file_path = os.path.join(upload_price_directory, file.filename)
+            file.save(file_path)
 
-        logger_sql_query, logger_params = create_logger(
-            request.remote_addr, "Insert Item Price CSV Data", file_path
-        )
-        cursor.execute(logger_sql_query, logger_params)
+            logger_sql_query, logger_params = create_logger(
+                request.remote_addr, "Insert Item Price CSV Data", file_path
+            )
+            cursor.execute(logger_sql_query, logger_params)
 
         con.commit()   # deactivations + inserts land together
 

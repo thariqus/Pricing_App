@@ -5,6 +5,7 @@ from services.price.update_price import update_item_price
 from services.price.ho_price_upload import ho_price_upload
 from services.price.filter_prices import filter_items_prices
 from services.price.get_priority import get_items_price_priority
+from services.price.ho_to_store_csv import ho_to_store_csv
 from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
@@ -100,3 +101,7 @@ def get_priority_discount():
 @app.route("/api/items/central_app", methods=['POST'])
 def central_app():
     return ho_price_upload()
+
+@app.post("/api/items/store_csv_uploads")
+def ho_store_csv_upload():
+    return ho_to_store_csv()

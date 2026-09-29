@@ -764,6 +764,35 @@ html, body {
     font-weight: 700;
     color: var(--jh-burgundy);
 }
+
+/* =========================
+   MESSAGE MODAL (replaces alert / confirm)
+   ========================= */
+
+#msgModal { z-index: 1100; }              /* above the CSV popup (1050) */
+#msgModal .modal-dialog { max-width: 420px; margin-top: 120px; }
+
+#msgModal .modal-title { color: var(--jh-burgundy-dark); text-shadow: none; }
+
+.msg-body {
+    padding: 8px 28px 10px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--jh-text);
+    white-space: pre-line;                /* keeps the \n line breaks */
+    word-break: break-word;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+#msgModal.msg-success #msgIcon { color: #16a34a; }
+#msgModal.msg-error   #msgIcon { color: #dc2626; }
+#msgModal.msg-warning #msgIcon { color: #d97706; }
+#msgModal.msg-info    #msgIcon { color: var(--jh-burgundy); }
+
+.btn-danger { background: #dc2626; border: 1px solid #dc2626; color: #fff; }
+.btn-danger:hover { background: #b91c1c; border-color: #b91c1c; }
  
 
 </style>
@@ -967,6 +996,30 @@ html, body {
 
     </div>
 
+            <!-- MESSAGE MODAL (replaces alert / confirm) -->
+        <div id="msgModal" class="modal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i id="msgIcon" class="fas fa-circle-info"></i>
+                            <span id="msgTitle">Notice</span>
+                        </h5>
+                    </div>
+
+                    <div class="modal-body">
+                        <div id="msgText" class="msg-body"></div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" id="msgCancel" class="btn btn-outline">Cancel</button>
+                        <button type="button" id="msgOk" class="btn btn-primary">OK</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
 
     <!-- =====================================================
          LOADING OVERLAY
@@ -1024,8 +1077,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
    Single source of truth. The header, the fetched rows, the
    Add Item row, the editors, the CSV export and the save
-   payload are all generated from this array — so adding or
-   removing a column here is the only change needed.
+   payload are all generated from this array.
 
    type:     text | number | datetime | select
    editable: inline-editable on an existing (fetched) row
@@ -1058,7 +1110,6 @@ const COLUMNS = [
 ];
 
 
-
 const API = {
     fetch:     "/api/items/fetch_all_item_prices",
     save:      "/api/items/create_singel_item_price",
@@ -1069,20 +1120,8 @@ const API = {
     upDate:    "/api/items/update_item_prices/"
 };
 
-// const API = {
-//     fetch:     "/api/items/fetch_all_discount_prices",
-//     save:      "/api/items/create_single_item_discount",
-//     remove:    "/api/item-management/delete",
-//     import:    "/api/items/create_csv_item_discount",
-//     sampleCsv: "/api/items/create_csv_item_discount"
-// };
-
 /* =========================================================
    JS FIELD  ->  MySQL COLUMN
-
-   The table columns don't all match the UI field names,
-   so every payload is translated through this map before
-   it leaves the browser.
    ========================================================= */
 
 const DB_COLUMNS = {
@@ -1107,10 +1146,7 @@ const DB_COLUMNS = {
     offer_article:        "offer_article"
 };
 
-/* Columns MySQL declares as INT / FLOAT — an empty string is
-   rejected for these, so blanks are sent as null instead.
-   NOTE: unit_of_measure is text (PAC/UA/CAR), so it must NOT
-   be in this list or every UOM gets nulled out. */
+/* Columns MySQL declares as INT / FLOAT — blanks are sent as null */
 const NUMERIC_COLUMNS = new Set([
     "customer_grp",
     "customer_hierarchy",
@@ -1199,13 +1235,7 @@ function toDbPayload(data) {
 }
 
 /* =========================================================
-   CHANGED: MySQL COLUMN  ->  JS FIELD
-
-   Reverse of DB_COLUMNS. The API returns real column names
-   (minimum_quantity, distribution_channel_code,
-   transportation_zone_code), but the table reads UI keys
-   (min_qty, distribution_channel, zone_code), so every
-   fetched row is translated back before it's rendered.
+   MySQL COLUMN  ->  JS FIELD  (reverse of DB_COLUMNS)
    ========================================================= */
 
 const UI_FIELDS = {};
@@ -1237,8 +1267,7 @@ let currentPage = 1;
 let totalPages  = 1;
 let totalRows   = 0;
 
-// Pending edits to existing rows, keyed by row id:
-//   Map<id, { id, ...changedFields }>
+// Pending edits to existing rows, keyed by row id
 const pendingUpdates = new Map();
 
 const tableHead  = document.getElementById("itemPriceTableHead");
@@ -1252,8 +1281,6 @@ const pagination = document.getElementById("paginationControls");
    ========================================================= */
 
 function rowId(item) {
-    // Prefer the DB primary key; fall back to the legacy keys
-    // so rows still work if the API hasn't been updated yet.
     return item.id ?? item.condition_id ?? item.unique_key ?? null;
 }
 
@@ -1265,6 +1292,100 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
 }
+
+/* =========================================================
+   MESSAGE MODAL  (replaces alert / confirm)
+
+   showAlert(message, { type, title })
+   showConfirm(message, { type, title, confirmText, cancelText, danger })
+       -> Promise<boolean>
+   type: "success" | "error" | "warning" | "info"
+   ========================================================= */
+
+const msgModal  = document.getElementById("msgModal");
+const msgIcon   = document.getElementById("msgIcon");
+const msgTitle  = document.getElementById("msgTitle");
+const msgText   = document.getElementById("msgText");
+const msgOk     = document.getElementById("msgOk");
+const msgCancel = document.getElementById("msgCancel");
+
+const MSG_ICONS = {
+    success: "fa-circle-check",
+    error:   "fa-circle-xmark",
+    warning: "fa-triangle-exclamation",
+    info:    "fa-circle-info"
+};
+
+const MSG_TITLES = {
+    success: "Success",
+    error:   "Error",
+    warning: "Warning",
+    info:    "Notice"
+};
+
+let msgResolve = null;   // resolver of the dialog currently open
+
+function openDialog(message, options, isConfirm) {
+
+    options = options || {};
+
+    // A new dialog replaces any open one (counts as "cancelled")
+    if (msgResolve) {
+        msgResolve(false);
+        msgResolve = null;
+    }
+
+    const type = options.type || (isConfirm ? "warning" : "info");
+
+    msgModal.className = "modal msg-" + type;
+    msgIcon.className  = "fas " + MSG_ICONS[type];
+    msgTitle.textContent = options.title || (isConfirm ? "Please confirm" : MSG_TITLES[type]);
+    msgText.textContent  = message;
+
+    msgOk.textContent     = options.confirmText || "OK";
+    msgOk.className       = "btn " + (options.danger ? "btn-danger" : "btn-primary");
+    msgCancel.textContent = options.cancelText || "Cancel";
+    msgCancel.style.display = isConfirm ? "" : "none";
+
+    msgModal.style.display = "block";
+    msgOk.focus();
+
+    return new Promise(function (resolve) {
+
+        function close(result) {
+            msgModal.style.display = "none";
+            msgResolve = null;
+            resolve(result);
+        }
+
+        msgResolve = close;
+
+        msgOk.onclick     = function () { close(true); };
+        msgCancel.onclick = function () { close(false); };
+
+        // Click on the dark backdrop = cancel
+        msgModal.onclick = function (event) {
+            if (event.target === msgModal) {
+                close(false);
+            }
+        };
+    });
+}
+
+function showAlert(message, options) {
+    return openDialog(message, options, false);
+}
+
+function showConfirm(message, options) {
+    return openDialog(message, options, true);
+}
+
+// Esc closes the dialog
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && msgResolve) {
+        msgResolve(false);
+    }
+});
 
 function toBackendDateTime(value) {
 
@@ -1282,23 +1403,23 @@ function toBackendDateTime(value) {
     return text;
 }
 
-    // CSV wants US-style dates; the table holds YYYY-MM-DD HH:MM:SS
-    function csvDate(value) {
+// CSV wants US-style dates; the table holds YYYY-MM-DD HH:MM:SS
+function csvDate(value) {
 
-        if (!value) {
-            return "";
-        }
-
-        const parsed = new Date(String(value).replace(" ", "T"));
-
-        if (isNaN(parsed)) {
-            return value;
-        }
-
-        return String(parsed.getMonth() + 1).padStart(2, "0") + "/" +
-               String(parsed.getDate()).padStart(2, "0") + "/" +
-               parsed.getFullYear();
+    if (!value) {
+        return "";
     }
+
+    const parsed = new Date(String(value).replace(" ", "T"));
+
+    if (isNaN(parsed)) {
+        return value;
+    }
+
+    return String(parsed.getMonth() + 1).padStart(2, "0") + "/" +
+           String(parsed.getDate()).padStart(2, "0") + "/" +
+           parsed.getFullYear();
+}
 
 function toInputDateTime(value) {
 
@@ -1324,10 +1445,6 @@ function endOfTodayForInput() {
 
 /* =========================================================
    VALIDATION
-
-   Mirrors the original priority matrix. Sales Organization
-   isn't a table column here, so its value is read from the
-   "Sales Organization" filter chip when that rule applies.
    ========================================================= */
 
 const PRIORITY_CONFIG = [
@@ -1382,7 +1499,6 @@ const FREE_FIELDS = new Set([
     "id",
     "sales_organization"
 ]);
-
 
 
 function validateItem(data, mode) {
@@ -1558,7 +1674,7 @@ function validateItem(data, mode) {
 
 
     if (errors.length > 0) {
-        alert("Validation failed:\n\n" + errors.join("\n"));
+        showAlert(errors.join("\n"), { type: "error", title: "Validation failed" });
         return false;
     }
 
@@ -1632,7 +1748,7 @@ function renderTable() {
         return;
     }
 
-        items.forEach(function (item) {
+    items.forEach(function (item) {
 
         const id      = rowId(item);
         const pending = pendingUpdates.get(id);
@@ -1711,16 +1827,24 @@ function renderPagination() {
 
     if (prev) {
         prev.addEventListener("click", function () {
-            if (currentPage > 1 && discardPendingOrConfirm()) {
-                fetchAndPopulate(currentPage - 1);
+            if (currentPage > 1) {
+                discardPendingOrConfirm().then(function (ok) {
+                    if (ok) {
+                        fetchAndPopulate(currentPage - 1);
+                    }
+                });
             }
         });
     }
 
     if (next) {
         next.addEventListener("click", function () {
-            if (currentPage < totalPages && discardPendingOrConfirm()) {
-                fetchAndPopulate(currentPage + 1);
+            if (currentPage < totalPages) {
+                discardPendingOrConfirm().then(function (ok) {
+                    if (ok) {
+                        fetchAndPopulate(currentPage + 1);
+                    }
+                });
             }
         });
     }
@@ -1736,7 +1860,7 @@ function recordChange(row, field, value) {
     const id = row.dataset.id;
 
     if (!id) {
-        alert("This row has no id, so the change can't be saved.");
+        showAlert("This row has no id, so the change can't be saved.", { type: "error" });
         return false;
     }
 
@@ -1762,8 +1886,8 @@ function cellValue(row, field) {
 function makeCellEditable(cell) {
 
     if (cell.querySelector("input, select")) {
-    return;
-}
+        return;
+    }
 
     const row    = cell.parentNode;
     const field  = cell.dataset.field;
@@ -1776,44 +1900,44 @@ function makeCellEditable(cell) {
     const oldValue = cell.innerText.trim();
     let input;
 
-if (column.type === "select") {
+    if (column.type === "select") {
 
-    input = document.createElement("select");
+        input = document.createElement("select");
 
-    const blank = document.createElement("option");
-    blank.value = "";
-    input.appendChild(blank);
+        const blank = document.createElement("option");
+        blank.value = "";
+        input.appendChild(blank);
 
-    column.options.forEach(function (code) {
-        const option = document.createElement("option");
-        option.value = code;
-        option.textContent = code;
-        input.appendChild(option);
-    });
+        column.options.forEach(function (code) {
+            const option = document.createElement("option");
+            option.value = code;
+            option.textContent = code;
+            input.appendChild(option);
+        });
 
-    input.value = oldValue;
-    input.addEventListener("change", function () { input.blur(); });
+        input.value = oldValue;
+        input.addEventListener("change", function () { input.blur(); });
 
-} else if (column.type === "number") {
+    } else if (column.type === "number") {
 
-    input = document.createElement("input");
-    input.type = "number";
-    input.step = "any";
-    input.value = oldValue;
+        input = document.createElement("input");
+        input.type = "number";
+        input.step = "any";
+        input.value = oldValue;
 
-} else if (column.type === "datetime") {
+    } else if (column.type === "datetime") {
 
-    input = document.createElement("input");
-    input.type  = "datetime-local";
-    input.step  = "1";
-    input.value = toInputDateTime(oldValue);
+        input = document.createElement("input");
+        input.type  = "datetime-local";
+        input.step  = "1";
+        input.value = toInputDateTime(oldValue);
 
-} else {
+    } else {
 
-    input = document.createElement("input");
-    input.type  = "text";
-    input.value = oldValue;
-}
+        input = document.createElement("input");
+        input.type  = "text";
+        input.value = oldValue;
+    }
 
     let finished = false;
 
@@ -1924,17 +2048,17 @@ function createNewRow() {
 
         if (column.type === "select") {
 
-    let optionHtml = '<option value=""></option>';
+            let optionHtml = '<option value=""></option>';
 
-    column.options.forEach(function (code) {
-        optionHtml += '<option value="' + escapeHtml(code) + '">' +
-                      escapeHtml(code) + "</option>";
-    });
+            column.options.forEach(function (code) {
+                optionHtml += '<option value="' + escapeHtml(code) + '">' +
+                              escapeHtml(code) + "</option>";
+            });
 
-    html += '<td><select data-field="' + column.key + '">' + optionHtml + "</select></td>";
+            html += '<td><select data-field="' + column.key + '">' + optionHtml + "</select></td>";
 
-    return;
-}
+            return;
+        }
 
         const defaults = { condition_type: "ZEN1", currency: "AED" };
 
@@ -2047,8 +2171,7 @@ tableBody.addEventListener("click", function (event) {
 
         recordChange(row, "active", nowActive);
 
-        // Deactivating stamps the ending date with "now",
-        // matching the original behaviour.
+        // Deactivating stamps the ending date with "now"
         if (!nowActive) {
 
             const now = new Date();
@@ -2092,49 +2215,57 @@ tableBody.addEventListener("click", function (event) {
         const id = row.dataset.id;
 
         if (!id) {
-            alert("This row has no id, so it can't be deleted.");
+            showAlert("This row has no id, so it can't be deleted.", { type: "error" });
             return;
         }
 
-        if (!confirm("Delete this item condition? This cannot be undone.")) {
-            return;
-        }
-
-        deleteButton.disabled = true;
-
-        fetch(API.remove, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: id })
+        showConfirm("Delete this item condition? This cannot be undone.", {
+            title: "Delete item",
+            confirmText: "Delete",
+            danger: true
         })
-        .then(function (response) {
+        .then(function (ok) {
 
-            return response.json().then(function (result) {
+            if (!ok) {
+                return;
+            }
 
-                if (!response.ok) {
-                    throw new Error(result.error || "Delete failed");
-                }
+            deleteButton.disabled = true;
 
-                return result;
+            fetch(API.remove, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: id })
+            })
+            .then(function (response) {
+
+                return response.json().then(function (result) {
+
+                    if (!response.ok) {
+                        throw new Error(result.error || result.message || "Delete failed");
+                    }
+
+                    return result;
+                });
+            })
+            .then(function () {
+
+                items = items.filter(function (item) {
+                    return String(rowId(item)) !== String(id);
+                });
+
+                pendingUpdates.delete(id);
+
+                renderTable();
+                renderPagination();
+                refreshSaveButtonState();
+            })
+            .catch(function (error) {
+
+                console.error("Delete error:", error);
+                showAlert(error.message, { type: "error", title: "Delete failed" });
+                deleteButton.disabled = false;
             });
-        })
-        .then(function () {
-
-            items = items.filter(function (item) {
-                return String(rowId(item)) !== String(id);
-            });
-
-            pendingUpdates.delete(id);
-
-            renderTable();
-            renderPagination();
-            refreshSaveButtonState();
-        })
-        .catch(function (error) {
-
-            console.error("Delete error:", error);
-            alert("Unable to delete item: " + error.message);
-            deleteButton.disabled = false;
         });
 
         return;
@@ -2362,13 +2493,17 @@ function collectFilters() {
    FETCH
    ========================================================= */
 
+// Returns a Promise<boolean>: true = safe to continue
 function discardPendingOrConfirm() {
 
     if (pendingUpdates.size === 0 && !hasPendingNewRows()) {
-        return true;
+        return Promise.resolve(true);
     }
 
-    return confirm("You have unsaved changes. Fetching will discard them. Continue?");
+    return showConfirm("You have unsaved changes. Fetching will discard them. Continue?", {
+        title: "Unsaved changes",
+        confirmText: "Discard & fetch"
+    });
 }
 
 function fetchAndPopulate(page) {
@@ -2385,9 +2520,6 @@ function fetchAndPopulate(page) {
     const sortBy = filters.sort_by || "";
     delete filters.sort_by;
 
-    // Anything filled in — an Item No box or any filter chip —
-    // goes to the filter endpoint; an empty toolbar gets the
-    // plain listing.
     const hasFilters =
         itemNumbers.length > 0 ||
         sortBy !== "" ||
@@ -2420,7 +2552,7 @@ function fetchAndPopulate(page) {
         return response.json().then(function (result) {
 
             if (!response.ok) {
-                throw new Error(result.error || "Failed to fetch items");
+                throw new Error(result.error || result.message || "Failed to fetch items");
             }
 
             return result;
@@ -2428,7 +2560,7 @@ function fetchAndPopulate(page) {
     })
     .then(function (result) {
 
-        // CHANGED: translate DB column names back to UI keys
+        // translate DB column names back to UI keys
         items = (result.data || result.items || result.message || []).map(fromDbRow);
 
         totalRows = result.total || items.length;
@@ -2453,7 +2585,10 @@ function fetchAndPopulate(page) {
 
         pagination.innerHTML = "";
 
-        alert("Unable to fetch data");
+        showAlert(error.message || "Unable to fetch data", {
+            type: "error",
+            title: "Fetch failed"
+        });
     });
 }
 
@@ -2462,16 +2597,20 @@ document.getElementById("fetchForm").addEventListener("submit", function (event)
 
     event.preventDefault();
 
-    if (discardPendingOrConfirm()) {
-        fetchAndPopulate();
-    }
+    discardPendingOrConfirm().then(function (ok) {
+        if (ok) {
+            fetchAndPopulate();
+        }
+    });
 });
 
 document.getElementById("fetchActive").addEventListener("change", function () {
 
-    if (discardPendingOrConfirm()) {
-        fetchAndPopulate();
-    }
+    discardPendingOrConfirm().then(function (ok) {
+        if (ok) {
+            fetchAndPopulate();
+        }
+    });
 });
 
 
@@ -2487,13 +2626,8 @@ document.getElementById("addItemBtn").addEventListener("click", function () {
 /* =========================================================
    SAVE
 
-   Two different requests leave here:
-     - each NEW row    -> POST  API.save   (one request per row,
-                          since the create endpoint takes a single
-                          object and replies with {status, message, id})
-     - all EDITED rows -> ONE PUT to API.upDate carrying a list,
-                          replying with {status, message,
-                          updated_count, updated, failed_count, failed}
+     - each NEW row    -> POST  API.save   (one request per row)
+     - all EDITED rows -> ONE PUT to API.upDate carrying a list
    ========================================================= */
 
 function sendJson(url, method, body) {
@@ -2547,7 +2681,7 @@ saveButton.addEventListener("click", function () {
     const updates = Array.from(pendingUpdates.values());
 
     if (newRows.length === 0 && updates.length === 0) {
-        alert("No changes to save.");
+        showAlert("No changes to save.", { type: "info" });
         return;
     }
 
@@ -2595,20 +2729,13 @@ saveButton.addEventListener("click", function () {
 
             const lines = [];
 
-            /* ---- create API:  { status, message, id } ---- */
+            /* ---- create API ---- */
 
             if (createResults.length > 0) {
-
-                const ids = createResults
-                    .map(function (r) { return r.id; })
-                    .filter(function (id) { return id !== undefined && id !== null; });
-
-                lines.push(
-                    createResults.length + " item(s) created"
-                );
+                lines.push(createResults.length + " item(s) created");
             }
 
-            /* ---- update API:  { updated_count, updated, failed_count, failed } ---- */
+            /* ---- update API ---- */
 
             if (updateResult) {
 
@@ -2634,20 +2761,24 @@ saveButton.addEventListener("click", function () {
                 }
             }
 
-            alert(lines.join("\n"));
+            const hasFailures = updateResult && (updateResult.failed_count ?? 0) > 0;
+
+            showAlert(lines.join("\n"), {
+                type:  hasFailures ? "warning" : "success",
+                title: hasFailures ? "Saved with errors" : "Saved"
+            });
 
             newRows.forEach(function (entry) { entry.row.remove(); });
 
             pendingUpdates.clear();
 
-            // Reloading shows the true DB state, so any row that
-            // failed to update reappears with its old values.
+            // Reloading shows the true DB state
             fetchAndPopulate();
         })
         .catch(function (error) {
 
             console.error("Save error:", error);
-            alert("Unable to save: " + error.message);
+            showAlert(error.message, { type: "error", title: "Save failed" });
         })
         .finally(function () {
 
@@ -2704,20 +2835,20 @@ document.getElementById("downloadCsvBtn").addEventListener("click", function () 
 
 const csvPopup   = document.getElementById("csvPopUp");
 const csvOverlay = document.getElementById("csvLoadingOverlay");
- 
+
 let invalidRows = [];   // InvalidData from the last upload
- 
-const resultBox = document.getElementById("resultBox");
-const resultMsg = document.getElementById("resultMsg");
+
+const resultBox  = document.getElementById("resultBox");
+const resultMsg  = document.getElementById("resultMsg");
 const invalidMsg = document.getElementById("invalidMsg");
- 
+
 function resetInvalidBox() {
     invalidRows = [];
     resultBox.style.display = "none";
     resultMsg.textContent = "";
     invalidMsg.textContent = "";
 }
- 
+
 function showResultBox(message, count) {
     resultMsg.textContent = message;
     invalidMsg.textContent =
@@ -2725,8 +2856,7 @@ function showResultBox(message, count) {
         "Would you like to download them?";
     resultBox.style.display = "block";
 }
- 
-// Generic: works for any list of objects, whatever keys they have
+
 // Preferred column order (matches your upload template); "reason" goes last
 const INVALID_CSV_ORDER = [
     "change_type", "sales_organization_code", "distribution_channel_code",
@@ -2736,26 +2866,26 @@ const INVALID_CSV_ORDER = [
     "lower_limit", "upper_limit", "priority", "starting_date", "ending_date",
     "offer_article", "map", "tax_percent", "price_with_tax", "updated_from_sap"
 ];
- 
+
 // 2026-09-03 00:00:00  ->  09/03/2026 00:00   (US style, same as upload file)
 function normalizeCsvDate(value) {
     const text = String(value ?? "").trim();
     const m = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::\d{2})?$/);
     return m ? m[2] + "/" + m[3] + "/" + m[1] + " " + m[4] + ":" + m[5] : text;
 }
- 
+
 function downloadRowsAsCsv(rows, filename) {
- 
+
     if (!rows || rows.length === 0) {
         return;
     }
- 
+
     // All keys present in the data
     const found = new Set();
     rows.forEach(function (row) {
         Object.keys(row).forEach(function (key) { found.add(key); });
     });
- 
+
     // Known columns first, then any unknown ones, then "reason" last
     const headers = INVALID_CSV_ORDER.filter(function (k) { return found.has(k); });
     found.forEach(function (k) {
@@ -2766,113 +2896,109 @@ function downloadRowsAsCsv(rows, filename) {
     if (found.has("reason")) {
         headers.push("reason");
     }
- 
+
     function csvCell(value) {
         if (value !== null && typeof value === "object") {
             value = JSON.stringify(value);
         }
         return '"' + String(value ?? "").replace(/"/g, '""') + '"';
     }
- 
+
     function cellFor(row, key) {
         const value = row[key];
         return (key === "starting_date" || key === "ending_date")
             ? normalizeCsvDate(value)
             : value;
     }
- 
+
     // Group identical reasons together so the file is easy to read
     const sorted = rows.slice().sort(function (a, b) {
         return String(a.reason ?? "").localeCompare(String(b.reason ?? ""));
     });
- 
+
     const lines = [headers.map(csvCell).join(",")].concat(
         sorted.map(function (row) {
             return headers.map(function (h) { return csvCell(cellFor(row, h)); }).join(",");
         })
     );
- 
+
     const blob = new Blob(["\uFEFF" + lines.join("\r\n")], {
         type: "text/csv;charset=utf-8;"
     });
- 
+
     const url  = URL.createObjectURL(blob);
     const link = document.createElement("a");
- 
+
     link.href     = url;
     link.download = filename;
- 
+
     document.body.appendChild(link);
     link.click();
     link.remove();
- 
+
     URL.revokeObjectURL(url);
 }
- 
+
 document.getElementById("downloadInvalidBtn").addEventListener("click", function () {
     downloadRowsAsCsv(invalidRows, "Rejected_pricing_conditions.csv");
 });
- 
+
 document.getElementById("importBtnUnique").addEventListener("click", function () {
     resetInvalidBox();
     csvPopup.style.display = "block";
 });
- 
-// document.getElementById("importBtnUnique").addEventListener("click", function () {
-//     csvPopup.style.display = "block";
-// });
- 
+
 document.getElementById("closeCsvPopup").addEventListener("click", function () {
     csvPopup.style.display = "none";
 });
- 
+
 document.getElementById("cancelCsvBtn").addEventListener("click", function () {
     csvPopup.style.display = "none";
 });
- 
+
 window.addEventListener("click", function (event) {
- 
+
     if (event.target === csvPopup) {
         csvPopup.style.display = "none";
     }
 });
- 
+
 document.getElementById("downloadSampleBtn").addEventListener("click", function () {
- 
+
     const action = document.getElementById("actionSelect").value;
- 
+
     window.location.href = API.sampleCsv + "?action=" + encodeURIComponent(action);
 });
- 
+
 document.getElementById("uploadBtn").addEventListener("click", function () {
- 
+
     const uploadButton = this;
     const fileInput    = document.getElementById("fileUpload");
     const file         = fileInput.files[0];
- 
+
     if (!file) {
-        alert("Please choose a CSV file to upload.");
+        showAlert("Please choose a CSV file to upload.", { type: "warning" });
         return;
     }
- 
+
     const formData = new FormData();
- 
+
     formData.append("file", file);
     formData.append("action", document.getElementById("actionSelect").value);
- 
+
     resetInvalidBox();
     csvOverlay.style.display = "flex";
- 
+
     uploadButton.disabled = true;
- 
+
     const originalHtml = uploadButton.innerHTML;
- 
+
     uploadButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
- 
+
     fetch(API.import, { method: "POST", body: formData })
     .then(function (response) {
- 
-        // A 400 can still carry rejected_rows, so read the body first.
+
+        // A 400 can still carry rejected rows, so read the body first.
         return response.json()
             .catch(function () {
                 throw new Error("Server returned HTTP " + response.status);
@@ -2882,63 +3008,66 @@ document.getElementById("uploadBtn").addEventListener("click", function () {
             });
     })
     .then(function (payload) {
- 
+
         const result = payload.result;
-        
- 
+
         if (!payload.ok || result.success === false || result.status === "error") {
             throw new Error(result.error || result.message || "Import failed");
         }
- 
+
         invalidRows = result.InvalidData || result.rejected_rows || [];
- 
+
         fileInput.value = "";
         fetchAndPopulate();          // refresh table with newly inserted rows
- 
+
         if (invalidRows.length > 0) {
             // Keep popup open, show the response in the second box
             showResultBox(result.message || "Upload finished", invalidRows.length);
         } else {
-            alert(result.message || "CSV imported successfully.");
+            showAlert(result.message || "CSV imported successfully.", {
+                type: "success",
+                title: "Import complete"
+            });
             csvPopup.style.display = "none";
         }
     })
     .catch(function (error) {
- 
+
         console.error("Import error:", error);
-        alert("Unable to import CSV: " + error.message);
+        showAlert(error.message, { type: "error", title: "Import failed" });
     })
     .finally(function () {
- 
+
         csvOverlay.style.display = "none";
- 
+
         uploadButton.disabled  = false;
         uploadButton.innerHTML = originalHtml;
     });
 });
- 
- 
+
+
 /* =========================================================
    WARN ON LEAVING WITH UNSAVED CHANGES
+   (browsers only allow their own dialog here)
    ========================================================= */
- 
+
 window.addEventListener("beforeunload", function (event) {
- 
+
     if (pendingUpdates.size > 0 || hasPendingNewRows()) {
         event.preventDefault();
         event.returnValue = "";
     }
 });
- 
- 
+
+
 /* =========================================================
    BOOT
    ========================================================= */
- 
+
 renderHead();
 refreshSaveButtonState();
 fetchAndPopulate();
- 
+
 });
 </script>
  
