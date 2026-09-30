@@ -6,6 +6,8 @@ from services.price.ho_price_upload import ho_price_upload
 from services.price.filter_prices import filter_items_prices
 from services.price.get_priority import get_items_price_priority
 from services.price.ho_to_store_csv import ho_to_store_csv
+from services.price.ho_to_store_integration import ho_to_store_integration
+from services.price.store_to_ho_data import store_to_ho_data
 from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
@@ -29,29 +31,6 @@ app.json = CustomJSONProvider(app)
 @app.get("/")
 def index_call():
     return render_template("index.html")
-
-@app.get("/integration")
-def integration():
-    HEAD_OFFICE = {"code": "HO", "name": "Head Office"}
-    
-    
-    SITES = [
-        {"code": "2113","status": "connected", "last_sync": "2026-09-25 11:58"},
-        {"code": "2112","status": "connected", "last_sync": "2026-09-25 11:55"},
-        {"code": "2121","status": "disconnected", "last_sync": "2026-09-25 09:40"},
-        {"code": "2131", "status": "disconnected", "last_sync": "2026-09-25 08:15"},
-    ]
-    return render_template("integration.html", ho=HEAD_OFFICE, sites=SITES)
-
-@app.get("/settings")
-def settings():
-    settings = []
-    return render_template("settings.html", settings=settings)
-
-@app.get("/site-details/<siteid>")
-def site_details(siteid):
-    sites = []
-    return render_template("site_detail.html", site=sites)
 
 #functions
 @app.post("/api/items/create_singel_item_price")
@@ -102,6 +81,26 @@ def get_priority_discount():
 def central_app():
     return ho_price_upload()
 
+#integration
 @app.post("/api/items/store_csv_uploads")
 def ho_store_csv_upload():
     return ho_to_store_csv()
+
+#integration pages
+@app.get("/integration")
+def integration():
+    return render_template("integration.html")
+
+@app.route("/api/items/integration_check")
+def integration_check():
+    return ho_to_store_integration()
+
+@app.get("/settings")
+def settings():
+    settings = []
+    return render_template("settings.html", settings=settings)
+
+@app.get("/site-details/<siteid>")
+def site_details(siteid):
+    items  = store_to_ho_data(siteid)
+    return render_template("site_detail.html", items=items)
