@@ -1,5 +1,6 @@
 import requests
 from configration.integration_ip import SITE_2113
+from repository.price.fetch_price import fetch_all_prices
 
 
 def store_to_ho_data(site):
@@ -21,6 +22,30 @@ def store_to_ho_data(site):
             timeout=10
         )
         response_data = response.json()
+
+        ho_datas = fetch_all_prices()
+        ho_data_json = ho_datas.get_json()
+
+        store_data_list = response_data["data"]
+        ho_data_list = ho_data_json["data"]
+
+        for ho_data in ho_data_list:
+
+            found = False
+
+            for store_data in store_data_list:
+
+                if ho_data == store_data:
+                    store_data["status"] = "Success"
+                    found = True
+                    break
+
+            if not found:
+
+                failed_data = ho_data.copy()
+                failed_data["status"] = "Failed"
+
+                store_data_list.append(failed_data)
         return response_data['data']
 
     except requests.exceptions.Timeout:

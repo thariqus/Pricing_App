@@ -5,107 +5,489 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Site Details</title>
+  <style>
+    :root {
+      --bg: #f6f6f7;
+      --card: #fde8e6;
+      --card-solid: #fff;
+      --border: #f3d3cf;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --navy: #1e2a4a;
+      --ho: #b3121f;
+      --ho-dark: #8f0e19;
+      --ok: #16a34a;
+      --failed-bg: #fdecea;
+      --failed-bar: #b3121f;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Page shell + header */
+    .shell {
+      position: relative;
+      max-width: 1820px;
+      margin: 30px auto;
+      padding: 28px;
+      background: #fafafc;
+      border: 1px solid #eee;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .shell::before,
+    .shell::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: var(--card);
+      opacity: .7;
+      pointer-events: none;
+    }
+
+    .shell::before {
+      width: 220px;
+      height: 140px;
+      top: -60px;
+      right: 40px;
+      transform: rotate(-20deg);
+    }
+
+    .shell::after {
+      width: 160px;
+      height: 160px;
+      bottom: -90px;
+      left: -40px;
+    }
+
+    .page-head {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .page-head h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: .5px;
+      color: var(--ho);
+    }
+
+    .page-head h1 span { color: var(--navy); }
+
+    .page-head h1::after {
+      content: "";
+      display: block;
+      width: 36px;
+      height: 3px;
+      margin-top: 4px;
+      border-radius: 2px;
+      background: var(--ho);
+    }
+
+    .page-head p {
+      margin: 6px 0 0;
+      font-size: .85rem;
+      color: var(--muted);
+    }
+
+    .summary {
+      margin-left: auto;
+      align-self: center;
+      display: flex;
+      gap: 10px;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    .pill {
+      padding: 5px 12px;
+      border-radius: 999px;
+    }
+
+    .pill.total { background: #fff; color: var(--navy); border: 1px solid var(--border); }
+    .pill.failed { background: rgba(179, 18, 31, .1); color: var(--ho); }
+
+    /* Table panel */
+    .table-panel {
+      position: relative;
+      z-index: 1;
+      padding: 8px;
+      background: var(--card-solid);
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(30, 42, 74, .06);
+    }
+
+    .table-scroll {
+      overflow: auto;
+      max-height: 75vh;
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: .8rem;
+      white-space: nowrap;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 12px 14px;
+      text-align: left;
+      font-weight: 700;
+      letter-spacing: .3px;
+      background: var(--ho);
+      color: #fff;
+    }
+
+    thead th:first-child { border-top-left-radius: 10px; }
+    thead th:last-child { border-top-right-radius: 10px; }
+
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+    }
+
+    tbody tr:nth-child(even) td { background: #fffafa; }
+    tbody tr:hover td { background: var(--card); }
+
+    /* Failed row */
+    tbody tr.failed td {
+      background: var(--failed-bg);
+      color: var(--ho-dark);
+    }
+
+    tbody tr.failed:hover td { background: #fbd9d5; }
+
+    tbody tr.failed td:first-child {
+      box-shadow: inset 4px 0 0 var(--failed-bar);
+      font-weight: 700;
+    }
+
+    .empty {
+      padding: 40px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    /* Status cell */
+    .status-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--ok);
+      background: rgba(22, 163, 74, .1);
+    }
+
+    tr.failed .badge {
+      color: #fff;
+      background: var(--ho);
+    }
+
+    .retry-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--ho);
+      color: #fff;
+      font: 700 .74rem inherit;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(179, 18, 31, .25);
+      transition: background .2s;
+    }
+
+    .retry-btn:hover { background: var(--ho-dark); }
+    .retry-btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+    .retry-btn:disabled { opacity: .6; cursor: progress; }
+
+    .retry-btn svg { width: 13px; height: 13px; }
+    .retry-btn.loading svg { animation: spin .8s linear infinite; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Pagination */
+    .pager {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: var(--card-solid);
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(30, 42, 74, .06);
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    .pager .range strong { color: var(--navy); }
+
+    .pager .pages {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pager .pg {
+      min-width: 34px;
+      height: 34px;
+      padding: 0 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--navy);
+      font-weight: 700;
+      text-decoration: none;
+      transition: .2s;
+    }
+
+    .pager a.pg:hover { background: var(--card); border-color: var(--ho); color: var(--ho); }
+    .pager a.pg:focus-visible, .pager select:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+    .pager .pg.current { background: var(--ho); border-color: var(--ho); color: #fff; box-shadow: 0 3px 8px rgba(179, 18, 31, .25); }
+    .pager .pg.disabled { opacity: .45; pointer-events: none; }
+    .pager .gap { padding: 0 2px; }
+
+    .pager .size { display: flex; align-items: center; gap: 8px; margin: 0; }
+    .pager select {
+      height: 34px;
+      padding: 0 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--navy);
+      font: inherit;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1000px) {
+      .shell { margin: 16px; padding: 18px; }
+      .page-head { flex-wrap: wrap; }
+      .summary { margin-left: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .retry-btn.loading svg { animation: none; }
+    }
+  </style>
 </head>
 
 <body>
+  {# Expects: items, page, limit, total (from your backend response) #}
+  {% set page = page|default(1)|int %}
+  {% set limit = limit|default(100)|int %}
+  {% set total = total|default(items|length)|int %}
+  {% set total_pages = [((total + limit - 1) // limit), 1]|max %}
+  {% set first_row = ((page - 1) * limit + 1) if total else 0 %}
+  {% set last_row = [page * limit, total]|min %}
+  {% set win_start = [page - 2, 1]|max %}
+  {% set win_end = [page + 2, total_pages]|min %}
 
-  <table border="1">
-    <thead>
-      <tr>
-        <th>Sl No</th>
-        <th>Item No</th>
-        <th>Condition Type</th>
-        <th>Active</th>
-        <th>Change Type</th>
-        <th>Customer</th>
-        <th>Customer Group</th>
-        <th>Customer Hierarchy</th>
-        <th>Distribution Channel</th>
-        <th>Location Code</th>
-        <th>Currency</th>
-        <th>Sales Price</th>
-        <th>UOM</th>
-        <th>Minimum Quantity</th>
-        <th>Priority</th>
-        <th>Starting Date</th>
-        <th>Ending Date</th>
-        <th>Lower Limit</th>
-        <th>Upper Limit</th>
-        <th>MAP</th>
-        <th>Offer Article</th>
-        <th>Price With Tax</th>
-        <th>Tax Percent</th>
-        <th>Transportation Zone</th>
-        <th>Updated From SAP</th>
-        <th>Created</th>
-        <th>Updated</th>
-      </tr>
-    </thead>
+  <div class="shell">
 
-    <tbody>
-      {% for item in items %}
-      <tr>
+    <header class="page-head">
+      <div>
+        <h1>Site <span>Details</span></h1>
+        <p>Price records synced from SAP</p>
+      </div>
+      <div class="summary">
+        <span class="pill total">Total: {{ total }}</span>
+        <span class="pill failed">Failed on this page: {{ items|selectattr('status', 'equalto', 'Failed')|list|length }}</span>
+      </div>
+    </header>
 
-        <td>{{ loop.index }}</td>
+    <div class="table-panel">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Sl No</th>
+              <th>Item No</th>
+              <th>Condition Type</th>
+              <th>Active</th>
+              <th>Change Type</th>
+              <th>Customer</th>
+              <th>Customer Group</th>
+              <th>Customer Hierarchy</th>
+              <th>Distribution Channel</th>
+              <th>Location Code</th>
+              <th>Currency</th>
+              <th>Sales Price</th>
+              <th>UOM</th>
+              <th>Minimum Quantity</th>
+              <th>Priority</th>
+              <th>Starting Date</th>
+              <th>Ending Date</th>
+              <th>Lower Limit</th>
+              <th>Upper Limit</th>
+              <th>MAP</th>
+              <th>Offer Article</th>
+              <th>Price With Tax</th>
+              <th>Tax Percent</th>
+              <th>Transportation Zone</th>
+              <th>Updated From SAP</th>
+              <th>Created</th>
+              <th>Updated</th>
+              <th>Status</th>
+            </tr>
+          </thead>
 
-        <td>{{ item.item_no }}</td>
+          <tbody>
+            {% for item in items %}
+            {% set is_failed = (item.status or '')|string|lower in ['failed', 'faild', 'fail'] %}
+            <tr class="{{ 'failed' if is_failed }}">
+              <td>{{ (page - 1) * limit + loop.index }}</td>
+              <td>{{ item.item_no }}</td>
+              <td>{{ item.condition_type }}</td>
+              <td>{{ item.active }}</td>
+              <td>{{ item.change_type }}</td>
+              <td>{{ item.customer }}</td>
+              <td>{{ item.customer_grp }}</td>
+              <td>{{ item.customer_hierarchy }}</td>
+              <td>{{ item.distribution_channel_code }}</td>
+              <td>{{ item.location_code }}</td>
+              <td>{{ item.currency }}</td>
+              <td>{{ item.sales_price }}</td>
+              <td>{{ item.uom }}</td>
+              <td>{{ item.minimum_quantity }}</td>
+              <td>{{ item.priority }}</td>
+              <td>{{ item.starting_date }}</td>
+              <td>{{ item.ending_date }}</td>
+              <td>{{ item.lower_limit }}</td>
+              <td>{{ item.upper_limit }}</td>
+              <td>{{ item.map }}</td>
+              <td>{{ item.offer_article }}</td>
+              <td>{{ item.price_with_tax }}</td>
+              <td>{{ item.tax_percent }}</td>
+              <td>{{ item.transportation_zone_code }}</td>
+              <td>{{ item.updated_from_sap }}</td>
+              <td>{{ item.created }}</td>
+              <td>{{ item.updated }}</td>
+              <td>
+                <div class="status-cell">
+                  <span class="badge">{{ item.status }}</span>
+                  {% if is_failed %}
+                  <button type="button" class="retry-btn" data-id="{{ item.id }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+                      <path d="M21 3v6h-6"></path>
+                    </svg>
+                    Retry
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="28" class="empty">No records found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-        <td>{{ item.condition_type }}</td>
+    <nav class="pager" aria-label="Pagination">
+      <span class="range">Showing <strong>{{ first_row }}–{{ last_row }}</strong> of <strong>{{ total }}</strong></span>
 
-        <td>{{ item.active }}</td>
+      <form class="size" method="get" action="{{ request.path }}">
+        <label for="limit">Rows per page</label>
+        <select id="limit" name="limit" onchange="this.form.submit()">
+          {% for n in [25, 50, 100, 200] %}
+          <option value="{{ n }}" {{ 'selected' if n == limit }}>{{ n }}</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="page" value="1">
+      </form>
 
-        <td>{{ item.change_type }}</td>
+      <div class="pages">
+        <a class="pg {{ 'disabled' if page <= 1 }}" href="{{ request.path }}?page={{ page - 1 }}&limit={{ limit }}" aria-label="Previous page">&lsaquo; Prev</a>
 
-        <td>{{ item.customer }}</td>
+        {% if win_start > 1 %}
+        <a class="pg" href="{{ request.path }}?page=1&limit={{ limit }}">1</a>
+        {% if win_start > 2 %}<span class="gap">…</span>{% endif %}
+        {% endif %}
 
-        <td>{{ item.customer_grp }}</td>
+        {% for p in range(win_start, win_end + 1) %}
+        {% if p == page %}
+        <span class="pg current" aria-current="page">{{ p }}</span>
+        {% else %}
+        <a class="pg" href="{{ request.path }}?page={{ p }}&limit={{ limit }}">{{ p }}</a>
+        {% endif %}
+        {% endfor %}
 
-        <td>{{ item.customer_hierarchy }}</td>
+        {% if win_end < total_pages %}
+        {% if win_end < total_pages - 1 %}<span class="gap">…</span>{% endif %}
+        <a class="pg" href="{{ request.path }}?page={{ total_pages }}&limit={{ limit }}">{{ total_pages }}</a>
+        {% endif %}
 
-        <td>{{ item.distribution_channel_code }}</td>
+        <a class="pg {{ 'disabled' if page >= total_pages }}" href="{{ request.path }}?page={{ page + 1 }}&limit={{ limit }}" aria-label="Next page">Next &rsaquo;</a>
+      </div>
+    </nav>
 
-        <td>{{ item.location_code }}</td>
+  </div>
 
-        <td>{{ item.currency }}</td>
+  <script>
+    // Change the URL to match your Flask/Django route.
+    // Expected: POST /retry/<id> -> returns JSON { "success": true }
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.retry-btn');
+      if (!btn) return;
 
-        <td>{{ item.sales_price }}</td>
+      btn.disabled = true;
+      btn.classList.add('loading');
 
-        <td>{{ item.uom }}</td>
+      try {
+        const res = await fetch(`/retry/${btn.dataset.id}`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          location.reload();
+          return;
+        }
+        alert(data.message || 'Retry failed. Please try again.');
+      } catch (err) {
+        alert('Could not reach the server. Please try again.');
+      }
 
-        <td>{{ item.minimum_quantity }}</td>
-
-        <td>{{ item.priority }}</td>
-
-        <td>{{ item.starting_date }}</td>
-
-        <td>{{ item.ending_date }}</td>
-
-        <td>{{ item.lower_limit }}</td>
-
-        <td>{{ item.upper_limit }}</td>
-
-        <td>{{ item.map }}</td>
-
-        <td>{{ item.offer_article }}</td>
-
-        <td>{{ item.price_with_tax }}</td>
-
-        <td>{{ item.tax_percent }}</td>
-
-        <td>{{ item.transportation_zone_code }}</td>
-
-        <td>{{ item.updated_from_sap }}</td>
-
-        <td>{{ item.created }}</td>
-
-        <td>{{ item.updated }}</td>
-
-      </tr>
-      {% endfor %}
-    </tbody>
-
-  </table>
-
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    });
+  </script>
 </body>
 
 </html>
