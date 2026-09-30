@@ -29,24 +29,33 @@ def store_to_ho_data(site):
         store_data_list = response_data["data"]
         ho_data_list = ho_data_json["data"]
 
+        final_data = []
+
         for ho_data in ho_data_list:
-
             found = False
-
             for store_data in store_data_list:
+                ho_compare = ho_data.copy()
+                store_compare = store_data.copy()
 
-                if ho_data == store_data:
-                    store_data["status"] = "Success"
+                # Remove ID before comparison
+                ho_compare.pop("id", None)
+                store_compare.pop("id", None)
+
+                if ho_compare == store_compare:
+                    success_data = store_data.copy()
+                    success_data["status"] = "Success"
+
+                    final_data.append(success_data)
+
                     found = True
                     break
-
             if not found:
 
                 failed_data = ho_data.copy()
                 failed_data["status"] = "Failed"
 
-                store_data_list.append(failed_data)
-        return response_data['data']
+                final_data.append(failed_data)
+        return final_data
 
     except requests.exceptions.Timeout:
         return {
