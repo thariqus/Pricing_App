@@ -46,7 +46,7 @@ def create_single_item_price():
                 "message": "Failed to create HO prices"
             }), 500
         requests.post(
-                "http://127.0.0.1:5000/api/items/store_singel_price",
+                "http://172.16.51.67:5000/api/items/store_singel_price",
                 json=formatted_data
         )
         return mysql
