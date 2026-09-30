@@ -8,6 +8,7 @@ from services.price.get_priority import get_items_price_priority
 from services.price.ho_to_store_csv import ho_to_store_csv
 from services.price.ho_to_store_integration import ho_to_store_integration
 from services.price.store_to_ho_data import store_to_ho_data
+from services.price.ho_to_store_singel_price import ho_to_store_single_price
 from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
@@ -85,6 +86,10 @@ def central_app():
 @app.post("/api/items/store_csv_uploads")
 def ho_store_csv_upload():
     return ho_to_store_csv()
+
+@app.post("/api/items/store_singel_price")
+def ho_to_store_price():
+    return ho_to_store_single_price()
 
 #integration pages
 @app.get("/integration")

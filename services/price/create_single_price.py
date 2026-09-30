@@ -40,4 +40,13 @@ def create_single_item_price():
     else:
         formatted_data = convert_datetime(data)
         mysql = create_single_price(formatted_data)
+        if mysql is False:
+            return jsonify({
+                "status": "error",
+                "message": "Failed to create HO prices"
+            }), 500
+        requests.post(
+                "http://127.0.0.1:5000/api/items/store_singel_price",
+                json=formatted_data
+        )
         return mysql
