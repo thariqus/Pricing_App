@@ -6,21 +6,45 @@ from utils.invalid_csv_list import reject_csv_list
 def check_price_csv_items(records, response_message):
     invalid_item_data = []
     valid_item_data = []
- 
+
     message = (response_message or {}).get("message") or {}
-    missing_items = set(message.get("item", {}).get("item_codes") or [])
-    missing_uoms  = set(message.get("item_uoms", {}).get("item_uom") or [])
- 
+
+    missing_items = set(
+        message.get("item", {}).get("item_codes") or []
+    )
+
+    missing_item_uoms = {
+        (
+            item.get("item_code"),
+            item.get("uom")
+        )
+        for item in message.get("item_uoms", {}).get("item_uom", [])
+        if item.get("item_code") and item.get("uom")
+    }
+
     for data in records:
- 
-        raw = dict(data)   # untouched copy, taken BEFORE convert_datetime mutates data
- 
+
+        raw = dict(data)
+
         if data.get("item_no") in missing_items:
-            invalid_item_data = reject_csv_list(invalid_item_data, "Item Not Found", raw)
+            invalid_item_data = reject_csv_list(
+                invalid_item_data,
+                "Item Not Found",
+                raw
+            )
             continue
- 
-        if data.get("uom") in missing_uoms:
-            invalid_item_data = reject_csv_list(invalid_item_data, "UOM Not Found", raw)
+
+        item_uom = (
+            data.get("item_no"),
+            data.get("uom")
+        )
+
+        if item_uom in missing_item_uoms:
+            invalid_item_data = reject_csv_list(
+                invalid_item_data,
+                "UOM Not Found",
+                raw
+            )
             continue
  
         # ---- date / time ----

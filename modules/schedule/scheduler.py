@@ -18,7 +18,6 @@ PRICE_DB = os.getenv("DB_P_NAME")
 
 
 def _now():
-    """Naive current time in business TZ (matches DATETIME columns)."""
     return datetime.now(BUSINESS_TZ).replace(tzinfo=None)
 
 
@@ -34,8 +33,6 @@ def _cursor():
 
 
 def refresh_price_status(now=None):
-    """Deactivate out-of-window prices and activate the latest valid one
-    per combination. `now`: optional naive datetime for testing."""
     now = now or _now()
 
     with _cursor() as (con, cursor):
@@ -68,7 +65,6 @@ def refresh_price_status(now=None):
 
 
 def get_future_boundaries(now=None):
-    """Upcoming start/end moments that need a refresh job."""
     now = now or _now()
     with _cursor() as (_, cursor):
         cursor.execute(future_boundaries_query(), (now, now, now, now))
@@ -76,7 +72,6 @@ def get_future_boundaries(now=None):
 
 
 def get_price_fingerprint():
-    """(max id, latest update, row count) — changes on any insert/edit/delete."""
     with _cursor() as (_, cursor):
         cursor.execute(price_fingerprint_query())
         row = cursor.fetchone() or {}
