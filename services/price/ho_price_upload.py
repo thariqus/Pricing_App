@@ -47,34 +47,12 @@ def ho_price_upload():
             }
             for data in csv_record
         ]
-
-        BATCH_SIZE = 2000
-
-        valid_data = []
-        invalid_data = []
-
-        for start in range(0, len(csv_record), BATCH_SIZE):
-            batch = csv_record[start:start + BATCH_SIZE]
-            validation_records = [
-                {
-                    "item_code": data.get("item_no"),
-                    "uom": data.get("uom")
-                }
-                for data in batch
-            ]
-            response = requests.post(
-                VALIDATION_API,
-                json=validation_records,
-                timeout=120
-            )
-            response_message = response.json()
-            batch_valid, batch_invalid = check_price_csv_items(
-                batch,
-                response_message
-            )
-            valid_data.extend(batch_valid)
-            invalid_data.extend(batch_invalid)
-
+        response = requests.post(
+            VALIDATION_API,
+            json=validation_records
+            # timeout=60
+        )
+        response_message = response.json()
         valid_data, invalid_data = check_price_csv_items(csv_record, response_message)  
         mysql = ho_create_price(valid_data, file, invalid_data)
         if mysql is False:
