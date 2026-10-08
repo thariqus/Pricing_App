@@ -451,7 +451,7 @@ html, body {
 
 
 .table td.col-starting_date,
-.table td.col-ending_date { font-size: 8px; letter-spacing: -.2px; }
+.table td.col-ending_date { font-size: 10px; letter-spacing: -.2px; }
 
 /* EDITABLE CELLS */
 
@@ -3012,7 +3012,13 @@ document.getElementById("uploadBtn").addEventListener("click", function () {
         const result = payload.result;
 
         if (!payload.ok || result.success === false || result.status === "error") {
-            throw new Error(result.error || result.message || "Import failed");
+
+            // CHANGED: friendly message first; keep raw DB error + row details
+            const err   = new Error(result.message || result.error || "Import failed");
+            err.failed  = result.failed_record || null;
+            err.raw     = result.error || "";
+            err.invalid = result.InvalidData || result.rejected_rows || [];
+            throw err;
         }
 
         invalidRows = result.InvalidData || result.rejected_rows || [];
@@ -3033,8 +3039,26 @@ document.getElementById("uploadBtn").addEventListener("click", function () {
     })
     .catch(function (error) {
 
-        console.error("Import error:", error);
-        showAlert(error.message, { type: "error", title: "Import failed" });
+        // CHANGED: raw DB error to console, readable details to the user
+        console.error("Import error:", error.raw || error);
+
+        let text = error.message;
+
+        // Details of the row that broke the import (from failed_record)
+        if (error.failed) {
+            text += "\n\nItem No: " + (error.failed.item_no ?? "-") +
+                    "\nUOM: "       + (error.failed.uom ?? "-") +
+                    "\nColumn: "    + (error.failed.column ?? "-") +
+                    "\nValue: "     + (error.failed.value ?? "(empty)");
+        }
+
+        // If the server also sent rejected rows, offer them for download
+        if (error.invalid && error.invalid.length > 0) {
+            invalidRows = error.invalid;
+            showResultBox("Upload failed", invalidRows.length);
+        }
+
+        showAlert(text, { type: "error", title: "Import failed" });
     })
     .finally(function () {
 
@@ -3074,4 +3098,3 @@ fetchAndPopulate();
 </body>
  
 </html>
- 

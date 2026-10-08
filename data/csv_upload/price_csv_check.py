@@ -1,6 +1,7 @@
 from utils.date_converter import convert_datetime
 from utils.backdate_validator import previous_date_checker
 from utils.invalid_csv_list import reject_csv_list
+from utils.priority_validator import priority_error
 
 
 def check_price_csv_items(records, response_message):
@@ -68,8 +69,12 @@ def check_price_csv_items(records, response_message):
             invalid_item_data = reject_csv_list(invalid_item_data, "Starting Date cannot be after Ending Date", raw)
             continue
 
-        
- 
+        # ---- priority / key fields ----
+        reason = priority_error(data)
+        if reason:
+            invalid_item_data = reject_csv_list(invalid_item_data, reason, raw)
+            continue
+
         data["active"] = 1
         valid_item_data.append(data)
  
