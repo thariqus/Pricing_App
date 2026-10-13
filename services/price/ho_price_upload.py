@@ -70,21 +70,21 @@ def ho_price_upload():
         #         "http://172.16.27.117:5000/api/items/store_csv_uploads",
         #         json=valid_data
         # )
-        # try:
-        #     r = requests.post(
-        #     "http://172.16.27.117:5000/api/items/store_csv_uploads",
+        try:
+            r = requests.post(
+            "http://172.16.27.117:5000/api/items/store_csv_uploads",
 
-        #         data=json.dumps(valid_data, default=str),   # Decimal -> "2.95"
-        #         headers={"Content-Type": "application/json"},
-        #         timeout=(5, 120),
-        #     )
-        #     r.raise_for_status()
-        # except requests.RequestException as e:
-        #     logger.error("Store sync to %s failed: %s","http://172.16.27.117:5000/api/items/store_csv_uploads", e)
-        #     body = response.get_json()
-        #     body["store_sync"] = f"failed: {e}"
-        #     body["message"] += " (HO saved, but sending to store failed)"
-        #     return jsonify(body), 500
+                data=json.dumps(valid_data, default=str),   # Decimal -> "2.95"
+                headers={"Content-Type": "application/json"},
+                timeout=(5, 120),
+            )
+            r.raise_for_status()
+        except requests.RequestException as e:
+            logger.error("Store sync to %s failed: %s","http://172.16.27.117:5000/api/items/store_csv_uploads", e)
+            body = response.get_json()
+            body["store_sync"] = f"failed: {e}"
+            body["message"] += " (HO saved, but sending to store failed)"
+            return jsonify(body), 500
         
         return mysql
     else:
