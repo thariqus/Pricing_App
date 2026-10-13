@@ -7,8 +7,11 @@ from data.csv_upload.price_csv_upload import upload_csv
 from repository.price.ho_create_price import ho_create_price
 from data.csv_upload.price_csv_check import check_price_csv_items
 import json
+from services.price.notify_stores import STORE_URLS, ping_store
 
 from utils.log_error import logger
+import threading
+
 
 
 
@@ -26,8 +29,9 @@ def _is_blank_row(row):
         if key != "active"
     )
 
+
 def ho_price_upload():
-    
+
     if IS_CENTRAL == '1':
         file = request.files.get("file")
 
@@ -37,7 +41,7 @@ def ho_price_upload():
                 message="No file selected",
                 message_type="error"
             )
-        
+
         csv_record, file = upload_csv(file)
         csv_record = [row for row in (csv_record or []) if not _is_blank_row(row)]
 
@@ -59,33 +63,27 @@ def ho_price_upload():
             # timeout=60
         )
         response_message = response.json()
-        valid_data, invalid_data = check_price_csv_items(csv_record, response_message)  
+        valid_data, invalid_data = check_price_csv_items(csv_record, response_message)
+        
         mysql = ho_create_price(valid_data, file, invalid_data)
         if mysql is False:
             return jsonify({
                 "status": "error",
                 "message": "Failed to create HO prices"
             }), 500
-        # requests.post(
-        #         "http://172.16.27.117:5000/api/items/store_csv_uploads",
-        #         json=valid_data
-        # )
-        try:
-            r = requests.post(
-            "http://172.16.27.117:5000/api/items/store_csv_uploads",
 
-                data=json.dumps(valid_data, default=str),   # Decimal -> "2.95"
-                headers={"Content-Type": "application/json"},
-                timeout=(5, 120),
-            )
-            r.raise_for_status()
-        except requests.RequestException as e:
-            logger.error("Store sync to %s failed: %s","http://172.16.27.117:5000/api/items/store_csv_uploads", e)
-            body = response.get_json()
-            body["store_sync"] = f"failed: {e}"
-            body["message"] += " (HO saved, but sending to store failed)"
-            return jsonify(body), 500
-        
+        # ping all stores in the background with the new version
+        body, status = mysql
+        version_id = 1
+        if status == 201 and version_id:
+            for base_url in STORE_URLS:
+                threading.Thread(
+                    target=requests.get,
+                    args=(f"{base_url}/api/prices/notify_stores",),
+                    kwargs={"timeout": (3, 5)},
+                    daemon=True,
+                ).start()
+
         return mysql
     else:
         return jsonify({

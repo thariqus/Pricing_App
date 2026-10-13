@@ -1,23 +1,27 @@
-from repository.query import get_prices_from_version_query
+from repository.query import insert_price_query
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
 
 
-def get_prices_from_version(version_id):
+def insert_store_prices(rows, db_name="PRICING_DATABASE"):
     con = None
     try:
-        con = get_db_connection("PRICING_DATABASE")
+        con = get_db_connection(db_name)
         with con.cursor() as cursor:
-            sql_query, params = get_prices_from_version_query(version_id)
-            cursor.execute(sql_query, params)
-            rows = cursor.fetchall()
-        print(f"Records from version {version_id}: {len(rows)}", flush=True)
-        for row in rows:
-            print(row, flush=True)
-        return rows
+            for row in rows:
+                data = dict(row)
+                # insert_price_query reads customer_group; DB rows have customer_grp
+                data.setdefault("customer_group", data.get("customer_grp"))
+                sql_query, params = insert_price_query(data)
+                cursor.execute(sql_query, params)
+        con.commit()
+        print(f"Inserted {len(rows)} price(s)", flush=True)
+        return len(rows)
     except Exception:
-        logger.exception("Failed to get prices from version %s", version_id)
-        return []
+        if con:
+            con.rollback()
+        logger.exception("Failed to insert store prices")
+        return 0
     finally:
         if con:
             con.close()

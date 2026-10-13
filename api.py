@@ -14,7 +14,7 @@ from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
 from flask.json.provider import DefaultJSONProvider
 
-from repository.price.store_price_upload import get_prices_from_version
+from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
 from flask import jsonify
 
 app = Flask(__name__)
@@ -133,3 +133,8 @@ def prices_from_version(version_id):
         "pinged_at": datetime.now().isoformat(),
         "message": "Prices will be fetched in 30 seconds",
     }), 202
+
+@app.get("/api/prices/notify_stores")
+def notify_stores():
+    from services.price.notify_stores import ping_store
+    return ping_store()
