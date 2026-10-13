@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from repository.mysql_connection import get_db_connection
-from repository.query import create_pricing_database_query, create_table_query 
+from repository.query import create_pricing_database_query, create_table_query, create_version_table_query
 from repository.tables import (
     PRICING_TABLE, 
     PRICE_LOCATION, 
@@ -10,6 +10,7 @@ from repository.tables import (
     PRICING_CURRENCY, 
     PRICING_TRANSPORTATION_ZONE, 
     PRICING_UOM,
+    PRICING_VERSION,
     LOGGER
     )
 from repository.fields import (
@@ -20,6 +21,7 @@ from repository.fields import (
     Pricing_Currency, 
     Pricing_Transportation_Zone, 
     Pricing_UOM,
+    Pricing_Version,
     logger_table
     )
 from utils.log_error import logger
@@ -172,6 +174,22 @@ def create_logger():
             con.close()
 
 
+def create_pricing_version():
+    con = None
+    try:
+        con = get_db_connection(DB_NAME)
+        with con.cursor() as cursor:
+            cursor.execute(create_version_table_query(PRICING_VERSION, Pricing_Version))
+        con.commit()
+        logger.info("Table '%s' successfully created", PRICING_VERSION)
+    except Exception:
+        logger.exception("Failed to create table '%s'", PRICING_VERSION)
+        raise
+    finally:
+        if con:
+            con.close()
+
+
 if __name__ == "__main__":
     create_database()
     create_pricing_table()
@@ -182,4 +200,4 @@ if __name__ == "__main__":
     create_pricing_transportation_zone()
     create_pricing_uom()
     create_logger()
- 
+    create_pricing_version()

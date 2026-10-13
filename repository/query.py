@@ -468,14 +468,16 @@ def insert_price_query(data):
             sales_division_code,
             offer_article,
             price_with_tax,
-            tax_percent
+            tax_percent,
+            version_id
         )
         VALUES (
             %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s,
+            %s
         )
     """
     params = (
@@ -504,9 +506,12 @@ def insert_price_query(data):
         data.get("offer_article"),
         data.get("price_with_tax"),
         data.get("tax_percent"),
+        data.get("version_id"),
     )
     return sql_query, params
- 
+
+
+
 def update_price(price_id, data):
 
     allowed_fields = {
@@ -671,6 +676,98 @@ def get_item_price_details():
         select * from PRICING_TABLE where priority = %s
     """
     return sql_query
+
+
+def insert_version_query(data):
+    sql_query = """
+        INSERT INTO pricing_version (
+            id,
+            file_name,
+            record_count,
+            uploaded_by
+        )
+        VALUES (%s, %s, %s, %s)
+    """
+    params = (
+        data.get("id"),
+        data.get("file_name"),
+        data.get("record_count", 0),
+        data.get("uploaded_by"),
+    )
+    return sql_query, params
+
+
+def get_latest_version_id_query():
+    return """
+        SELECT id AS version_id
+        FROM pricing_version
+        ORDER BY id DESC
+        LIMIT 1
+    """
+
+
+def get_pending_activation_query():
+    """Params: (now, now)"""
+    return """
+        SELECT *
+        FROM PRICING_TABLE
+        WHERE active = 0
+          AND starting_date <= %s
+          AND ending_date >= %s
+    """
+
+
+
+# indexing query
+# ALTER TABLE PRICING_TABLE ADD INDEX IF NOT EXISTS idx_active_dates (active, starting_date, ending_date);
+
+
+def get_active_same_combination_query(row, combination):
+    """Active prices with the same combination as `row` (a PRICING_TABLE record)."""
+    where = " AND ".join(f"`{column}` <=> %s" for column in combination)
+    sql_query = f"""
+        SELECT *
+        FROM PRICING_TABLE
+        WHERE active = 1
+          AND id <> %s
+          AND {where}
+    """
+    params = (row["id"],) + tuple(row.get(column) for column in combination)
+    return sql_query, params
+
+
+
+
+def deactivate_price_by_ids_query(ids):
+    placeholders = ", ".join(["%s"] * len(ids))
+    return f"""
+        UPDATE PRICING_TABLE
+        SET active = 0
+        WHERE active = 1
+          AND id IN ({placeholders})
+    """, tuple(ids)
+
+
+def activate_price_by_id_query(price_id):
+    return """
+        UPDATE PRICING_TABLE
+        SET active = 1
+        WHERE active = 0
+          AND id = %s
+    """, (price_id,)
+
+
+def get_prices_from_version_query(version_id):
+    sql_query = """
+        SELECT *
+        FROM PRICING_TABLE
+        WHERE version_id >= %s
+        ORDER BY version_id, id
+    """
+    return sql_query, (version_id,)
+
+#ALTER TABLE PRICING_TABLE ADD INDEX IF NOT EXISTS idx_version_id (version_id); 
+
 
 #Querys for Discount
 def select_all_discounts(page, limit):

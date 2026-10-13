@@ -14,6 +14,9 @@ from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
 from flask.json.provider import DefaultJSONProvider
 
+from repository.price.store_price_upload import get_prices_from_version
+from flask import jsonify
+
 app = Flask(__name__)
 
  
@@ -109,3 +112,24 @@ def settings():
 def site_details(siteid):
     items  = store_to_ho_data(siteid)
     return render_template("site_detail.html", items=items)
+
+
+import threading
+from datetime import datetime
+
+
+def fetch_and_print(version_id):
+    rows = get_prices_from_version(version_id)
+    print(f"Thread result for version {version_id}: {len(rows)} record(s)", flush=True)
+    print(rows, flush=True)
+
+
+@app.get("/api/prices/version/<int:version_id>")
+def prices_from_version(version_id):
+    threading.Timer(30, fetch_and_print, args=(version_id,)).start()
+    return jsonify({
+        "status": "received",
+        "version_id": version_id,
+        "pinged_at": datetime.now().isoformat(),
+        "message": "Prices will be fetched in 30 seconds",
+    }), 202

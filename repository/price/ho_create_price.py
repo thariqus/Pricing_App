@@ -5,9 +5,32 @@ from flask import jsonify, request
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
 from utils.file_path import upload_price_directory
-from repository.query import insert_price_query, deactivate_combination_query, create_logger
+from repository.query import (
+    insert_price_query,
+    deactivate_combination_query,
+    create_logger,
+    get_latest_version_id_query,   # version
+    insert_version_query,          # version
+)
+
 from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
 import pymysql
+from datetime import datetime, date
+
+
+def _to_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        return datetime.combine(value, datetime.min.time())
+    s = str(value).strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d",
+                "%d-%m-%Y %H:%M:%S", "%d-%m-%Y", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"invalid starting_date: {value!r}")
 
 
 PRICE_DB = os.getenv("DB_P_NAME")
@@ -134,6 +157,13 @@ def ho_create_price(records, file, invalid_data):
         inserted = 0
         deactivated = 0
 
+        cursor.execute(get_latest_version_id_query())
+        row = cursor.fetchone()
+        latest = (row["version_id"] if isinstance(row, dict) else row[0]) if row else None
+        version_id = (latest or 0) + 1
+
+        now = datetime.now()
+
         for data in records:
             current = data
 
@@ -145,18 +175,22 @@ def ho_create_price(records, file, invalid_data):
             original = dict(data)
             try:
                 _clean_record(data)
+                is_future = _to_datetime(data.get("starting_date")) > now
             except ValueError as e:
                 logger.warning("Invalid record item_no=%s: %s", data.get("item_no"), e)
                 invalid_data.append({**original, "reason": str(e)})
                 continue
 
-            # 1. old prices for this combination -> inactive
-            deact_sql, deact_params = deactivate_combination_query(data, combination=combination)
-            cursor.execute(deact_sql, deact_params)
-            deactivated += cursor.rowcount
+            # 1. old prices for this combination -> inactive (only if the new price has started)
+            if not is_future:
+                deact_sql, deact_params = deactivate_combination_query(data, combination=combination)
+                cursor.execute(deact_sql, deact_params)
+                deactivated += cursor.rowcount
 
-            # 2. new price -> active
-            data["active"] = 1
+            # 2. new price -> active only if it has started
+            data["active"] = 0 if is_future else 1
+            data["version_id"] = version_id   # version
+
             sql_query, params = insert_price_query(data)
             try:
                 cursor.execute(sql_query, params)
@@ -166,7 +200,15 @@ def ho_create_price(records, file, invalid_data):
                 raise
             inserted += 1
 
-        current = None   # loop finished; errors after this aren't tied to a row
+        current = None
+
+        if inserted:
+            version_sql, version_params = insert_version_query({
+                "id": version_id,
+                "file_name": file.filename if file else "",
+                "record_count": inserted,
+            })
+            cursor.execute(version_sql, version_params)
 
         if file:
             file_path = os.path.join(upload_price_directory, file.filename)

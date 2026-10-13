@@ -81,6 +81,9 @@ Pricing_Table = {
     "tax_percent": {
         "type": "FLOAT"
     },
+    "version_id": {
+        "type": "INT"
+    },
     "created": {
         "type": "DATETIME",
         "default": "CURRENT_TIMESTAMP"
