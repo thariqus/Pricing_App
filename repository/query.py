@@ -239,6 +239,28 @@ def create_pricing_uom_query():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """
 
+
+def create_version_table_query(table_name, version_table_definition):
+    columns = []
+    for field_name, definition in version_table_definition.items():
+        column_sql = f"{field_name} {definition['type']}"
+        if definition.get("not_null"):
+            column_sql += " NOT NULL"
+        if definition.get("auto_increment"):
+            column_sql += " AUTO_INCREMENT"
+        if definition.get("primary_key"):
+            column_sql += " PRIMARY KEY"
+        if "default" in definition:
+            column_sql += f" DEFAULT {definition['default']}"
+        columns.append(column_sql)
+
+    columns_sql = ",\n            ".join(columns)
+    return f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            {columns_sql}
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """     
+
 #Sub Master Table Creation Query for Discount
 def create_discount_table_query(table_name):
     return f"""

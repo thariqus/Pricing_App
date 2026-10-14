@@ -7,6 +7,7 @@ PRICING_PRIORITY = "pricing_priority"
 PRICING_TRANSPORTATION_ZONE = "pricing_transportation_zone"
 PRICING_UOM = "pricing_uom"
 PRICING_VERSION = "pricing_version"
+
 LOGGER = "logger_table"
 
 #Discount Tables Names

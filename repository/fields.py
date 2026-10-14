@@ -383,6 +383,14 @@ Pricing_UOM = {
     "charset": "utf8mb4"
 }
 
+Pricing_Version = {
+    "id": {"type": "INT", "auto_increment": True, "primary_key": True},
+    "file_name": {"type": "VARCHAR(255)", "not_null": True},
+    "record_count": {"type": "INT", "not_null": True, "default": "0"},
+    "uploaded_by": {"type": "VARCHAR(100)"},
+    "uploaded_at": {"type": "DATETIME", "not_null": True, "default": "CURRENT_TIMESTAMP"},
+}
+
 logger_table = {
     "id": {
         "type": "INT",
