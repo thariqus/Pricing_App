@@ -48,7 +48,7 @@ def ping_store(base_url=HO_URL):
     latest = get_latest_version_id()
     next_version = (latest or 0) + 1   # fetch only versions the store doesn't have yet
 
-    url = f"{base_url}/api/prices/version/{next_version}"
+    url = f"{base_url}/api/prices/notify_stores"
     threading.Thread(target=_fetch_and_insert, args=(url, next_version), daemon=True).start()
 
     logger.info("Ping received, syncing from version %s in background", next_version)
