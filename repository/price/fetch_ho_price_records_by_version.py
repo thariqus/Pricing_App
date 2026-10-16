@@ -12,9 +12,6 @@ def get_prices_from_version(version_id):
             sql_query, params = get_prices_from_version_query(version_id)
             cursor.execute(sql_query, params)
             rows = cursor.fetchall()
-        print(f"Records from version {version_id}: {len(rows)}", flush=True)
-        for row in rows:
-            print(row, flush=True)
         return rows
     except Exception:
         logger.exception("Failed to get prices from version %s", version_id)
