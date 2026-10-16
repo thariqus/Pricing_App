@@ -9,6 +9,7 @@ from services.price.ho_to_store_csv import ho_to_store_csv
 from services.price.ho_to_store_integration import ho_to_store_integration
 from services.price.store_to_ho_data import store_to_ho_data
 from services.price.ho_to_store_singel_price import ho_to_store_single_price
+from services.price.notify_stores import notify_store
 from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
@@ -112,6 +113,10 @@ def settings():
 def site_details(siteid):
     items  = store_to_ho_data(siteid)
     return render_template("site_detail.html", items=items)
+
+@app.route("/api/items/notify_stores", methods=['GET'])
+def get_notification():
+    return notify_store()
 
 @app.route("/api/items/prices/version/<int:version_id>")
 def get_version(version_id):
