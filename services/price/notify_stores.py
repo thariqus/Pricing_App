@@ -11,7 +11,8 @@ IS_CENTRAL = os.getenv("IS_CENTRAL")
 
 def get_latest_version():
     latest = get_latest_version_id()
-    return latest
+    next_version = (latest or 0)
+    return next_version
 
 def latest_update(version):
     response = requests.get(
