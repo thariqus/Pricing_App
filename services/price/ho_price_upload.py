@@ -7,7 +7,8 @@ from data.csv_upload.price_csv_upload import upload_csv
 from repository.price.ho_create_price import ho_create_price
 from data.csv_upload.price_csv_check import check_price_csv_items
 import json
-from services.price.notify_stores import STORE_URLS, ping_store
+from concurrent.futures import ThreadPoolExecutor
+from configration.integration_ip import SITES
 
 from utils.log_error import logger
 import threading
@@ -29,6 +30,20 @@ def _is_blank_row(row):
         if key != "active"
     )
 
+def call_apis(api_name):
+    url = f"{api_name}/api/items/notify_stores"
+
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+
+        return response.json()
+
+    except Exception as e:
+        return {
+            "error": str(e),
+            "api": url
+        }
 
 def ho_price_upload():
 
@@ -72,18 +87,14 @@ def ho_price_upload():
                 "message": "Failed to create HO prices"
             }), 500
 
-        # ping all stores in the background with the new version
-        body, status = mysql
-        version_id = 1
-        if status == 201 and version_id:
-            for base_url in STORE_URLS:
-                threading.Thread(
-                    target=requests.get,
-                    args=(f"{base_url}/api/prices/notify_stores",),
-                    kwargs={"timeout": (3, 5)},
-                    daemon=True,
-                ).start()
-
+        results = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            result = executor.map(
+                call_apis,
+                SITES
+            )
+            results.extend(result)
+        
         return mysql
     else:
         return jsonify({

@@ -1084,8 +1084,9 @@ def deactivate_combination_query(data,combination):
     return sql_query, params
 
 
+import os
 
-PRICE_TABLE = "PRICING_TABLE"
+PRICE_TABLE = os.getenv("DB_P_NAME")
 
 
 def deactivate_out_of_window_query():
