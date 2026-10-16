@@ -150,6 +150,10 @@ def ho_create_price(records, file, invalid_data):
     con = None
     cursor = None
     current = None
+
+    if invalid_data is None:
+        invalid_data = []
+        
     try:
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
