@@ -12,7 +12,7 @@ IS_CENTRAL = os.getenv("IS_CENTRAL")
 def get_latest_version():
     print("latest version id get function")
     latest = get_latest_version_id()
-    next_version = (latest or 0)
+    next_version = int(latest or 0)
     return next_version
 
 def latest_update(version):

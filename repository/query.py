@@ -783,7 +783,7 @@ def get_prices_from_version_query(version_id):
     sql_query = """
         SELECT *
         FROM PRICING_TABLE
-        WHERE version_id >= %s
+        WHERE version_id > %s
         ORDER BY version_id, id
     """
     return sql_query, (version_id,)

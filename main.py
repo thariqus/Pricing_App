@@ -20,4 +20,3 @@ if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         threading.Thread(target=run_scheduler, kwargs={"interval": 10}, daemon=True).start()
     app.run(debug=True, port=PORT_NUMBER, host="0.0.0.0")
-    app.run(debug=True, port=PORT_NUMBER, host="0.0.0.0")
