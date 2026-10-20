@@ -462,6 +462,38 @@ def select_all_prices(page, limit):
     """
 
     return sql_query, count_query, (limit, offset)
+
+def select_log_message(page, limit):
+    offset = (page - 1) * limit
+    sql_query = """
+        SELECT *
+        FROM log_message
+        ORDER BY created_at DESC
+        LIMIT %s OFFSET %s
+    """
+
+    return sql_query, (limit, offset)
+
+def insert_log_message_query(custom_message,response_message,source,message_code,log_status):
+    sql_query = """
+        INSERT into log_message(
+        custom_message,
+        response_message,
+        source,
+        message_code,
+        log_status
+        )
+        values(
+        %s, %s, %s, %s, %s)
+    """
+    params = (
+        custom_message,
+        response_message,
+        source,
+        message_code,
+        log_status
+    )
+    return sql_query, params
  
 def insert_price_query(data):
     sql_query = """
