@@ -10,6 +10,7 @@ from services.price.ho_to_store_integration import ho_to_store_integration
 from services.price.store_to_ho_data import store_to_ho_data
 from services.price.ho_to_store_singel_price import ho_to_store_single_price
 from services.price.notify_stores import notify_store
+from services.price.get_logs import get_logs
 from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
@@ -36,6 +37,11 @@ app.json = CustomJSONProvider(app)
 @app.get("/")
 def index_call():
     return render_template("index.html")
+
+@app.get("/log_message")
+def log_message():
+    messages = get_logs()
+    return render_template("log_message.html", messages=messages)
 
 #functions
 @app.post("/api/items/create_singel_item_price")

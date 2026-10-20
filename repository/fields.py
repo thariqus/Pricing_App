@@ -416,6 +416,39 @@ logger_table = {
     },
 }
 
+log_message = {
+    "id": {
+        "type": "INT",
+        "auto_increment": True,
+        "primary_key": True
+    },
+    "custom_message": {
+        "type": "VARCHAR(500)",
+        "not_null": True
+    },
+    "response_message": {
+        "type" : "VARCHAR(500)",
+        "not_null": True
+    },
+    "source": {
+        "type" : "VARCHAR(20)",
+        "not_null": True
+    },
+    "message_code": {
+        "type" : "CHAR(5)",
+        "not_null": True
+    },
+    "log_status": {
+        "type" : "INT",
+        "not_null": True
+    },
+    "created_at": {
+        "type": "DATETIME",
+        "not_null": True,
+        "default": "CURRENT_TIMESTAMP"
+    },
+}
+
 #Discount Items Fields
 Discount_Table = {
     "id": {

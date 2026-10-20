@@ -9,6 +9,7 @@ PRICING_UOM = "pricing_uom"
 PRICING_VERSION = "pricing_version"
 
 LOGGER = "logger_table"
+LOG_MESSAGE = "log_message"
 
 #Discount Tables Names
 DISCOUNT_TABLE = "DISCOUNT_TABLE"

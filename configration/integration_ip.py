@@ -1,9 +1,13 @@
+import os
+
+STORE_1_URL = os.getenv("STORE_1_URL") 
+
 HEAD_OFFICE = {"code": "HO", "name": "Head Office"}
 SITE_2113 = {
         "code": "2113",
-        "ip" : "http://172.16.51.67:5000"
+        "ip" : STORE_1_URL
     }
 
 SITES = [
-    "http://172.16.51.67:5000"
+    STORE_1_URL
 ]
