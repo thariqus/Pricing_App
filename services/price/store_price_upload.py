@@ -25,15 +25,21 @@ def latest_update(version, skip):
 
 def replication_main():
     latest_version = get_latest_version()
+    print(f"Latest version: {latest_version}")
     skip = get_version_record_count(latest_version) if latest_version else 0
 
+    print(f"Records to skip: {skip}")
+
     records = latest_update(latest_version, skip).get("data", [])
+    print(f"Fetched {len(records)} records from HO for version {latest_version}")
     if not records:
+        print("No records to upload.")
         return None
 
     return store_create_price(records)
 
 
 def run_replication(app):
+    print("Starting replication process...")
     with app.app_context():
         replication_main()

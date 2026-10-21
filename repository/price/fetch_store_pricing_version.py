@@ -2,7 +2,14 @@ from repository.mysql_connection import get_db_connection
 from repository.query import get_latest_version_id_query
 from utils.log_error import logger
 
-def get_latest_version_id(db_name="PRICING_DATABASE"):
+import os
+from repository.mysql_connection import get_db_connection
+from repository.query import get_version_record_count_query
+
+PRICE_DB = os.getenv("DB_P_NAME")
+
+
+def get_latest_version_id(db_name=PRICE_DB):
     con = None
     try:
         con = get_db_connection(db_name)

@@ -1,4 +1,5 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
+import requests
 from services.price.create_single_price import create_single_item_price
 from services.price.fetch_all_price import fetch_all_items_prices
 from services.price.update_price import update_item_price
@@ -18,6 +19,8 @@ from flask.json.provider import DefaultJSONProvider
 
 from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
 from flask import jsonify
+from utils.auth import admin_required
+
 
 app = Flask(__name__)
 
@@ -39,6 +42,7 @@ def index_call():
     return render_template("index.html")
 
 @app.get("/log_message")
+# @admin_required
 def log_message():
     messages = get_logs()
     return render_template("log_message.html", messages=messages)
@@ -62,6 +66,7 @@ def main_filter_prices():
 
 @app.route('/api/items/get_priority_item_prices')
 def get_items_prices():
+    print("Received request for item price priority")  # Debugging statement
     return get_items_price_priority()
 
 @app.route('/api/items/create_single_item_discount')
@@ -124,13 +129,17 @@ def site_details(siteid):
 def get_notification():
     return notify_store()
 
+from flask import request, jsonify
+from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
+
 @app.route("/api/items/prices/version/<int:version_id>")
-def get_version(version_id):
-    rows = get_prices_from_version(version_id)
+def prices_from_version(version_id):
+    skip = request.args.get("skip", 0, type=int)
+    site_code = request.args.get("site_code", type=int)
+    rows = get_prices_from_version(version_id, site_code, skip)
     return jsonify({
-        "status": "received",
+        "status": "success",
         "version_id": version_id,
-        "pinged_at": datetime.now().isoformat(),
-        "message": "Prices will be fetched in 30 seconds",
-        "data" : rows
-    }), 202
+        "count": len(rows),
+        "data": rows,
+    }), 200
