@@ -107,7 +107,14 @@ Pricing_Table = {
                 "starting_date",
                 "ending_date"
             ]
-        }
+        },"idx_version_location": {
+    "type": "INDEX",
+    "columns": ["version_id", "location_code"]
+},
+"idx_combination": {
+    "type": "INDEX",
+    "columns": ["item_no", "uom", "active"]
+}
     },
     "engine": "InnoDB",
     "charset": "utf8mb4"
@@ -287,6 +294,87 @@ Pricing_Currency = {
                 "currency",
                 "is_active"
             ]
+        }
+    },
+    "engine": "InnoDB",
+    "charset": "utf8mb4"
+}
+
+# Pricing Setting fields
+Pricing_Setting = {
+    "id": {
+        "type": "INT",
+        "auto_increment": True,
+        "primary_key": True
+    },
+    "ho_url": {
+        "type": "VARCHAR(255)"
+    },
+    "db_port": {
+        "type": "INT"
+    },
+    "db_user": {
+        "type": "VARCHAR(100)"
+    },
+    "db_password": {
+        "type": "VARCHAR(255)"
+    },
+    "is_central": {
+        "type": "BOOLEAN",
+        "default": 0
+    },
+    "created": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP"
+    },
+    "updated": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP",
+        "on_update": "CURRENT_TIMESTAMP"
+    },
+    "engine": "InnoDB",
+    "charset": "utf8mb4"
+}
+
+# Pricing Setting Sites fields
+Pricing_Setting_Site = {
+    "id": {
+        "type": "INT",
+        "auto_increment": True,
+        "primary_key": True
+    },
+    "setting_id": {
+        "type": "INT",
+        "not_null": True
+    },
+    "sl_no": {
+        "type": "INT"
+    },
+    "site_location": {
+        "type": "VARCHAR(255)",
+        "not_null": True
+    },
+    "site_ip": {
+        "type": "VARCHAR(45)",
+        "not_null": True
+    },
+    "created": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP"
+    },
+    "updated": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP",
+        "on_update": "CURRENT_TIMESTAMP"
+    },
+    "indexes": {
+        "idx_setting_id": {
+            "type": "INDEX",
+            "columns": ["setting_id"]
+        },
+        "uniq_site_ip": {
+            "type": "UNIQUE",
+            "columns": ["setting_id", "site_ip"]
         }
     },
     "engine": "InnoDB",

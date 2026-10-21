@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 from repository.mysql_connection import get_db_connection
 from repository.query import create_pricing_database_query, create_table_query, create_version_table_query
+
+
 from repository.tables import (
     PRICING_TABLE, 
     PRICE_LOCATION, 
@@ -12,7 +14,9 @@ from repository.tables import (
     PRICING_UOM,
     PRICING_VERSION,
     LOGGER,
-    LOG_MESSAGE
+    LOG_MESSAGE,
+    PRICING_SETTING,
+    PRICING_SETTING_SITE
     )
 from repository.fields import (
     Pricing_Table, 
@@ -24,8 +28,11 @@ from repository.fields import (
     Pricing_UOM,
     Pricing_Version,
     logger_table,
-    log_message
+    log_message,
+    Pricing_Setting,
+    Pricing_Setting_Site
     )
+
 from utils.log_error import logger
  
 load_dotenv()
@@ -207,6 +214,23 @@ def create_log_message():
             con.close()
 
 
+def create_pricing_setting_tables():
+    con = None
+    try:
+        con = get_db_connection(DB_NAME)
+        with con.cursor() as cursor:
+            cursor.execute(create_table_query(PRICING_SETTING, Pricing_Setting))
+            cursor.execute(create_table_query(PRICING_SETTING_SITE, Pricing_Setting_Site))
+        con.commit()
+        logger.info("Tables '%s' and '%s' successfully created", PRICING_SETTING, PRICING_SETTING_SITE)
+    except Exception:
+        logger.exception("Failed to create tables '%s' and '%s'", PRICING_SETTING, PRICING_SETTING_SITE)
+        raise
+    finally:
+        if con:
+            con.close()
+
+
 if __name__ == "__main__":
     create_database()
     create_pricing_table()
@@ -219,3 +243,4 @@ if __name__ == "__main__":
     create_logger()
     create_pricing_version()
     create_log_message()
+    create_pricing_setting_tables()

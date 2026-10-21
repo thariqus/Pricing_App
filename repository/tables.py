@@ -7,6 +7,8 @@ PRICING_PRIORITY = "pricing_priority"
 PRICING_TRANSPORTATION_ZONE = "pricing_transportation_zone"
 PRICING_UOM = "pricing_uom"
 PRICING_VERSION = "pricing_version"
+PRICING_SETTING = "pricing_setting"
+PRICING_SETTING_SITE = "pricing_setting_site"
 
 LOGGER = "logger_table"
 LOG_MESSAGE = "log_message"

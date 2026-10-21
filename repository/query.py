@@ -261,6 +261,14 @@ def create_version_table_query(table_name, version_table_definition):
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """     
 
+def get_version_record_count_query(version_id):
+    sql_query = """
+        SELECT COUNT(*) AS cnt
+        FROM PRICING_TABLE
+        WHERE version_id = %s
+    """
+    return sql_query, (version_id,)
+
 #Sub Master Table Creation Query for Discount
 def create_discount_table_query(table_name):
     return f"""
@@ -811,15 +819,81 @@ def activate_price_by_id_query(price_id):
     """, (price_id,)
 
 
-def get_prices_from_version_query(version_id):
+def get_prices_from_version_query(version_id, site_code, skip=0):
     sql_query = """
         SELECT *
         FROM PRICING_TABLE
-        WHERE version_id > %s
+        WHERE version_id >= %s
+          AND (location_code = %s OR location_code IS NULL)
         ORDER BY version_id, id
+        LIMIT 18446744073709551615 OFFSET %s
     """
-    return sql_query, (version_id,)
+    return sql_query, (version_id, site_code, skip)
 
+
+STORE_PRICE_COLUMNS = [
+    "condition_type", "item_no", "customer", "customer_grp", "customer_hierarchy",
+    "distribution_channel_code", "location_code", "priority", "currency",
+    "sales_price", "uom", "minimum_quantity", "starting_date", "ending_date",
+    "lower_limit", "upper_limit", "transportation_zone_code", "map", "change_type",
+    "updated_from_sap", "sales_division_code", "offer_article", "price_with_tax",
+    "tax_percent", "version_id",
+]
+
+
+def get_max_price_id_query():
+    return "SELECT COALESCE(MAX(id), 0) AS max_id FROM PRICING_TABLE", ()
+
+
+def store_insert_price_query():
+    columns = ", ".join(STORE_PRICE_COLUMNS)
+    placeholders = ", ".join(["%s"] * len(STORE_PRICE_COLUMNS))
+    return f"INSERT INTO PRICING_TABLE ({columns}, active) VALUES ({placeholders}, 0)"
+
+
+def store_activate_started_query(after_id):
+    sql_query = """
+        UPDATE PRICING_TABLE
+        SET active = 1
+        WHERE id > %s
+          AND starting_date <= NOW()
+    """
+    return sql_query, (after_id,)
+
+
+def store_deactivate_old_query(after_id):
+    sql_query = """
+        UPDATE PRICING_TABLE old_p
+        JOIN PRICING_TABLE new_p
+          ON  new_p.item_no                   =   old_p.item_no
+          AND new_p.uom                       =   old_p.uom
+          AND new_p.condition_type            <=> old_p.condition_type
+          AND new_p.priority                  <=> old_p.priority
+          AND new_p.customer                  <=> old_p.customer
+          AND new_p.customer_grp              <=> old_p.customer_grp
+          AND new_p.customer_hierarchy        <=> old_p.customer_hierarchy
+          AND new_p.distribution_channel_code <=> old_p.distribution_channel_code
+          AND new_p.location_code             <=> old_p.location_code
+          AND new_p.transportation_zone_code  <=> old_p.transportation_zone_code
+          AND new_p.id > old_p.id
+        SET old_p.active = 0
+        WHERE new_p.id > %s
+          AND new_p.active = 1
+          AND old_p.active = 1
+    """
+    return sql_query, (after_id,)
+
+
+def store_upsert_versions_query(after_id):
+    sql_query = """
+        INSERT INTO pricing_version (id, file_name, record_count)
+        SELECT version_id, 'replication', COUNT(*)
+        FROM PRICING_TABLE
+        WHERE id > %s
+        GROUP BY version_id
+        ON DUPLICATE KEY UPDATE record_count = record_count + VALUES(record_count)
+    """
+    return sql_query, (after_id,)
 #ALTER TABLE PRICING_TABLE ADD INDEX IF NOT EXISTS idx_version_id (version_id); 
 
 
