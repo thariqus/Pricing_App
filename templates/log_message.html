@@ -82,15 +82,19 @@
                         <th>Custom Message</th>
                         <th>Response Message</th>
                         <th>Source</th>
+                        <th>Type</th>
+                        <th>Site</th>
                         <th>Message Code</th>
                         <th>Log Status</th>
+                        <th>Info</th>
+                        <th>Error</th>
                         <th>Created At</th>
                     </tr>
                 </thead>
 
                 <tbody>
                     {% for log in messages %}
-                    <tr>
+                    <tr class="{{ 'row-error' if log.error }}">
                         <td class="id-cell">{{ log.id }}</td>
 
                         <td class="message-cell">{{ log.custom_message }}</td>
@@ -98,6 +102,10 @@
                         <td class="message-cell">{{ log.response_message }}</td>
 
                         <td>{{ log.source }}</td>
+
+                        <td>{{ log.type or '' }}</td>
+
+                        <td>{{ log.site_details or '' }}</td>
 
                         <td>
                             <span class="code-badge">{{ log.message_code }}</span>
@@ -107,11 +115,27 @@
                             <span class="status-badge">{{ log.log_status }}</span>
                         </td>
 
+                        <td class="flag-cell">
+                            {% if log.info %}
+                            <span class="flag-badge info"><i class="fas fa-circle-info"></i> Yes</span>
+                            {% else %}
+                            <span class="flag-badge off">No</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="flag-cell">
+                            {% if log.error %}
+                            <span class="flag-badge error"><i class="fas fa-circle-xmark"></i> Yes</span>
+                            {% else %}
+                            <span class="flag-badge off">No</span>
+                            {% endif %}
+                        </td>
+
                         <td class="date-cell">{{ log.created_at }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="empty-message">
+                        <td colspan="11" class="empty-message">
                             No log messages found.
                         </td>
                     </tr>

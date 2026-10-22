@@ -269,6 +269,29 @@ def get_version_record_count_query(version_id):
     """
     return sql_query, (version_id,)
 
+from repository.tables import LOG_MESSAGE
+
+
+def insert_log_message_query(entry):
+    sql_query = f"""
+        INSERT INTO {LOG_MESSAGE}
+            (custom_message, response_message, source, `type`, site_details,
+             message_code, log_status, info, error)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    params = (
+        entry["custom_message"],
+        entry["response_message"],
+        entry["source"],
+        entry["type"],
+        entry["site_details"],
+        entry["message_code"],
+        entry["log_status"],
+        entry["info"],
+        entry["error"],
+    )
+    return sql_query, params
+
 #Sub Master Table Creation Query for Discount
 def create_discount_table_query(table_name):
     return f"""
@@ -482,26 +505,6 @@ def select_log_message(page, limit):
 
     return sql_query, (limit, offset)
 
-def insert_log_message_query(custom_message,response_message,source,message_code,log_status):
-    sql_query = """
-        INSERT into log_message(
-        custom_message,
-        response_message,
-        source,
-        message_code,
-        log_status
-        )
-        values(
-        %s, %s, %s, %s, %s)
-    """
-    params = (
-        custom_message,
-        response_message,
-        source,
-        message_code,
-        log_status
-    )
-    return sql_query, params
  
 def insert_price_query(data):
     sql_query = """

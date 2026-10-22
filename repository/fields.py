@@ -504,6 +504,7 @@ logger_table = {
     },
 }
 
+
 log_message = {
     "id": {
         "type": "INT",
@@ -522,6 +523,12 @@ log_message = {
         "type" : "VARCHAR(20)",
         "not_null": True
     },
+    "type": {
+        "type": "VARCHAR(20)"
+    },
+    "site_details": {
+        "type": "VARCHAR(100)"
+    },
     "message_code": {
         "type" : "CHAR(5)",
         "not_null": True
@@ -530,6 +537,16 @@ log_message = {
         "type" : "INT",
         "not_null": True
     },
+    "info": {
+        "type": "BOOLEAN",
+        "not_null": True,
+        "default": 0
+    },
+    "error": {
+        "type": "BOOLEAN",
+        "not_null": True,
+        "default": 0
+    },
     "created_at": {
         "type": "DATETIME",
         "not_null": True,
@@ -537,7 +554,7 @@ log_message = {
     },
 }
 
-#Discount Items Fields
+
 Discount_Table = {
     "id": {
         "type": "INT",
