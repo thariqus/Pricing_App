@@ -52,7 +52,6 @@ def _key_val(data, key):
         return None
     return value
 
-
 def _price_query(key_columns):
     where = "".join(f" AND {col} = %s" for col in key_columns)
     return (
@@ -62,12 +61,13 @@ def _price_query(key_columns):
         "   AND item_no = %s"
         "   AND uom = %s"
         "   AND COALESCE(minimum_quantity, 0) <= %s"
-        "   AND NOW() BETWEEN starting_date AND ending_date"
+        "   AND ending_date >= NOW()"
         f"{where}"
-        " ORDER BY minimum_quantity DESC, starting_date DESC"
+        " ORDER BY (starting_date <= NOW()) DESC,"
+        "          minimum_quantity DESC,"
+        "          starting_date DESC"
         " LIMIT 1"
     )
-
 
 def _respond(body, status, context, message_code, is_error, response_message=None):
     """Write the log row, then return the JSON response."""
