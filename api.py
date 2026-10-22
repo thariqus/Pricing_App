@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
 import requests
-from services.price.create_single_price import create_single_item_price
+from services.price.create_single_price import create_single_price
 from services.price.fetch_all_price import fetch_all_items_prices
 from services.price.update_price import update_item_price
 from services.price.ho_price_upload import ho_price_upload
@@ -50,7 +50,7 @@ def log_message():
 #functions
 @app.post("/api/items/create_singel_item_price")
 def add_single_price():
-    return create_single_item_price()
+    return create_single_price()
 
 @app.route('/api/items/fetch_all_item_prices', methods=['POST'])
 def main_function():
