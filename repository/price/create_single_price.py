@@ -18,14 +18,18 @@ def create_single_price(data):
                 "message": "Request data is empty"
             }), 400
         con = get_db_connection(PRICE_DB)
+
+
         cursor = con.cursor()
-        sql_query, params = insert_price_query(data)
+        sql_query, params, err = insert_price_query(data)
         cursor.execute(
             sql_query,
             params
         )
         inserted_id = cursor.lastrowid
         con.commit()
+
+        
         logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Single Item Price Data")
         cursor.execute(logger_sql_query, logger_params)
         con.commit()

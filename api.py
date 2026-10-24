@@ -64,7 +64,7 @@ def main_update_price():
 def main_filter_prices():
     return filter_items_prices()
 
-@app.route('/api/items/get_priority_item_prices')
+@app.route('/api/get_discounted_item_price')
 def get_items_prices():
     print("Received request for item price priority")  # Debugging statement
     return get_items_price_priority()
