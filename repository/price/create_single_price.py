@@ -55,6 +55,8 @@ def create_single_price(data):
                 "Create Single Price", BAD_REQUEST, context, f"PP{BAD_REQUEST}", True
             )
         con = get_db_connection(PRICE_DB)
+
+
         cursor = con.cursor()
 
         cursor.execute(get_latest_version_id_query())

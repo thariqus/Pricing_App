@@ -28,8 +28,6 @@ def check_site(site):
 def ho_to_store_integration():
     SITES = []
     SITES.append(check_site(SITE_2113))
-    SITES.append(check_site(SITE_2113))
-    SITES.append(check_site(SITE_2113))
     return jsonify({
         "status": "success",
         "sites": SITES,
