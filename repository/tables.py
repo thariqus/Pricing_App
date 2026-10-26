@@ -10,7 +10,6 @@ PRICING_VERSION = "pricing_version"
 PRICING_SETTING = "pricing_setting"
 PRICING_SETTING_SITE = "pricing_setting_site"
 
-LOGGER = "logger_table"
 LOG_MESSAGE = "log_message"
 
 REPLICATION_VERSION = "replication_version"

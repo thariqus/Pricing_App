@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from repository.mysql_connection import get_db_connection
-from repository.query import create_logger, select_log_message
+from repository.query import select_log_message
 import os
 from utils.log_error import logger
 import pymysql
@@ -31,9 +31,6 @@ def get_log_messages():
         sel_query, params = select_log_message(page, limit)
         cursor.execute(sel_query, params)
         log_messages = cursor.fetchall()
-        logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetch all log messages")
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
         return log_messages
     except ConnectionError as e:
         logger.error(f"Database connection error: {e}")

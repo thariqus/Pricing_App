@@ -479,31 +479,6 @@ Pricing_Version = {
     "uploaded_at": {"type": "DATETIME", "not_null": True, "default": "CURRENT_TIMESTAMP"},
 }
 
-logger_table = {
-    "id": {
-        "type": "INT",
-        "auto_increment": True,
-        "primary_key": True
-    },
-    "ipaddress": {
-        "type": "VARCHAR(50)",
-        "not_null": True
-    },
-    "log_details": {
-        "type" : "VARCHAR(100)",
-        "not_null": True
-    },
-    "log_files": {
-        "type" : "VARCHAR(300)",
-        "not_null": True
-    },
-    "created_at": {
-        "type": "DATETIME",
-        "not_null": True,
-        "default": "CURRENT_TIMESTAMP"
-    },
-}
-
 replication_version = {
     "id": {
         "type": "INT",
@@ -547,6 +522,9 @@ log_message = {
     },
     "type": {
         "type": "VARCHAR(20)"
+    },
+    "ipaddress" : {
+        "type": "VARCHAR(100)"
     },
     "site_details": {
         "type": "VARCHAR(100)"

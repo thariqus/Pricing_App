@@ -13,7 +13,6 @@ from repository.tables import (
     PRICING_TRANSPORTATION_ZONE, 
     PRICING_UOM,
     PRICING_VERSION,
-    LOGGER,
     LOG_MESSAGE,
     PRICING_SETTING,
     PRICING_SETTING_SITE,
@@ -28,7 +27,6 @@ from repository.fields import (
     Pricing_Transportation_Zone, 
     Pricing_UOM,
     Pricing_Version,
-    logger_table,
     log_message,
     Pricing_Setting,
     Pricing_Setting_Site,
@@ -169,21 +167,6 @@ def create_pricing_uom():
         if con:
             con.close()
 
-def create_logger():
-    con = None
-    try:
-        con = get_db_connection(DB_NAME)
-        with con.cursor() as cursor:
-            cursor.execute(create_table_query(LOGGER,logger_table))
-        con.commit()
-        logger.info("Table '%s' successfully created",LOGGER)
-    except Exception:
-        logger.exception("Failed to create table '%s'",LOGGER)
-        raise
-    finally:
-        if con:
-            con.close()
-
 
 def create_pricing_version():
     con = None
@@ -257,7 +240,6 @@ if __name__ == "__main__":
     create_pricing_currency()
     create_pricing_transportation_zone()
     create_pricing_uom()
-    create_logger()
     create_pricing_version()
     create_log_message()
     create_pricing_setting_tables()

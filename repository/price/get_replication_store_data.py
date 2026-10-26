@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from repository.mysql_connection import get_db_connection
-from repository.query import create_logger, get_data_replication
+from repository.query import get_data_replication
 from utils.log_error import logger
 import pymysql
 import os
@@ -18,10 +18,7 @@ def get_replication_store_data(version_id):
         sel_query, params = get_data_replication(version_id, "2113") #get the site code automatically
         cursor.execute(sel_query, params)
         replication_data = cursor.fetchall()
-        
-        logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching All Replication Data")
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
+
         return {
             "status": "success",
             "data" : replication_data

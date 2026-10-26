@@ -1144,24 +1144,6 @@ def get_item_discount_details():
     """
     return sql_query
 
-def create_logger(ipaddress, log, file_path=""):
-    sql_query = """
-        insert into logger_table(
-            ipaddress,
-            log_details,
-            log_files
-        )
-        values(
-        %s,%s,%s)
-    """
-    params = (
-        ipaddress, 
-        log,
-        file_path
-    )
-    return sql_query, params
-
-
 # remove _first_value depenedency
 def _first_value(data, keys):
     for key in keys:

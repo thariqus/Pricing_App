@@ -2,7 +2,7 @@ from flask import jsonify, request
 from repository.mysql_connection import get_db_connection
 import os
 from utils.log_error import logger
-from repository.query import create_logger, get_ho_version_count_data
+from repository.query import get_ho_version_count_data
 import pymysql
 
 PRICE_DB = os.getenv("DB_P_NAME")
@@ -20,10 +20,6 @@ def get_ho_version_count(version_id, site_code):
         cursor.execute(rep_qry, rep_params)
         row = cursor.fetchall()
 
-
-        logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching All HO version Data")
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
         return row
     except ConnectionError as e:
         logger.error(f"Database connection error: {e}")

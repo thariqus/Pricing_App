@@ -2,12 +2,15 @@ from flask import request, jsonify
 import pymysql
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
-from repository.query import insert_price_query, create_logger, get_latest_version_id_query, insert_version_query  
+from repository.query import insert_price_query, get_latest_version_id_query, insert_version_query  
 from repository.price.create_log import write_log
 from data.error_codes import (
-    INITIAL_FUNCTION,
+    INITIATING_FUNCTION,
     BAD_REQUEST,
-    SUCCESS
+    SUCCESS,
+    SERVICE_UNAVAILABLE,
+    INTERNAL_SERVER_ERROR,
+    NOT_IMPLEMENTED
 )
 import os
 
@@ -15,7 +18,7 @@ LOG_SOURCE = "repository"
 
 PRICE_DB = os.getenv("DB_P_NAME")
 
-def _respond(body, log_type, status, context, message_code, is_error, response_message=None):
+def _respond(body, ipaddress, log_type, status, context, message_code, is_error, response_message=None):
     """Write the log row, then return the JSON response."""
     write_log(
         custom_message=context,
@@ -26,6 +29,7 @@ def _respond(body, log_type, status, context, message_code, is_error, response_m
         log_status=status,
         info=not is_error,
         error=is_error,
+        ipaddress = ipaddress
     )
     return jsonify(body), status
 
@@ -33,10 +37,11 @@ def _respond(body, log_type, status, context, message_code, is_error, response_m
 def create_single_price(data):
     _respond(
         {},
+        request.remote_addr,
         "Create Single Price",
-        INITIAL_FUNCTION, 
+        INITIATING_FUNCTION, 
         "Entered in single item price function",
-        f"PP{INITIAL_FUNCTION}",
+        f"PP{INITIATING_FUNCTION}",
         False
     )
     con = None
@@ -46,6 +51,7 @@ def create_single_price(data):
         if not data:
             return _respond(
                 {"status": "error", "message": "Request data is empty or invalid"},
+                request.remote_addr,
                 "Create Single Price", BAD_REQUEST, context, f"PP{BAD_REQUEST}", True
             )
         con = get_db_connection(PRICE_DB)
@@ -65,9 +71,6 @@ def create_single_price(data):
         )
         inserted_id = cursor.lastrowid
         con.commit()
-        logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Single Item Price Data")
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
 
         if inserted_id:
             version_sql, version_params = insert_version_query({
@@ -78,8 +81,19 @@ def create_single_price(data):
             cursor.execute(version_sql, version_params)
             con.commit()
 
+            _respond(
+                {},
+                request.remote_addr,
+                "Create Single Price",
+                INITIATING_FUNCTION, 
+                "Single Price Inserted",
+                f"PP{INITIATING_FUNCTION}",
+                False
+            )
+
         _respond(
             {},
+            request.remote_addr,
             "Create Single Price",
             SUCCESS,
             "Completed single item price",
@@ -89,6 +103,7 @@ def create_single_price(data):
 
         return _respond(
             {"data": inserted_id },
+            request.remote_addr,
             "Create Single Price", SUCCESS, context, f"PP{SUCCESS}", False,
             response_message = "Price created successfully"
         )
@@ -101,7 +116,8 @@ def create_single_price(data):
                 "message": "Unable to connect to database",
                 "error": str(e)
             },
-            503, context, "PC503", True, response_message=str(e)
+            request.remote_addr,
+            SERVICE_UNAVAILABLE, context, f"PC{SERVICE_UNAVAILABLE}", True, response_message=str(e)
         )
 
     except pymysql.MySQLError as e:
@@ -114,7 +130,8 @@ def create_single_price(data):
                 "message": "Database error",
                 "error": str(e)
             },
-            500, context, "PC500", True, response_message=str(e)
+            request.remote_addr,
+            INTERNAL_SERVER_ERROR, context, f"PC{INTERNAL_SERVER_ERROR}", True, response_message=str(e)
         )
 
     except Exception as e:
@@ -127,7 +144,8 @@ def create_single_price(data):
                 "message": "Something went wrong",
                 "error": str(e)
             },
-            500, context, "PC501", True, response_message=str(e)
+            request.remote_addr,
+            NOT_IMPLEMENTED, context, f"PC{NOT_IMPLEMENTED}", True, response_message=str(e)
         )
 
     finally:

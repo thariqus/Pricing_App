@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from repository.mysql_connection import get_db_connection
-from repository.query import create_logger, get_replicated_version
+from repository.query import get_replicated_version
 from utils.log_error import logger
 import pymysql
 import os
@@ -22,10 +22,6 @@ def get_replication_version_data(site_code):
         row = cursor.fetchone()
         version = row[0] if row else 0
 
-
-        logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching All Price Data")
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
         return {
             "status": "success",
             "replicated_version" : version
