@@ -4,7 +4,7 @@ from repository.query import insert_log_message_query
 from utils.log_error import logger
 
 
-def write_log(custom_message, response_message, source, log_type,
+def write_log(custom_message, ipaddress, response_message, source, log_type,
               message_code, log_status, info=False, error=False, site_details=None):
     """Save one row to log_message. Never raises."""
     con = None
@@ -19,6 +19,7 @@ def write_log(custom_message, response_message, source, log_type,
             "log_status":       int(log_status or 0),
             "info":             1 if info else 0,
             "error":            1 if error else 0,
+            "ipaddress":        str(ipaddress or ""),
         }
 
         con = get_db_connection(os.getenv("DB_P_NAME"))
