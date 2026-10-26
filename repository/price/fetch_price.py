@@ -2,7 +2,7 @@ from flask import request, jsonify
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
 import os
-from repository.query import select_all_prices, create_logger, get_item_price_details
+from repository.query import select_all_prices, get_item_price_details
 import pymysql
 
 PRICE_DB = os.getenv("DB_P_NAME")
@@ -35,9 +35,6 @@ def fetch_all_prices():
         price_data = cursor.fetchall()
         cursor.execute(count_query)
         total_records = cursor.fetchone()["total"]
-        logger_sql_query, logger_params = create_logger(request.remote_addr,"Fetching All Price Data")
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
         return jsonify({
             "status": "success",
             "page": page,

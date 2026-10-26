@@ -8,7 +8,6 @@ from utils.file_path import upload_price_directory
 from repository.query import (
     insert_price_query,
     deactivate_combination_query,
-    create_logger,
     get_latest_version_id_query,   # version
     insert_version_query,          # version
 )
@@ -217,11 +216,6 @@ def ho_create_price(records, file, invalid_data):
         if file:
             file_path = os.path.join(upload_price_directory, file.filename)
             file.save(file_path)
-
-            logger_sql_query, logger_params = create_logger(
-                request.remote_addr, "Insert Item Price CSV Data", file_path
-            )
-            cursor.execute(logger_sql_query, logger_params)
 
         con.commit()   # deactivations + inserts land together
 

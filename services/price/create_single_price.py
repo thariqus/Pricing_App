@@ -4,7 +4,26 @@ from utils.date_converter import convert_datetime
 from repository.price.create_single_price import create_single_price
 from utils.log_error import logger
 import os
+from concurrent.futures import ThreadPoolExecutor
+from configration.integration_ip import SITES
+
 VALIDATION_API = os.getenv("VALIDATION_API")
+STORE_URL = os.getenv("STORE_1_URL")
+
+def call_apis(api_name):
+    url = f"{api_name}/api/items/notify_stores"
+
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+
+        return response.json()
+
+    except Exception as e:
+        return {
+            "error": str(e),
+            "api": url
+        }
 
 def create_single_item_price():
     data = request.get_json()
@@ -45,8 +64,15 @@ def create_single_item_price():
                 "status": "error",
                 "message": "Failed to create HO prices"
             }), 500
-        requests.post(
-                "http://172.16.51.67:5000/api/items/store_singel_price",
-                json=formatted_data
-        )
+        results = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            result = executor.map(
+                call_apis,
+                SITES
+            )
+            results.extend(result)
+        # requests.post(
+        #         f"{STORE_URL}/api/items/store_singel_price",
+        #         json=formatted_data
+        # )
         return mysql

@@ -2,7 +2,7 @@ from flask import request, jsonify
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
 import os
-from repository.query import check_price_exists, update_price, create_logger
+from repository.query import check_price_exists, update_price
 import pymysql
 
 PRICE_DB = os.getenv("DB_P_NAME")
@@ -54,14 +54,6 @@ def update_price_data(data):
             cursor.execute(
                 sql_query,
                 params
-            )
-            logger_sql_query, logger_params = create_logger(
-                request.remote_addr,
-                f"Item price number {price_id} Update"
-            )
-            cursor.execute(
-                logger_sql_query,
-                logger_params
             )
             updated_records.append({
                 "id": price_id

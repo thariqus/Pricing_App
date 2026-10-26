@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from repository.mysql_connection import get_db_connection
-from repository.query import create_logger, insert_log_message_query
+from repository.query import insert_log_message_query
 from utils.log_error import logger
 import pymysql
 import os
@@ -20,9 +20,6 @@ def insert_log_messages(c_message, r_message, source, m_code, l_status):
             params
         )
         inserted_id = cursor.lastrowid
-        con.commit()
-        logger_sql_query, logger_params = create_logger(request.remote_addr,"Insert Log Error Data")
-        cursor.execute(logger_sql_query, logger_params)
         con.commit()
         return {
             "status": "success",

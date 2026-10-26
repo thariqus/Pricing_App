@@ -29,10 +29,8 @@ def check_pending_activation():
                 sql_query, params = get_active_same_combination_query(row, combination)
                 cursor.execute(sql_query, params)
                 active_rows = cursor.fetchall()
-                print(f"Active with same combination: {len(active_rows)}", flush=True)
 
                 expired = [a for a in active_rows if a["ending_date"] < now]
-                print(f"Expired active with same combination: {len(expired)}", flush=True)
 
                 # still a valid active price -> leave the new one inactive
                 if len(expired) < len(active_rows):
@@ -41,11 +39,9 @@ def check_pending_activation():
                 if expired:
                     sql_query, params = deactivate_price_by_ids_query([a["id"] for a in expired])
                     cursor.execute(sql_query, params)
-                    print(f"Deactivated: {[a['id'] for a in expired]}", flush=True)
 
                 sql_query, params = activate_price_by_id_query(row["id"])
                 cursor.execute(sql_query, params)
-                print(f"Activated: {row['id']}", flush=True)
 
         con.commit()
         return rows

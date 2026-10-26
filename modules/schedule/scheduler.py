@@ -5,7 +5,6 @@ from datetime import datetime
 from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
 from repository.mysql_connection import get_db_connection
 from repository.query import (
-    create_logger,
     deactivate_out_of_window_query,
     future_boundaries_query,
     price_fingerprint_query,
@@ -42,12 +41,6 @@ def refresh_price_status(now=None):
 
             cursor.execute(reactivate_valid_combination_query(combination), (now, now))
             reactivated = cursor.rowcount
-
-            if deactivated or reactivated:
-                cursor.execute(*create_logger(
-                    "", f"{deactivated} expired item(s) deactivated, "
-                        f"{reactivated} flag(s) updated for valid items."
-                ))
 
             con.commit()
         except Exception:

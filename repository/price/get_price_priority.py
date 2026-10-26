@@ -1,5 +1,4 @@
 from flask import jsonify, request
-from repository.query import create_logger
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
 from repository.price.create_log import write_log
@@ -140,12 +139,6 @@ def get_price_priority(data):
                 result = row
                 matched_priority = priority
                 break
-
-        logger_sql_query, logger_params = create_logger(
-            request.remote_addr, "Fetching item pricing priority"
-        )
-        cursor.execute(logger_sql_query, logger_params)
-        con.commit()
 
         if not result:
             return _respond(
