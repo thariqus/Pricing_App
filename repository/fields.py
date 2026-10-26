@@ -504,6 +504,28 @@ logger_table = {
     },
 }
 
+replication_version = {
+    "id": {
+        "type": "INT",
+        "auto_increment": True,
+        "primary_key": True
+    },
+    "version_id": {
+        "type": "INT"
+    },
+    "site_code": {
+        "type": "INT"
+    },
+    "created": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP"
+    },
+    "updated": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP",
+        "on_update": "CURRENT_TIMESTAMP"
+    },
+}
 
 log_message = {
     "id": {

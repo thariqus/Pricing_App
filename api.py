@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
 import requests
-from services.price.create_single_price import create_single_price
+from services.price.create_single_price import create_single_item_price
 from services.price.fetch_all_price import fetch_all_items_prices
 from services.price.update_price import update_item_price
 from services.price.ho_price_upload import ho_price_upload
@@ -12,6 +12,7 @@ from services.price.store_to_ho_data import store_to_ho_data
 from services.price.ho_to_store_singel_price import ho_to_store_single_price
 from services.price.notify_stores import notify_store
 from services.price.get_logs import get_logs
+from services.price.get_replication import get_replication
 from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
@@ -50,7 +51,7 @@ def log_message():
 #functions
 @app.post("/api/items/create_singel_item_price")
 def add_single_price():
-    return create_single_price()
+    return create_single_item_price()
 
 @app.route('/api/items/fetch_all_item_prices', methods=['POST'])
 def main_function():
@@ -66,7 +67,6 @@ def main_filter_prices():
 
 @app.route('/api/items/get_priority_item_prices')
 def get_items_prices():
-    print("Received request for item price priority")  # Debugging statement
     return get_items_price_priority()
 
 @app.route('/api/items/create_single_item_discount')
@@ -114,6 +114,10 @@ def integration():
 @app.route("/api/items/integration_check")
 def integration_check():
     return ho_to_store_integration()
+
+@app.route("/api/items/get_repliaction_data/<int:version_id>")
+def get_replication_data(version_id):
+    return get_replication(version_id)
 
 @app.get("/settings")
 def settings():

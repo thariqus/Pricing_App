@@ -1266,3 +1266,42 @@ def price_fingerprint_query():
                COUNT(*) AS total
         FROM `{PRICE_TABLE}`
     """
+
+def get_replicated_version(site_code):
+    sql_query = """
+        SELECT version_id
+        FROM replication_version
+        WHERE site_code = %s
+        LIMIT 1
+    """
+    return sql_query, (site_code,)
+
+
+def get_ho_version_count_data(version_id, site_code):
+    sql_qry = """
+        SELECT
+            COUNT(*) AS version_count
+        FROM PRICING_TABLE 
+        WHERE version_id = %s
+          OR location_code = %s
+          AND location_code IS NULL
+        ORDER BY version_id
+    """
+    params = (version_id, site_code)
+
+    return sql_qry, params
+
+def get_data_replication(version_id, site_code):
+    sql_qry = """
+        SELECT
+            pt.version_id,
+            COUNT(*) OVER (PARTITION BY pt.version_id) AS version_count
+        FROM PRICING_TABLE pt
+        WHERE pt.version_id > %s
+          AND pt.location_code = %s
+          OR pt.location_code IS NULL
+        ORDER BY pt.version_id
+    """
+    params = (version_id, site_code)
+
+    return sql_qry, params

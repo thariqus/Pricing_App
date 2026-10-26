@@ -13,6 +13,8 @@ PRICING_SETTING_SITE = "pricing_setting_site"
 LOGGER = "logger_table"
 LOG_MESSAGE = "log_message"
 
+REPLICATION_VERSION = "replication_version"
+
 #Discount Tables Names
 DISCOUNT_TABLE = "DISCOUNT_TABLE"
 DISCOUNT_LOCATION = "discount_location"
