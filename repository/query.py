@@ -276,8 +276,8 @@ def insert_log_message_query(entry):
     sql_query = f"""
         INSERT INTO {LOG_MESSAGE}
             (custom_message, response_message, source, `type`, site_details,
-             message_code, log_status, info, error)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+             message_code, log_status, info, error, ipaddress)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     params = (
         entry["custom_message"],
@@ -289,6 +289,7 @@ def insert_log_message_query(entry):
         entry["log_status"],
         entry["info"],
         entry["error"],
+        entry["ipaddress"],
     )
     return sql_query, params
 

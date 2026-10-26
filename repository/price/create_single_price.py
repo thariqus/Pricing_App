@@ -87,9 +87,9 @@ def create_single_price(data):
                 {},
                 request.remote_addr,
                 "Create Single Price",
-                INITIATING_FUNCTION, 
+                SUCCESS, 
                 "Single Price Inserted",
-                f"PP{INITIATING_FUNCTION}",
+                f"PP{SUCCESS}",
                 False
             )
 
