@@ -69,6 +69,8 @@ def main_filter_prices():
 def get_items_prices():
     return get_items_price_priority()
 
+#discount pages
+
 @app.route('/api/items/create_single_item_discount')
 def create_single_discount():
     return create_single_discount()
@@ -92,6 +94,11 @@ def update_discount(discount_id):
 @app.route('/api/items/get_priority_item_discount')
 def get_priority_discount():
     return get_discounts()
+
+@app.get("/discount")
+def discount():
+    return render_template("discount.html")
+ 
 
 @app.route("/api/items/central_app", methods=['POST'])
 def central_app():

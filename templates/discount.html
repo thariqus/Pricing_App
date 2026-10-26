@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>{{ title or "Discount Management" }}</title>
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='css/discount_management.css') }}">
+
+<script src="{{ url_for('static', filename='js/discount_management.js') }}" defer></script>
+
+</head>
+
+
+<body>
+
+<div class="item-management-container">
+
+    <!-- =====================================================
+         HEADER + TOOLBAR
+         ===================================================== -->
+
+    <div class="top-bar">
+ 
+        <div class="top-bar-title">
+ 
+            <span style="display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-tags"></i>
+                Discount Management
+            </span>
+ 
+           <nav class="page-nav">
+            <a href="{{ url_for('index_call') }}" class="page-nav-link">
+                <i class="fas fa-tags"></i> Price
+            </a>
+            <a href="{{ url_for('discount') }}" class="page-nav-link active">
+                <i class="fas fa-percent"></i> Discount
+            </a>
+            
+        </nav>
+ 
+        </div>
+
+
+        <form id="fetchForm" class="toolbar-form">
+
+            <div class="filters-row">
+
+                <!-- ITEM NO -->
+
+                <div id="itemNoContainer">
+
+                    <div class="item-no-row">
+
+                        <input type="text"
+                               class="form-control itemNoInput"
+                               name="item_no[]"
+                               placeholder="Item No"
+                               autocomplete="off">
+
+                        <button type="button"
+                                class="addItemNoBtn"
+                                title="Add Item No">+</button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ACTIVE -->
+
+                <div class="core-field">
+
+                    <select id="fetchActive" name="active" class="form-control">
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                        <option value="">All</option>
+                    </select>
+
+                </div>
+
+
+                <!-- ADD FILTER -->
+
+                <div class="core-field filter-field">
+
+                    <select id="addFilterSelect" class="form-control">
+                        <option value="">+ Add filter</option>
+                        <option value="customer_group_hierarchy">Customer / Group / Hierarchy</option>
+                        <option value="sort_by">Sort By</option>
+                        <option value="sales_organization">Sales Organization</option>
+                        <option value="distribution_channel">Distribution Channel</option>
+                        <option value="location_code">Location Code</option>
+                        <option value="condition_type">Condition Type</option>
+                        <option value="sales_price">Sales Price</option>
+                        <option value="currency">Currency</option>
+                        <option value="uom">Unit of Measure</option>
+                        <option value="min_qty">Minimum Quantity</option>
+                        <option value="lower_limit">Lower Limit</option>
+                        <option value="upper_limit">Upper Limit</option>
+                        <option value="zone_code">Transportation Zone</option>
+                        <option value="starting_date">Starting Date</option>
+                        <option value="ending_date">Ending Date</option>
+                        <option value="priority">Priority</option>
+                        <option value="offer_article">Offer Article</option>
+                    </select>
+
+                </div>
+
+
+                <!-- ACTIONS -->
+
+                <div class="toolbar-actions">
+
+                    <button type="submit" id="fetch" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Fetch
+                    </button>
+
+                    <button type="button" id="downloadCsvBtn" class="btn btn-outline">
+                        <i class="fas fa-download"></i> CSV
+                    </button>
+
+                    <button type="button" id="importBtnUnique" class="btn btn-outline">
+                        <i class="fas fa-file-import"></i> Import
+                    </button>
+
+                    <button type="button" id="addItemBtn" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+
+                    <button type="button" id="saveUpdateBtn" class="btn" disabled>
+                        Save
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div id="activeFilters" class="active-filters"></div>
+
+        </form>
+
+    </div>
+
+
+    <!-- =====================================================
+         CSV POPUP
+         ===================================================== -->
+
+    <div id="csvPopUp" class="modal" tabindex="-1">
+
+        <div class="modal-dialog">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-upload"></i> Upload Data
+                    </h5>
+
+                    <button type="button" class="close" id="closeCsvPopup">
+                        <span>&times;</span>
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <!-- BOX 1: UPLOAD -->
+                    <div id="uploadBox" class="popup-box">
+
+                        <div class="form-group">
+                            <label>Select Action</label>
+                            <select id="actionSelect" class="form-control">
+                                <option value="add">Add Data</option>
+                                <option value="update">Update Data</option>
+                                <option value="bulk">Bulk Reset</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="button" id="downloadSampleBtn" class="btn btn-outline btn-block">
+                                <i class="fas fa-file-csv"></i> Download Sample CSV
+                            </button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Upload CSV File</label>
+                            <input type="file" id="fileUpload" class="form-control" accept=".csv">
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" id="cancelCsvBtn" class="btn btn-outline">Cancel</button>
+                            <button type="button" id="uploadBtn" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Upload CSV
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- BOX 2: RESPONSE + DOWNLOAD -->
+                    <div id="resultBox" class="popup-box result-box">
+                        <p id="resultMsg"></p>
+                        <p id="invalidMsg"></p>
+                        <button type="button" id="downloadInvalidBtn" class="btn btn-success btn-block">
+                            <i class="fas fa-download"></i> Download Invalid Data (CSV)
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- MESSAGE MODAL (replaces alert / confirm) -->
+
+    <div id="msgModal" class="modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i id="msgIcon" class="fas fa-circle-info"></i>
+                        <span id="msgTitle">Notice</span>
+                    </h5>
+                </div>
+
+                <div class="modal-body">
+                    <div id="msgText" class="msg-body"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" id="msgCancel" class="btn btn-outline">Cancel</button>
+                    <button type="button" id="msgOk" class="btn btn-primary">OK</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- =====================================================
+         LOADING OVERLAY
+         ===================================================== -->
+
+    <div id="csvLoadingOverlay" class="csv-loading-overlay">
+
+        <div class="csv-loading-box">
+
+            <div class="csv-spinner"></div>
+
+            <div class="csv-loading-title">Processing CSV...</div>
+
+            <div class="csv-loading-text">
+                Please wait while the CSV data is being uploaded and processed.
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         RESULTS
+         ===================================================== -->
+
+    <div class="results-section">
+
+        <div class="table-responsive">
+
+            <table class="table table-bordered table-hover">
+
+                <thead>
+                    <tr id="itemPriceTableHead"></tr>
+                </thead>
+
+                <tbody id="itemPriceTableBody"></tbody>
+
+            </table>
+
+        </div>
+
+        <div id="paginationControls" class="pagination-controls"></div>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>
