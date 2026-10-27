@@ -624,7 +624,117 @@ function renderHead() {
 
     html += '<th class="fixed-action-column action-col">Action</th>';
     tableHead.innerHTML = html;
+    initColumnResize(); 
 }
+
+/* =========================================================
+   RESIZABLE COLUMNS (Excel-style)
+   ========================================================= */
+
+    const COL_WIDTH_KEY = "item_mgmt_col_widths_v1";
+    const MIN_COL_WIDTH = 30;
+
+    function applyColumnWidths(widths) {
+
+        const table = tableHead.closest("table");
+        const ths   = Array.from(tableHead.children);
+
+        ths.forEach(function (th, i) {
+            th.style.width = widths[i] + "px";
+        });
+
+        table.style.width = widths.reduce(function (a, b) { return a + b; }, 0) + "px";
+    }
+
+    function freezeColumnWidths() {
+
+        // Convert the current % widths to px so each column can move independently
+        const widths = Array.from(tableHead.children).map(function (th) {
+            return th.getBoundingClientRect().width;
+        });
+
+        applyColumnWidths(widths);
+        return widths;
+    }
+
+    function resetColumnWidths() {
+
+        const table = tableHead.closest("table");
+
+        Array.from(tableHead.children).forEach(function (th) { th.style.width = ""; });
+        table.style.width = "";
+
+        try { localStorage.removeItem(COL_WIDTH_KEY); } catch (e) {}
+    }
+
+    function initColumnResize() {
+
+        const ths = Array.from(tableHead.children);
+
+        // Restore saved widths
+        try {
+            const saved = JSON.parse(localStorage.getItem(COL_WIDTH_KEY) || "null");
+
+            if (Array.isArray(saved) && saved.length === ths.length) {
+                applyColumnWidths(saved);
+            }
+        } catch (e) {}
+
+        ths.forEach(function (th, index) {
+
+            // The sticky Action column keeps its fixed size
+            if (index === ths.length - 1) {
+                return;
+            }
+
+            const handle = document.createElement("div");
+
+            handle.className = "col-resizer";
+            handle.title = "Drag to resize · double-click to reset all";
+
+            th.appendChild(handle);
+
+            handle.addEventListener("dblclick", function (event) {
+                event.stopPropagation();
+                resetColumnWidths();
+            });
+
+            handle.addEventListener("pointerdown", function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                const widths      = freezeColumnWidths();
+                const startX      = event.clientX;
+                const startWidth  = widths[index];
+
+                handle.setPointerCapture(event.pointerId);
+                handle.classList.add("resizing");
+                document.body.classList.add("col-resizing");
+
+                function onMove(e) {
+                    widths[index] = Math.max(MIN_COL_WIDTH, startWidth + (e.clientX - startX));
+                    applyColumnWidths(widths);
+                }
+
+                function onUp() {
+
+                    handle.removeEventListener("pointermove", onMove);
+                    handle.removeEventListener("pointerup", onUp);
+                    handle.removeEventListener("pointercancel", onUp);
+
+                    handle.classList.remove("resizing");
+                    document.body.classList.remove("col-resizing");
+
+                    try { localStorage.setItem(COL_WIDTH_KEY, JSON.stringify(widths)); } catch (e) {}
+                }
+
+                handle.addEventListener("pointermove", onMove);
+                handle.addEventListener("pointerup", onUp);
+                handle.addEventListener("pointercancel", onUp);
+            });
+        });
+    }
 
 
 /* =========================================================

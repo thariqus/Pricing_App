@@ -68,7 +68,7 @@ def _price_query(key_columns):
         " LIMIT 1"
     )
 
-def _respond(body, status, context, message_code, is_error, response_message=None):
+def _respond(body, status, context, message_code, is_error, response_message=None,ipaddress=None):
     """Write the log row, then return the JSON response."""
     write_log(
         custom_message=context,
@@ -79,6 +79,7 @@ def _respond(body, status, context, message_code, is_error, response_message=Non
         log_status=status,
         info=not is_error,
         error=is_error,
+        ipaddress=ipaddress
     )
     return jsonify(body), status
 

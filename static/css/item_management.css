@@ -1036,3 +1036,43 @@ body {
     .top-bar-title { flex-wrap: wrap; gap: 10px; }
     .page-nav { flex-wrap: wrap; }
 }
+
+/* =========================
+   RESIZABLE COLUMNS
+   ========================= */
+
+/* allow horizontal scroll once columns are widened */
+.table-responsive { overflow-x: auto; }
+
+.table { min-width: 100%; }
+
+.table th { position: sticky; }   /* already sticky; also anchors the handle */
+
+.col-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 7px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+    touch-action: none;
+    z-index: 7;
+}
+
+.col-resizer::after {
+    content: "";
+    position: absolute;
+    top: 25%;
+    bottom: 25%;
+    right: 2px;
+    width: 2px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, .35);
+}
+
+.col-resizer:hover::after,
+.col-resizer.resizing::after { background: #fff; }
+
+body.col-resizing,
+body.col-resizing * { cursor: col-resize !important; user-select: none !important; }

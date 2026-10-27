@@ -18,7 +18,7 @@ LOG_SOURCE = "repository"
 
 PRICE_DB = os.getenv("DB_P_NAME")
 
-def _respond(body, ipaddress, log_type, status, context, message_code, is_error, response_message=None):
+def _respond(body, log_type, status, context, message_code, is_error, response_message=None, ipaddress=None):
     """Write the log row, then return the JSON response."""
     write_log(
         custom_message=context,

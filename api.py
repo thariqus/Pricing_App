@@ -13,6 +13,10 @@ from services.price.ho_to_store_singel_price import ho_to_store_single_price
 from services.price.notify_stores import notify_store
 from services.price.get_logs import get_logs
 from services.price.get_replication import get_replication
+from services.price.add_sites import add_sites
+from services.price.get_all_sites import get_all_sites
+from services.price.site_delete import site_delete
+from services.price.site_edit import site_edit
 from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
@@ -21,6 +25,9 @@ from flask.json.provider import DefaultJSONProvider
 from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
 from flask import jsonify
 from utils.auth import admin_required
+
+import os
+IS_CENTRAL = os.getenv("IS_CENTRAL")
 
 
 app = Flask(__name__)
@@ -65,7 +72,7 @@ def main_update_price():
 def main_filter_prices():
     return filter_items_prices()
 
-@app.route('/api/get_discounted_item_price')
+@app.route('/api/get_discounted_item_price', methods=['POST'])
 def get_items_prices():
     return get_items_price_priority()
 
@@ -129,7 +136,7 @@ def get_replication_data(version_id):
 @app.get("/settings")
 def settings():
     settings = []
-    return render_template("settings.html", settings=settings)
+    return render_template("settings.html", settings=settings, is_central=IS_CENTRAL)
 
 @app.get("/site-details/<siteid>")
 def site_details(siteid):
@@ -139,9 +146,6 @@ def site_details(siteid):
 @app.route("/api/items/notify_stores", methods=['GET'])
 def get_notification():
     return notify_store()
-
-from flask import request, jsonify
-from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
 
 @app.route("/api/items/prices/version/<int:version_id>")
 def prices_from_version(version_id):
@@ -154,3 +158,21 @@ def prices_from_version(version_id):
         "count": len(rows),
         "data": rows,
     }), 200
+
+# site settings code
+
+@app.route("/api/add_site_settings", methods=['POST'])
+def add_site_settings():
+    return add_sites()
+
+@app.route("/api/get_all_sites")
+def get_site_details():
+    return get_all_sites()
+
+@app.route("/api/delete_site/<int:site_id>", methods=['DELETE'])
+def delete_site(site_id):
+    return site_delete(site_id)
+
+@app.route("/api/update_site/<int:site_id>", methods=['PUT'])
+def edit_site(site_id):
+    return site_edit(site_id)

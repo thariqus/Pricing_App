@@ -1288,3 +1288,60 @@ def get_data_replication(version_id, site_code):
     params = (version_id, site_code)
 
     return sql_qry, params
+
+def insert_site_settings(data):
+    sql_qry = """
+    insert into pricing_setting_site (
+        site_location,
+        site_ip,
+        active
+    )
+    values (
+        %s, %s, %s
+    )
+    """
+    params = (
+        data['location'],
+        data['ip'],
+        data['active']
+    )
+
+    return sql_qry, params
+
+def select_all_sites():
+    sql_qry = """
+    select * from pricing_setting_site
+    """
+    return sql_qry
+
+def delete_site_qry(site_id):
+    sql_qry = """
+    delete from pricing_setting_site
+    where id = %s
+    """
+
+    params = (
+        site_id,
+    )
+
+    return sql_qry, params
+
+
+def update_site_qry(site_id, data):
+    sql_qry = """
+        UPDATE pricing_setting_site
+        SET
+            site_location = %s,
+            site_ip = %s,
+            active = %s
+        WHERE id = %s
+    """
+
+    params = (
+        data["location"],
+        data["ip"],
+        data["active"],
+        site_id
+    )
+
+    return sql_qry, params

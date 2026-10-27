@@ -343,13 +343,6 @@ Pricing_Setting_Site = {
         "auto_increment": True,
         "primary_key": True
     },
-    "setting_id": {
-        "type": "INT",
-        "not_null": True
-    },
-    "sl_no": {
-        "type": "INT"
-    },
     "site_location": {
         "type": "VARCHAR(255)",
         "not_null": True
@@ -357,6 +350,10 @@ Pricing_Setting_Site = {
     "site_ip": {
         "type": "VARCHAR(45)",
         "not_null": True
+    },
+    "active": {
+        "type": "BOOLEAN",
+        "default": 1
     },
     "created": {
         "type": "DATETIME",
@@ -366,16 +363,6 @@ Pricing_Setting_Site = {
         "type": "DATETIME",
         "default": "CURRENT_TIMESTAMP",
         "on_update": "CURRENT_TIMESTAMP"
-    },
-    "indexes": {
-        "idx_setting_id": {
-            "type": "INDEX",
-            "columns": ["setting_id"]
-        },
-        "uniq_site_ip": {
-            "type": "UNIQUE",
-            "columns": ["setting_id", "site_ip"]
-        }
     },
     "engine": "InnoDB",
     "charset": "utf8mb4"
