@@ -35,119 +35,161 @@ def _respond(body, log_type, status, context, message_code, is_error, response_m
 
 
 def create_single_price(data):
-    _respond(
-        {},
-        request.remote_addr,
-        "Create Single Price",
-        INITIATING_FUNCTION, 
-        "Entered in single item price function",
-        f"PP{INITIATING_FUNCTION}",
-        False
-    )
     con = None
     cursor = None
     context = "Single Item Price"
+    log_type = "Create Single Price"
+    ipaddress = request.remote_addr
+
+    # Log function entry
+    write_log(
+        custom_message="Entered in single item price function",
+        ipaddress=ipaddress,
+        response_message="",
+        source=LOG_SOURCE,
+        log_type=log_type,
+        message_code=f"PP{INITIATING_FUNCTION}",
+        log_status=INITIATING_FUNCTION,
+        info=True,
+        error=False
+    )
+
     try:
         if not data:
             return _respond(
-                {"status": "error", "message": "Request data is empty or invalid"},
-                request.remote_addr,
-                "Create Single Price", BAD_REQUEST, context, f"PP{BAD_REQUEST}", True
+                body={
+                    "status": "error",
+                    "message": "Request data is empty or invalid"
+                },
+                log_type=log_type,
+                status=BAD_REQUEST,
+                context=context,
+                message_code=f"PP{BAD_REQUEST}",
+                is_error=True,
+                response_message="Request data is empty or invalid",
+                ipaddress=ipaddress
             )
+
         con = get_db_connection(PRICE_DB)
-
-
         cursor = con.cursor()
 
         cursor.execute(get_latest_version_id_query())
         row = cursor.fetchone()
-        latest = (row["version_id"] if isinstance(row, dict) else row[0]) if row else None
-        version_id = (latest or 0) + 1
-        data["version_id"] = version_id 
 
+        latest = (
+            row["version_id"] if isinstance(row, dict) else row[0]
+        ) if row else None
+
+        version_id = (latest or 0) + 1
+        data["version_id"] = version_id
 
         sql_query, params = insert_price_query(data)
-        cursor.execute(
-            sql_query,
-            params
-        )
+        cursor.execute(sql_query, params)
         inserted_id = cursor.lastrowid
-        con.commit()
 
-        if inserted_id:
-            version_sql, version_params = insert_version_query({
-                "id": version_id,
-                "file_name": "",
-                "record_count": 1,
-            })
-            cursor.execute(version_sql, version_params)
-            con.commit()
-
-            _respond(
-                {},
-                request.remote_addr,
-                "Create Single Price",
-                SUCCESS, 
-                "Single Price Inserted",
-                f"PP{SUCCESS}",
-                False
+        if not inserted_id:
+            con.rollback()
+            return _respond(
+                body={
+                    "status": "error",
+                    "message": "Price could not be created"
+                },
+                log_type=log_type,
+                status=INTERNAL_SERVER_ERROR,
+                context=context,
+                message_code=f"PP{INTERNAL_SERVER_ERROR}",
+                is_error=True,
+                response_message="Price could not be created",
+                ipaddress=ipaddress
             )
 
-        _respond(
-            {},
-            request.remote_addr,
-            "Create Single Price",
-            SUCCESS,
-            "Completed single item price",
-            f"PP{SUCCESS}",
-            False
+        version_sql, version_params = insert_version_query({
+            "id": version_id,
+            "file_name": "",
+            "record_count": 1,
+        })
+
+        cursor.execute(version_sql, version_params)
+        con.commit()
+
+        return _respond(
+            body={"data": inserted_id},
+            log_type=log_type,
+            status=SUCCESS,
+            context=context,
+            message_code=f"PP{SUCCESS}",
+            is_error=False,
+            response_message="Price created successfully",
+            ipaddress=ipaddress
+        )
+
+    except ConnectionError as e:
+        if con:
+            con.rollback()
+
+        logger.exception(
+            "Database connection error while creating price"
         )
 
         return _respond(
-            {"data": inserted_id },
-            request.remote_addr,
-            "Create Single Price", SUCCESS, context, f"PP{SUCCESS}", False,
-            response_message = "Price created successfully"
-        )
-    
-    except ConnectionError as e:
-        logger.exception("Database connection error while creating price")
-        return _respond(
-            {
+            body={
                 "status": "error",
                 "message": "Unable to connect to database",
                 "error": str(e)
             },
-            request.remote_addr,
-            SERVICE_UNAVAILABLE, context, f"PC{SERVICE_UNAVAILABLE}", True, response_message=str(e)
+            log_type=log_type,
+            status=SERVICE_UNAVAILABLE,
+            context=context,
+            message_code=f"PC{SERVICE_UNAVAILABLE}",
+            is_error=True,
+            response_message=str(e),
+            ipaddress=ipaddress
         )
 
     except pymysql.MySQLError as e:
         if con:
             con.rollback()
-        logger.exception("Database error while creating price")
+
+        logger.exception(
+            "Database error while creating price"
+        )
+
         return _respond(
-            {
+            body={
                 "status": "error",
                 "message": "Database error",
                 "error": str(e)
             },
-            request.remote_addr,
-            INTERNAL_SERVER_ERROR, context, f"PC{INTERNAL_SERVER_ERROR}", True, response_message=str(e)
+            log_type=log_type,
+            status=INTERNAL_SERVER_ERROR,
+            context=context,
+            message_code=f"PC{INTERNAL_SERVER_ERROR}",
+            is_error=True,
+            response_message=str(e),
+            ipaddress=ipaddress
         )
 
     except Exception as e:
         if con:
             con.rollback()
-        logger.exception("Unexpected error while creating price")
+
+        logger.exception(
+            "Unexpected error while creating price"
+        )
+
         return _respond(
-            {
+            body={
                 "status": "error",
                 "message": "Something went wrong",
                 "error": str(e)
             },
-            request.remote_addr,
-            NOT_IMPLEMENTED, context, f"PC{NOT_IMPLEMENTED}", True, response_message=str(e)
+            log_type=log_type,
+            status=NOT_IMPLEMENTED,
+            context=context,
+            message_code=f"PC{NOT_IMPLEMENTED}",
+            is_error=True,
+            response_message=str(e),
+            ipaddress=ipaddress
         )
 
     finally:
