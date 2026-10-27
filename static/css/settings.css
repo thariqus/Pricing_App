@@ -298,3 +298,161 @@
     .settings-toolbar { flex-direction: column; align-items: flex-start; }
     .card-head { flex-wrap: wrap; gap: 10px; }
 }
+
+/* =========================
+   SITE ACTION ICONS (edit / delete on saved rows)
+   ========================= */
+
+.sites-table th.col-actions,
+.sites-table td.col-actions {
+    width: 100px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.sites-table .icon-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 15px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: background .15s ease;
+}
+
+.sites-table .icon-btn.edit   { color: #2563eb; }
+.sites-table .icon-btn.delete { color: #dc2626; }
+
+.sites-table .icon-btn.edit:hover   { background: #eff6ff; }
+.sites-table .icon-btn.delete:hover { background: #fef2f2; }
+
+/* =========================
+   EDIT MODAL (unique class names: se-*)
+   ========================= */
+
+.se-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, .55);
+}
+
+.se-backdrop[hidden] {
+    display: none;
+}
+
+.se-modal {
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    margin: 16px;
+    background: #fff;
+    border: 1px solid var(--jh-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(92, 0, 23, .35);
+}
+
+.se-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    color: #fff;
+    background: linear-gradient(180deg, #9a1a38 0%, var(--jh-burgundy) 50%, var(--jh-burgundy-dark) 100%);
+}
+
+.se-head h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.se-close {
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.se-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+}
+
+.se-body label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    color: var(--jh-burgundy-dark);
+}
+
+.se-body input[type="text"] {
+    height: 40px;
+    padding: 0 16px;
+    font: inherit;
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--jh-text);
+    background: #fff;
+    border: 1px solid var(--jh-border);
+    border-radius: 20px;
+    outline: none;
+    box-shadow: inset 0 2px 4px rgba(92, 0, 23, .12);
+}
+
+.se-body input[type="text"]:focus {
+    border-color: var(--jh-sand-2);
+    box-shadow: inset 0 2px 4px rgba(92, 0, 23, .12), 0 0 0 3px rgba(227, 163, 82, .35);
+}
+
+.se-body label.se-check {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+}
+
+.se-body label.se-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--jh-burgundy);
+}
+
+.se-error {
+    font-size: 13px;
+    font-weight: 600;
+    color: #991b1b;
+}
+
+.se-error[hidden] {
+    display: none;
+}
+
+.se-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px 18px;
+    border-top: 1px solid var(--jh-border);
+}

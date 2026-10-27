@@ -107,17 +107,13 @@
                            autocomplete="new-password">
                 </label>
 
-                <label class="check">
-                    <input type="checkbox" name="is_central" {% if settings.is_central %}checked{% endif %}>
-                    Is Central
-                </label>
-
             </div>
 
         </section>
 
+        <input type="hidden" name="is_central_box" id="is_central_box" value="{{ is_central }}">
 
-        <!-- SITES (shown only when Is Central is checked) -->
+        <!-- SITES (shown only for the central app) -->
 
         <section class="settings-card" id="sites-card">
 
@@ -138,27 +134,12 @@
                             <th>Site Location</th>
                             <th>Site IP</th>
                             <th class="col-active">Active</th>
-                            <th></th>
+                            <th class="col-actions">Action</th>
                         </tr>
                     </thead>
 
-                    <tbody id="sites-body">
-                        {% for s in settings.sites %}
-                        <tr>
-                            <td class="sl"></td>
-                            <td><input type="text" class="site-location" value="{{ s.location }}"></td>
-                            <td><input type="text" class="site-ip" value="{{ s.ip }}" placeholder="10.0.0.1"></td>
-                            <td class="col-active">
-                                <input type="checkbox" class="site-active" {% if s.active %}checked{% endif %}>
-                            </td>
-                            <td>
-                                <button type="button" class="remove-row-btn" aria-label="Remove row">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                    <!-- rows are filled by settings.js (getting data from the database) -->
+                    <tbody id="sites-body"></tbody>
 
                 </table>
 
@@ -171,14 +152,82 @@
 </div>
 
 
+<!-- =====================================================
+     EDIT MODAL
+     ===================================================== -->
+
+<div class="se-backdrop" id="site-edit-modal" hidden>
+
+    <div class="se-modal" role="dialog" aria-modal="true" aria-labelledby="se-title">
+
+        <div class="se-head">
+            <h3 id="se-title"><i class="fas fa-pen"></i> Edit Site</h3>
+            <button type="button" class="se-close" id="edit-close" aria-label="Close">
+                <i class="fas fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="se-body">
+
+            <label>Site Location
+                <input type="text" id="edit-location">
+            </label>
+
+            <label>Site IP
+                <input type="text" id="edit-ip" placeholder="10.0.0.1">
+            </label>
+
+            <label class="se-check">
+                <input type="checkbox" id="edit-active">
+                Active
+            </label>
+
+            <div class="se-error" id="edit-error" hidden></div>
+
+        </div>
+
+        <div class="se-foot">
+            <button type="button" class="btn btn-outline" id="edit-cancel">Cancel</button>
+            <button type="button" class="btn btn-success" id="edit-save">
+                <i class="fas fa-floppy-disk"></i> Update
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- NEW row (not saved yet): inputs + delete icon that only removes it from the screen -->
 <template id="site-row">
     <tr>
         <td class="sl"></td>
         <td><input type="text" class="site-location"></td>
         <td><input type="text" class="site-ip" placeholder="10.0.0.1"></td>
         <td class="col-active"><input type="checkbox" class="site-active" checked></td>
-        <td>
-            <button type="button" class="remove-row-btn" aria-label="Remove row">
+        <td class="col-actions">
+            <button type="button" class="icon-btn delete remove-row-btn"
+                    aria-label="Remove row" title="Remove row">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<!-- SAVED row (from database): text + edit icon + delete icon (deletes from database) -->
+<template id="site-row-db">
+    <tr>
+        <td class="sl"></td>
+        <td class="view-location"></td>
+        <td class="view-ip"></td>
+        <td class="col-active"><input type="checkbox" class="view-active" disabled></td>
+        <td class="col-actions">
+            <button type="button" class="icon-btn edit edit-site-btn"
+                    aria-label="Edit site" title="Edit">
+                <i class="fas fa-pen"></i>
+            </button>
+            <button type="button" class="icon-btn delete delete-site-btn"
+                    aria-label="Delete site" title="Delete">
                 <i class="fas fa-trash"></i>
             </button>
         </td>
