@@ -2,8 +2,8 @@ from flask import request, jsonify
 import pymysql
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
+from utils.log_response import _respond
 from repository.query import insert_price_query, get_latest_version_id_query, insert_version_query  
-from repository.price.create_log import write_log
 from data.error_codes import (
     INITIATING_FUNCTION,
     BAD_REQUEST,
@@ -18,31 +18,16 @@ LOG_SOURCE = "repository"
 
 PRICE_DB = os.getenv("DB_P_NAME")
 
-def _respond(body, log_type, status, context, message_code, is_error, response_message=None, ipaddress=None):
-    """Write the log row, then return the JSON response."""
-    write_log(
-        custom_message=context,
-        response_message=response_message or body.get("message"),
-        source=LOG_SOURCE,
-        log_type=log_type,
-        message_code=message_code,
-        log_status=status,
-        info=not is_error,
-        error=is_error,
-        ipaddress = ipaddress
-    )
-    return jsonify(body), status
-
 
 def create_single_price(data):
     con = None
     cursor = None
-    context = "Single Item Price"
     log_type = "Create Single Price"
     ipaddress = request.remote_addr
 
     # Log function entry
-    write_log(
+    _respond(
+        body={},
         custom_message="Entered in single item price function",
         ipaddress=ipaddress,
         response_message="",
@@ -50,7 +35,6 @@ def create_single_price(data):
         log_type=log_type,
         message_code=f"PP{INITIATING_FUNCTION}",
         log_status=INITIATING_FUNCTION,
-        info=True,
         error=False
     )
 
@@ -62,12 +46,13 @@ def create_single_price(data):
                     "message": "Request data is empty or invalid"
                 },
                 log_type=log_type,
-                status=BAD_REQUEST,
-                context=context,
+                log_status=BAD_REQUEST,
+                custom_message="Request data is empty or invalid",
                 message_code=f"PP{BAD_REQUEST}",
-                is_error=True,
-                response_message="Request data is empty or invalid",
-                ipaddress=ipaddress
+                error=True,
+                response_message="",
+                ipaddress=ipaddress,
+                source=LOG_SOURCE,
             )
 
         con = get_db_connection(PRICE_DB)
@@ -95,12 +80,13 @@ def create_single_price(data):
                     "message": "Price could not be created"
                 },
                 log_type=log_type,
-                status=INTERNAL_SERVER_ERROR,
-                context=context,
+                log_status=INTERNAL_SERVER_ERROR,
+                custom_message="Price could not be created",
                 message_code=f"PP{INTERNAL_SERVER_ERROR}",
-                is_error=True,
-                response_message="Price could not be created",
-                ipaddress=ipaddress
+                error=True,
+                response_message="",
+                ipaddress=ipaddress,
+                source=LOG_SOURCE,
             )
 
         version_sql, version_params = insert_version_query({
@@ -115,12 +101,13 @@ def create_single_price(data):
         return _respond(
             body={"data": inserted_id},
             log_type=log_type,
-            status=SUCCESS,
-            context=context,
+            log_status=SUCCESS,
+            custom_message="Price created successfully",
             message_code=f"PP{SUCCESS}",
-            is_error=False,
-            response_message="Price created successfully",
-            ipaddress=ipaddress
+            error=False,
+            response_message="",
+            ipaddress=ipaddress,
+            source=LOG_SOURCE,
         )
 
     except ConnectionError as e:
@@ -138,12 +125,13 @@ def create_single_price(data):
                 "error": str(e)
             },
             log_type=log_type,
-            status=SERVICE_UNAVAILABLE,
-            context=context,
+            log_status=SERVICE_UNAVAILABLE,
+            custom_message="Unable to connect to database",
             message_code=f"PC{SERVICE_UNAVAILABLE}",
-            is_error=True,
+            error=True,
             response_message=str(e),
-            ipaddress=ipaddress
+            ipaddress=ipaddress,
+            source=LOG_SOURCE,
         )
 
     except pymysql.MySQLError as e:
@@ -161,12 +149,13 @@ def create_single_price(data):
                 "error": str(e)
             },
             log_type=log_type,
-            status=INTERNAL_SERVER_ERROR,
-            context=context,
+            log_status=INTERNAL_SERVER_ERROR,
+            custom_message="Database error",
             message_code=f"PC{INTERNAL_SERVER_ERROR}",
-            is_error=True,
+            error=True,
             response_message=str(e),
-            ipaddress=ipaddress
+            ipaddress=ipaddress,
+            source=LOG_SOURCE,
         )
 
     except Exception as e:
@@ -184,12 +173,13 @@ def create_single_price(data):
                 "error": str(e)
             },
             log_type=log_type,
-            status=NOT_IMPLEMENTED,
-            context=context,
+            log_status=NOT_IMPLEMENTED,
+            custom_message="Something went wrong",
             message_code=f"PC{NOT_IMPLEMENTED}",
-            is_error=True,
+            error=True,
             response_message=str(e),
-            ipaddress=ipaddress
+            ipaddress=ipaddress,
+            source=LOG_SOURCE,
         )
 
     finally:

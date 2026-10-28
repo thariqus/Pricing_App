@@ -8,7 +8,7 @@ from repository.price.ho_create_price import ho_create_price
 from data.csv_upload.price_csv_check import check_price_csv_items
 import json
 from concurrent.futures import ThreadPoolExecutor
-from configration.integration_ip import SITES
+from repository.price.get_all_site_data import get_all_site_data
 
 from utils.log_error import logger
 import threading
@@ -88,6 +88,11 @@ def ho_price_upload():
             }), 500
 
         results = []
+
+        sites_data = get_all_site_data()['data']
+        SITES= [
+            sites['site_ip'] for sites in sites_data
+        ]
         with ThreadPoolExecutor(max_workers=5) as executor:
             result = executor.map(
                 call_apis,

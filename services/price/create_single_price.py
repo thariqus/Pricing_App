@@ -5,10 +5,9 @@ from repository.price.create_single_price import create_single_price
 from utils.log_error import logger
 import os
 from concurrent.futures import ThreadPoolExecutor
-from configration.integration_ip import SITES
+from repository.price.get_all_site_data import get_all_site_data
 
 VALIDATION_API = os.getenv("VALIDATION_API")
-STORE_URL = os.getenv("STORE_1_URL")
 
 def call_apis(api_name):
     url = f"{api_name}/api/items/notify_stores"
@@ -65,14 +64,14 @@ def create_single_item_price():
                 "message": "Failed to create HO prices"
             }), 500
         results = []
+        sites_data = get_all_site_data()['data']
+        SITES= [
+            sites['site_ip'] for sites in sites_data
+        ]
         with ThreadPoolExecutor(max_workers=5) as executor:
             result = executor.map(
                 call_apis,
                 SITES
             )
             results.extend(result)
-        # requests.post(
-        #         f"{STORE_URL}/api/items/store_singel_price",
-        #         json=formatted_data
-        # )
         return mysql

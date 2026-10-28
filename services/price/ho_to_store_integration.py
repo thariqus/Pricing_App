@@ -1,6 +1,7 @@
 from flask import jsonify
 import requests
 from configration.integration_ip import SITE_2113, HEAD_OFFICE
+from repository.price.get_all_site_data import get_all_site_data
 
 def check_site(site):
     try:
@@ -27,7 +28,10 @@ def check_site(site):
 
 def ho_to_store_integration():
     SITES = []
-    SITES.append(check_site(SITE_2113))
+    sites_data = get_all_site_data()['data']
+    for sites in sites_data:
+        SITES.append(check_site({"ip" : sites['site_ip'], "code" : sites['site_location']}))
+
     return jsonify({
         "status": "success",
         "sites": SITES,

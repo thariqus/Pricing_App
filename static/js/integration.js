@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="node ho" title="${esc(ho.name)}">${esc(ho.code)}</div>
 
             <div class="site-title">
-              <strong>Site ${code}</strong>
+              <strong>${code}</strong>
             </div>
 
             <span class="flag-status">

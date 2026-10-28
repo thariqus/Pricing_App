@@ -1578,8 +1578,11 @@ function fetchAndPopulate(page) {
     const sortBy = filters.sort_by || "";
     delete filters.sort_by;
 
+    const activeValue = document.getElementById("fetchActive").value;
+
     const hasFilters =
         itemNumbers.length > 0 ||
+        activeValue !== "" ||
         sortBy !== "" ||
         Object.keys(filters).length > 0;
 
@@ -1587,8 +1590,8 @@ function fetchAndPopulate(page) {
 
     const payload = {
         item_no: itemNumbers,
-        active:  document.getElementById("fetchActive").value,
-        filters: toDbPayload(filters),   // UI keys -> DB column names
+        active:  activeValue,
+        filters: toDbPayload(filters),
         sort_by: sortBy,
         page:    currentPage,
         limit:   PAGE_SIZE

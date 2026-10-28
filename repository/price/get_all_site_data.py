@@ -17,10 +17,10 @@ def get_all_site_data():
         sel_query = select_all_sites()
         cursor.execute(sel_query)
         site_datas = cursor.fetchall()
-        return jsonify({
+        return {
             "status": "success",
             "data": site_datas
-        })
+        }
     except ConnectionError as e:
         logger.error(f"Database connection error: {e}")
         return jsonify({

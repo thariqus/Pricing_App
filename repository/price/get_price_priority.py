@@ -1,19 +1,19 @@
 from flask import jsonify, request
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
-from repository.price.create_log import write_log
 import pymysql
+from utils.log_response import _respond
 import os
 from data.error_codes import (
     INITIATING_FUNCTION,
     BAD_REQUEST,
     SUCCESS,
     SERVICE_UNAVAILABLE,
-    INTERNAL_SERVER_ERROR
+    INTERNAL_SERVER_ERROR,
+    NOT_FOUND
 )
 
 LOG_SOURCE = "price_priority"
-LOG_TYPE = "PRICE_FETCH"
 
 # Payload key -> PRICING_TABLE column
 FIELD_MAP = {
@@ -75,31 +75,14 @@ def _price_query(key_columns):
         " LIMIT 1"
     )
 
-def _respond(body, status, context, message_code, is_error, response_message=None,ipaddress=None):
-    """Write the log row, then return the JSON response."""
-    write_log(
-        custom_message=context,
-        response_message=response_message or body.get("message"),
-        source=LOG_SOURCE,
-        log_type=LOG_TYPE,
-        message_code=message_code,
-        log_status=status,
-        info=not is_error,
-        error=is_error,
-        ipaddress=ipaddress
-    )
-    return jsonify(body), status
-
-
-
 def get_price_priority(data):
     con = None
     cursor = None
-    context = "Price lookup"
     log_type = "Get Price Priority"
     ipaddress = request.remote_addr
 
-    write_log(
+    _respond(
+        body={},
         custom_message="Entered in getprice priority function",
         ipaddress=ipaddress,
         response_message="",
@@ -107,7 +90,6 @@ def get_price_priority(data):
         log_type=log_type,
         message_code=f"PP{INITIATING_FUNCTION}",
         log_status=INITIATING_FUNCTION,
-        info=True,
         error=False
     )
     try:
@@ -118,12 +100,13 @@ def get_price_priority(data):
                     "message": "Request data is empty or invalid"
                 },
                 log_type=log_type,
-                status=BAD_REQUEST,
-                context=context,
+                log_status=BAD_REQUEST,
+                custom_message="Request data is empty or invalid",
                 message_code=f"PP{BAD_REQUEST}",
-                is_error=True,
-                response_message="Request data is empty or invalid",
-                ipaddress=ipaddress
+                error=True,
+                response_message="",
+                ipaddress=ipaddress,
+                source=LOG_SOURCE
             )
 
         item_no = _val(data, "item_no")
@@ -143,13 +126,12 @@ def get_price_priority(data):
                     )
                 },
                 log_type=log_type,
-                status=BAD_REQUEST,
-                context=context,
+                log_status=BAD_REQUEST,
+                custom_message="item_no and unit_of_measure_code are required",
                 message_code=f"PP{BAD_REQUEST}",
-                is_error=True,
-                response_message=(
-                    "item_no and unit_of_measure_code are required"
-                ),
+                error=True,
+                response_message="",
+                source=LOG_SOURCE,
                 ipaddress=ipaddress
             )
 
@@ -162,11 +144,12 @@ def get_price_priority(data):
                     "message": "qty must be a number"
                 },
                 log_type=log_type,
-                status=BAD_REQUEST,
-                context=context,
+                log_status=BAD_REQUEST,
+                custom_message="qty must be a number",
                 message_code=f"PP{BAD_REQUEST}",
-                is_error=True,
-                response_message="qty must be a number",
+                error=True,
+                response_message="",
+                source=LOG_SOURCE,
                 ipaddress=ipaddress
             )
 
@@ -214,13 +197,14 @@ def get_price_priority(data):
                     "checked_priorities": checked
                 },
                 log_type=log_type,
-                status=404,
-                context=context,
-                message_code="PP404",
-                is_error=True,
-                response_message=(
+                log_status=NOT_FOUND,
+                custom_message=(
                     f"No active price found, checked priorities {checked}"
                 ),
+                message_code=f"PP{NOT_FOUND}",
+                error=True,
+                response_message="",
+                source=LOG_SOURCE,
                 ipaddress=ipaddress
             )
 
@@ -247,14 +231,15 @@ def get_price_priority(data):
                 "message": final_data
             },
             log_type=log_type,
-            status=SUCCESS,
-            context=context,
-            message_code=f"PP{SUCCESS}",
-            is_error=False,
-            response_message=(
+            log_status=SUCCESS,
+            custom_message=(
                 f"Price {base_price} found at priority "
                 f"{matched_priority} (id {result.get('id')})"
             ),
+            message_code=f"PP{SUCCESS}",
+            error=False,
+            response_message="",
+            source=LOG_SOURCE,
             ipaddress=ipaddress
         )
 
@@ -270,11 +255,12 @@ def get_price_priority(data):
                 "error": str(e)
             },
             log_type=log_type,
-            status=SERVICE_UNAVAILABLE,
-            context=context,
+            log_status=SERVICE_UNAVAILABLE,
+            custom_message="Unable to connect to database",
             message_code=f"PP{SERVICE_UNAVAILABLE}",
-            is_error=True,
+            error=True,
             response_message=str(e),
+            source=LOG_SOURCE,
             ipaddress=ipaddress
         )
 
@@ -290,11 +276,12 @@ def get_price_priority(data):
                 "error": str(e)
             },
             log_type=log_type,
-            status=INTERNAL_SERVER_ERROR,
-            context=context,
+            log_status=INTERNAL_SERVER_ERROR,
+            custom_message="Database error",
             message_code=f"PP{INTERNAL_SERVER_ERROR}",
-            is_error=True,
+            error=True,
             response_message=str(e),
+            source=LOG_SOURCE,
             ipaddress=ipaddress
         )
 
@@ -310,11 +297,12 @@ def get_price_priority(data):
                 "error": str(e)
             },
             log_type=log_type,
-            status=INTERNAL_SERVER_ERROR,
-            context=context,
+            log_status=INTERNAL_SERVER_ERROR,
+            custom_message="Something went wrong",
             message_code=f"PP{INTERNAL_SERVER_ERROR}",
-            is_error=True,
+            error=True,
             response_message=str(e),
+            source=LOG_SOURCE,
             ipaddress=ipaddress
         )
 
