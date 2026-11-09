@@ -1345,3 +1345,20 @@ def update_site_qry(site_id, data):
     )
 
     return sql_qry, params
+
+def _price_query(key_columns):
+    where = "".join(f" AND {col} = %s" for col in key_columns)
+    sql_qry = f"""SELECT * FROM PRICING_TABLE
+             WHERE active = 1
+               AND priority = %s
+               AND item_no = %s
+               AND uom = %s
+               AND COALESCE(minimum_quantity, 0) <= %s
+               AND ending_date >= NOW()
+            {where}
+             ORDER BY (starting_date <= NOW()) DESC,
+                      minimum_quantity DESC,
+                      starting_date DESC
+             LIMIT 1"""
+    return sql_qry
+

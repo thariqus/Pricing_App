@@ -9,10 +9,10 @@ from repository.query import get_version_record_count_query
 PRICE_DB = os.getenv("DB_P_NAME")
 
 
-def get_latest_version_id(db_name=PRICE_DB):
+def get_latest_version_id():
     con = None
     try:
-        con = get_db_connection(db_name)
+        con = get_db_connection(PRICE_DB)
         with con.cursor() as cursor:
             cursor.execute(get_latest_version_id_query())
             row = cursor.fetchone()
@@ -25,13 +25,6 @@ def get_latest_version_id(db_name=PRICE_DB):
     finally:
         if con:
             con.close()
-
-
-import os
-from repository.mysql_connection import get_db_connection
-from repository.query import get_version_record_count_query
-
-PRICE_DB = os.getenv("DB_P_NAME")
 
 
 def get_version_record_count(version_id):

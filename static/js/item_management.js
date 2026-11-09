@@ -56,7 +56,7 @@ const DB_COLUMNS = {
     active:               "active",
     condition_type:       "condition_type",
     item_no:              "item_no",
-    customer:             "customer",
+    customer:             "customer_no",
     customer_grp:         "customer_grp",
     customer_hierarchy:   "customer_hierarchy",
     distribution_channel: "distribution_channel_code",
@@ -221,6 +221,126 @@ function escapeHtml(value) {
         .replace(/"/g, "&quot;");
 }
 
+
+/* =========================================================
+   RESPONSE ENVELOPE
+   { response: { data, error, info, custom_fields, is_error } }
+
+   Every server reply is read through these helpers. If a reply
+   has no "response" wrapper (an endpoint not yet migrated), the
+   body itself is used, so both shapes work.
+   ========================================================= */
+
+// Returns the inner "response" object, or the body itself if there's no wrapper
+function unwrapResponse(result) {
+    return (result && result.response) ? result.response : (result || {});
+}
+
+// Reads the body of a fetch Response and returns { ok, env }
+function readEnvelope(response) {
+
+    return response.json()
+        .catch(function () {
+            throw new Error("Server returned HTTP " + response.status);
+        })
+        .then(function (result) {
+            return { ok: response.ok, env: unwrapResponse(result) };
+        });
+}
+
+// True when the reply should be treated as a failure
+function isFailed(ok, env) {
+    return !ok || !!env.is_error;
+}
+
+// Best human-readable error from an envelope
+function errorMessageOf(env, fallback) {
+    const err = env.error || {};
+    return err.error_message || err.error_details || env.error_message || fallback;
+}
+
+// Reads a value from custom_fields first, then from the top level, then the fallback
+function customField(env, key, fallback) {
+
+    const custom = env.custom_fields || {};
+
+    if (custom[key] !== undefined && custom[key] !== null) {
+        return custom[key];
+    }
+
+    if (env[key] !== undefined && env[key] !== null) {
+        return env[key];
+    }
+
+    return fallback;
+}
+
+// Best success text from an envelope
+function successMessageOf(env, fallback) {
+    const info = env.info || {};
+    return info.success_message || env.message || fallback;
+}
+
+function formatDateForCsv(value) {
+    return value;
+}
+
+function toBackendDateTime(value) {
+
+    if (!value) {
+        return "";
+    }
+
+    let text = String(value).trim().replace("T", " ");
+
+    // 2026-08-21 23:59  ->  2026-08-21 23:59:00
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(text)) {
+        text += ":00";
+    }
+
+    return text;
+}
+
+// CSV wants US-style dates; the table holds YYYY-MM-DD HH:MM:SS
+function csvDate(value) {
+
+    if (!value) {
+        return "";
+    }
+
+    const parsed = new Date(String(value).replace(" ", "T"));
+
+    if (isNaN(parsed)) {
+        return value;
+    }
+
+    return String(parsed.getMonth() + 1).padStart(2, "0") + "/" +
+           String(parsed.getDate()).padStart(2, "0") + "/" +
+           parsed.getFullYear();
+}
+
+function toInputDateTime(value) {
+
+    // Backend sends "2026-08-21 23:59:59"; datetime-local needs a T.
+    return String(value ?? "").trim().replace(" ", "T");
+}
+
+function nowForInput() {
+
+    const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    return now.toISOString().slice(0, 19);
+}
+
+function endOfTodayForInput() {
+
+    const now = new Date();
+
+    return now.getFullYear() + "-" +
+        String(now.getMonth() + 1).padStart(2, "0") + "-" +
+        String(now.getDate()).padStart(2, "0") + "T23:59:59";
+}
+
+
 /* =========================================================
    MESSAGE MODAL  (replaces alert / confirm)
 
@@ -314,61 +434,6 @@ document.addEventListener("keydown", function (event) {
         msgResolve(false);
     }
 });
-
-function toBackendDateTime(value) {
-
-    if (!value) {
-        return "";
-    }
-
-    let text = String(value).trim().replace("T", " ");
-
-    // 2026-08-21 23:59  ->  2026-08-21 23:59:00
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(text)) {
-        text += ":00";
-    }
-
-    return text;
-}
-
-// CSV wants US-style dates; the table holds YYYY-MM-DD HH:MM:SS
-function csvDate(value) {
-
-    if (!value) {
-        return "";
-    }
-
-    const parsed = new Date(String(value).replace(" ", "T"));
-
-    if (isNaN(parsed)) {
-        return value;
-    }
-
-    return String(parsed.getMonth() + 1).padStart(2, "0") + "/" +
-           String(parsed.getDate()).padStart(2, "0") + "/" +
-           parsed.getFullYear();
-}
-
-function toInputDateTime(value) {
-
-    // Backend sends "2026-08-21 23:59:59"; datetime-local needs a T.
-    return String(value ?? "").trim().replace(" ", "T");
-}
-
-function nowForInput() {
-
-    const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
-    return now.toISOString().slice(0, 19);
-}
-
-function endOfTodayForInput() {
-
-    const now = new Date();
-
-    return now.getFullYear() + "-" +
-        String(now.getMonth() + 1).padStart(2, "0") + "-" +
-        String(now.getDate()).padStart(2, "0") + "T23:59:59";
-}
 
 
 /* =========================================================
@@ -624,7 +689,7 @@ function renderHead() {
 
     html += '<th class="fixed-action-column action-col">Action</th>';
     tableHead.innerHTML = html;
-    initColumnResize(); 
+    initColumnResize();
 }
 
 /* =========================================================
@@ -1279,16 +1344,14 @@ tableBody.addEventListener("click", function (event) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: id })
             })
-            .then(function (response) {
+            .then(readEnvelope)
+            .then(function (reply) {
 
-                return response.json().then(function (result) {
+                if (isFailed(reply.ok, reply.env)) {
+                    throw new Error(errorMessageOf(reply.env, "Delete failed"));
+                }
 
-                    if (!response.ok) {
-                        throw new Error(result.error || result.message || "Delete failed");
-                    }
-
-                    return result;
-                });
+                return reply.env;
             })
             .then(function () {
 
@@ -1608,23 +1671,22 @@ function fetchAndPopulate(page) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
     })
-    .then(function (response) {
+    .then(readEnvelope)
+    .then(function (reply) {
 
-        return response.json().then(function (result) {
+        if (isFailed(reply.ok, reply.env)) {
+            throw new Error(errorMessageOf(reply.env, "Failed to fetch items"));
+        }
 
-            if (!response.ok) {
-                throw new Error(result.error || result.message || "Failed to fetch items");
-            }
-
-            return result;
-        });
+        return reply.env;
     })
-    .then(function (result) {
+    .then(function (envelope) {
 
-        // translate DB column names back to UI keys
-        items = (result.data || result.items || result.message || []).map(fromDbRow);
+        // Rows come from response.data; translate DB column names back to UI keys
+        items = (envelope.data || []).map(fromDbRow);
 
-        totalRows = result.total || items.length;
+        // Total is sent in custom_fields
+        totalRows = Number(customField(envelope, "total", items.length)) || items.length;
 
         pendingUpdates.clear();
 
@@ -1691,6 +1753,7 @@ document.getElementById("addItemBtn").addEventListener("click", function () {
      - all EDITED rows -> ONE PUT to API.upDate carrying a list
    ========================================================= */
 
+// Sends a JSON request and resolves with the unwrapped envelope
 function sendJson(url, method, body) {
 
     return fetch(url, {
@@ -1698,24 +1761,14 @@ function sendJson(url, method, body) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
     })
-    .then(function (response) {
+    .then(readEnvelope)
+    .then(function (reply) {
 
-        return response.json()
-            .catch(function () {
-                throw new Error("Server returned HTTP " + response.status);
-            })
-            .then(function (result) {
+        if (isFailed(reply.ok, reply.env)) {
+            throw new Error(errorMessageOf(reply.env, "Save failed"));
+        }
 
-                if (
-                    !response.ok ||
-                    result.success === false ||
-                    result.status === "error"
-                ) {
-                    throw new Error(result.error || result.message || "Save failed");
-                }
-
-                return result;
-            });
+        return reply.env;
     });
 }
 
@@ -1800,9 +1853,9 @@ saveButton.addEventListener("click", function () {
 
             if (updateResult) {
 
-                const updatedCount = updateResult.updated_count ?? 0;
-                const failedCount  = updateResult.failed_count  ?? 0;
-                const failed       = updateResult.failed || [];
+                const updatedCount = Number(customField(updateResult, "updated_count", 0));
+                const failedCount  = Number(customField(updateResult, "failed_count", 0));
+                const failed       = customField(updateResult, "failed", []) || [];
 
                 lines.push(updatedCount + " item(s) updated.");
 
@@ -1822,7 +1875,8 @@ saveButton.addEventListener("click", function () {
                 }
             }
 
-            const hasFailures = updateResult && (updateResult.failed_count ?? 0) > 0;
+            const hasFailures = updateResult &&
+                Number(customField(updateResult, "failed_count", 0)) > 0;
 
             showAlert(lines.join("\n"), {
                 type:  hasFailures ? "warning" : "success",
@@ -2057,41 +2111,37 @@ document.getElementById("uploadBtn").addEventListener("click", function () {
     uploadButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
     fetch(API.import, { method: "POST", body: formData })
-    .then(function (response) {
+    .then(readEnvelope)   // a 400 can still carry rejected rows, so read the body first
+    .then(function (reply) {
 
-        // A 400 can still carry rejected rows, so read the body first.
-        return response.json()
-            .catch(function () {
-                throw new Error("Server returned HTTP " + response.status);
-            })
-            .then(function (result) {
-                return { ok: response.ok, result: result };
-            });
-    })
-    .then(function (payload) {
+        const env = reply.env;
 
-        const result = payload.result;
+        // Rejected rows: InvalidData in custom_fields (or rejected_rows, or top level)
+        const rejected = customField(env, "InvalidData",
+                         customField(env, "rejected_rows", [])) || [];
 
-        if (!payload.ok || result.success === false || result.status === "error") {
+        if (isFailed(reply.ok, env)) {
 
             // Friendly message first; keep raw DB error + row details
-            const err   = new Error(result.message || result.error || "Import failed");
-            err.failed  = result.failed_record || null;
-            err.raw     = result.error || "";
-            err.invalid = result.InvalidData || result.rejected_rows || [];
+            const err   = new Error(errorMessageOf(env, "Import failed"));
+            err.failed  = customField(env, "failed_record", null);
+            err.raw     = (env.error || {}).error_details || "";
+            err.invalid = rejected;
             throw err;
         }
 
-        invalidRows = result.InvalidData || result.rejected_rows || [];
+        invalidRows = rejected;
 
         fileInput.value = "";
         fetchAndPopulate();          // refresh table with newly inserted rows
 
+        const message = successMessageOf(env, "Upload finished");
+
         if (invalidRows.length > 0) {
             // Keep popup open, show the response in the second box
-            showResultBox(result.message || "Upload finished", invalidRows.length);
+            showResultBox(message, invalidRows.length);
         } else {
-            showAlert(result.message || "CSV imported successfully.", {
+            showAlert(message, {
                 type: "success",
                 title: "Import complete"
             });

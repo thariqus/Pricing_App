@@ -1,17 +1,42 @@
-from flask import request, jsonify
+from flask import request
 from repository.mysql_connection import get_db_connection
-from utils.log_error import logger
 import os
 from repository.query import check_price_exists, update_price
 import pymysql
+from utils.log_response import _respond
+from data.error_codes import INITIATING_FUNCTION, NOT_FOUND, SUCCESS, SERVICE_UNAVAILABLE, INTERNAL_SERVER_ERROR, BAD_REQUEST, NOT_IMPLEMENTED
+from data.response import marshal_response_msg
 
 PRICE_DB = os.getenv("DB_P_NAME")
+SOURCE = "/api/items/update_item_prices/"
+
+def response_log(custom_message, code, error, response_message=None):
+    return _respond(
+        body={},
+        custom_message=custom_message,
+        ipaddress=request.remote_addr,
+        response_message=response_message,
+        source="repository",
+        log_type="Update price data",
+        message_code=f"PP{code}",
+        log_status=code,
+        error=error
+    )
 
 
 def update_price_data(data):
     con = None
     cursor = None
+    response_log("Enter into update price data function", INITIATING_FUNCTION, False)
     try:
+        if not data:
+            response_log("No data found", BAD_REQUEST, True)
+            return marshal_response_msg({
+                "error_message" : "No data found",
+                "error_details" : "Data is required, but not found",
+                "error_code" : BAD_REQUEST,
+                "is_error" : True
+            })
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
         updated_records = []
@@ -19,6 +44,7 @@ def update_price_data(data):
         for record in data:
             price_id = record.get("id")
             if not price_id:
+                response_log("Price id not found", NOT_FOUND, True)
                 failed_records.append({
                     "data": record,
                     "message": "Price ID is required"
@@ -31,6 +57,7 @@ def update_price_data(data):
             )
             existing_price = cursor.fetchone()
             if not existing_price:
+                response_log("Price record not found", NOT_FOUND, True)
                 failed_records.append({
                     "id": price_id,
                     "message": "Price record not found"
@@ -42,6 +69,7 @@ def update_price_data(data):
                 if key != "id"
             }
             if not update_data:
+                response_log("No fields to updated", NOT_FOUND, True)
                 failed_records.append({
                     "id": price_id,
                     "message": "No fields to update"
@@ -55,49 +83,49 @@ def update_price_data(data):
                 sql_query,
                 params
             )
+            if cursor.rowcount > 0:
+                response_log("Price Updated..", SUCCESS, False)
             updated_records.append({
                 "id": price_id
             })
         con.commit()
-        return jsonify({
-            "status": "success",
-            "message": "Price update completed",
-            "updated_count": len(updated_records),
-            "updated": updated_records,
-            "failed_count": len(failed_records),
-            "failed": failed_records
-        }), 200
+        response_log("Update price completed", SUCCESS, False)
+        return marshal_response_msg({
+            "data" : updated_records,
+            "success_message" : "Price update completed",
+            "success_code" : SUCCESS,
+            "source" : SOURCE,
+            "is_error" : False,
+            "custom_field" : {
+                "updated_count": len(updated_records),
+                "failed_count": len(failed_records),
+                "failed": failed_records
+            }
+        })
     except ConnectionError as e:
-        logger.error(
-            f"Database connection error: {e}"
-        )
-        return jsonify({
-            "status": "error",
-            "message": "Unable to connect to database",
-            "error": str(e)
-        }), 503
+        response_log("Databse connection error, unable to connect database", SERVICE_UNAVAILABLE, True, str(e))
+        return marshal_response_msg({
+            "error_message" : "Databse connection error, unable to connect database",
+            "error_details" : str(e),
+            "error_code" : SERVICE_UNAVAILABLE,
+            "is_error" : True
+        })
     except pymysql.MySQLError as e:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Database error while updating price"
-        )
-        return jsonify({
-            "status": "error",
-            "message": "Database error",
-            "error": str(e)
-        }), 500
+        response_log("Database error while fetching update prices", INTERNAL_SERVER_ERROR, True, str(e))
+        return marshal_response_msg({
+            "error_message" : "Database error while fetching update prices",
+            "error_details" : str(e),
+            "error_code" : INTERNAL_SERVER_ERROR,
+            "is_error" : True
+        })
     except Exception as e:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Unexpected error while updating price"
-        )
-        return jsonify({
-            "status": "error",
-            "message": "Something went wrong",
-            "error": str(e)
-        }), 500
+        response_log("Unexpected error while fetching update prices data", NOT_IMPLEMENTED, True, str(e))
+        return marshal_response_msg({
+            "error_message" : "Unexpected error while fetching update prices data",
+            "error_details" : str(e),
+            "error_code" : NOT_IMPLEMENTED,
+            "is_error" : True
+        })
     finally:
         if cursor:
             cursor.close()

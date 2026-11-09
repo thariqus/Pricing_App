@@ -3,11 +3,11 @@ import time
 from services.price.store_price_upload import replication_main
 from utils.log_error import logger
 
-IS_CENTRAL = os.getenv("IS_CENTRAL", "false").strip().lower() in ("1", "true", "yes")
+IS_CENTRAL = os.getenv("IS_CENTRAL")
 
 
 def run_replication_scheduler(app, interval=60):
-    if IS_CENTRAL:
+    if IS_CENTRAL == "1":
         logger.info("Central app, replication scheduler not started")
         return
 

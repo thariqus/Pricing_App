@@ -1,16 +1,31 @@
-from flask import jsonify, request
+from flask import request
 from repository.mysql_connection import get_db_connection
 from repository.query import insert_log_message_query
-from utils.log_error import logger
 import pymysql
 import os
+from utils.log_response import _respond
+from data.error_codes import INITIATING_FUNCTION, SUCCESS, SERVICE_UNAVAILABLE, INTERNAL_SERVER_ERROR
 
 PRICE_DB = os.getenv("DB_P_NAME")
+
+def response_log(custom_message, code, error, response_message=None):
+    return _respond(
+        body={},
+        custom_message=custom_message,
+        ipaddress=request.remote_addr,
+        response_message=response_message,
+        source="repository",
+        log_type="Insert Log message",
+        message_code=f"PP{code}",
+        log_status=code,
+        error=error
+    )
 
 
 def insert_log_messages(c_message, r_message, source, m_code, l_status):
     con = None
     cursor = None
+    response_log("Enter into get insert log message function", INITIATING_FUNCTION, False)
     try:
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
@@ -20,43 +35,22 @@ def insert_log_messages(c_message, r_message, source, m_code, l_status):
             params
         )
         inserted_id = cursor.lastrowid
+        if inserted_id:
+            response_log("Insert log message inserted", SUCCESS, False)
         con.commit()
+
+        response_log("Insert log message inserted complete", SUCCESS, False)
         return {
             "status": "success",
             "message": "Price created successfully",
             "id": inserted_id
         }
     except ConnectionError as e:
-        logger.error(
-            f"Database connection error: {e}"
-        )
-        return jsonify({
-            "status": "error",
-            "message": "Unable to connect to database",
-            "error": str(e)
-        }), 503
+        return response_log("Database connection error", SERVICE_UNAVAILABLE, True, str(e))
     except pymysql.MySQLError as e:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Database error while creating price"
-        )
-        return jsonify({
-            "status": "error",
-            "message": "Database error",
-            "error": str(e)
-        }), 500
+        return response_log("Database error while insert log message", INTERNAL_SERVER_ERROR, True, str(e))
     except Exception as e:
-        if con:
-            con.rollback()
-        logger.exception(
-            "Unexpected error while creating price"
-        )
-        return jsonify({
-            "status": "error",
-            "message": "Something went wrong",
-            "error": str(e)
-        }), 500
+        return response_log("Unexpected error while insert log message", INTERNAL_SERVER_ERROR, True, str(e))
     finally:
         if cursor:
             cursor.close()

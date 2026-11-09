@@ -24,17 +24,7 @@
 
 <body>
 
-{# Expects: items, page, limit, total (from your backend response) #}
-{% set page = page|default(1)|int %}
-{% set limit = limit|default(100)|int %}
-{% set total = total|default(items|length)|int %}
-{% set total_pages = [((total + limit - 1) // limit), 1]|max %}
-{% set first_row = ((page - 1) * limit + 1) if total else 0 %}
-{% set last_row = [page * limit, total]|min %}
-{% set win_start = [page - 2, 1]|max %}
-{% set win_end = [page + 2, total_pages]|min %}
-
-<div class="detail-container">
+<div class="detail-container" id="detail" data-site="{{ site_code }}">
 
     <!-- =====================================================
          HEADER
@@ -76,11 +66,8 @@
             </div>
 
             <div class="summary">
-                <span class="pill total">Total: {{ total }}</span>
-                <span class="pill failed">
-                    Failed on this page:
-                    {{ items|selectattr('status', 'equalto', 'Failed')|list|length }}
-                </span>
+                <span class="pill total">Total: <span id="totalCount">0</span></span>
+                <span class="pill failed">Failed: <span id="failedCount">0</span></span>
             </div>
 
         </div>
@@ -131,54 +118,10 @@
                     </tr>
                 </thead>
 
-                <tbody>
-                    {% for item in items %}
-                    {% set is_failed = (item.status or '')|string|lower in ['failed', 'faild', 'fail'] %}
-                    <tr class="{{ 'failed' if is_failed }}">
-                        <td>{{ (page - 1) * limit + loop.index }}</td>
-                        <td>{{ item.item_no }}</td>
-                        <td>{{ item.condition_type }}</td>
-                        <td>{{ item.active }}</td>
-                        <td>{{ item.change_type }}</td>
-                        <td>{{ item.customer }}</td>
-                        <td>{{ item.customer_grp }}</td>
-                        <td>{{ item.customer_hierarchy }}</td>
-                        <td>{{ item.distribution_channel_code }}</td>
-                        <td>{{ item.location_code }}</td>
-                        <td>{{ item.currency }}</td>
-                        <td>{{ item.sales_price }}</td>
-                        <td>{{ item.uom }}</td>
-                        <td>{{ item.minimum_quantity }}</td>
-                        <td>{{ item.priority }}</td>
-                        <td>{{ item.starting_date }}</td>
-                        <td>{{ item.ending_date }}</td>
-                        <td>{{ item.lower_limit }}</td>
-                        <td>{{ item.upper_limit }}</td>
-                        <td>{{ item.map }}</td>
-                        <td>{{ item.offer_article }}</td>
-                        <td>{{ item.price_with_tax }}</td>
-                        <td>{{ item.tax_percent }}</td>
-                        <td>{{ item.transportation_zone_code }}</td>
-                        <td>{{ item.updated_from_sap }}</td>
-                        <td>{{ item.created }}</td>
-                        <td>{{ item.updated }}</td>
-                        <td>
-                            <div class="status-cell">
-                                <span class="badge">{{ item.status }}</span>
-                                {% if is_failed %}
-                                <button type="button" class="retry-btn"
-                                        data-item='{{ item | tojson | forceescape }}'>
-                                    <i class="fas fa-rotate-right"></i> Retry
-                                </button>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
+                <tbody id="detailBody">
                     <tr>
-                        <td colspan="28" class="empty">No records found.</td>
+                        <td colspan="28" class="empty">Loading…</td>
                     </tr>
-                    {% endfor %}
                 </tbody>
 
             </table>
@@ -186,59 +129,6 @@
         </div>
 
     </section>
-
-
-    <!-- =====================================================
-         PAGINATION
-         ===================================================== -->
-
-    <nav class="pager" aria-label="Pagination">
-
-        <span class="range">
-            Showing <strong>{{ first_row }}–{{ last_row }}</strong> of <strong>{{ total }}</strong>
-        </span>
-
-        <form class="size" method="get" action="{{ request.path }}">
-            <label for="limit">Rows per page</label>
-            <select id="limit" name="limit" onchange="this.form.submit()">
-                {% for n in [25, 50, 100, 200] %}
-                <option value="{{ n }}" {{ 'selected' if n == limit }}>{{ n }}</option>
-                {% endfor %}
-            </select>
-            <input type="hidden" name="page" value="1">
-        </form>
-
-        <div class="pages">
-
-            <a class="pg {{ 'disabled' if page <= 1 }}"
-               href="{{ request.path }}?page={{ page - 1 }}&limit={{ limit }}"
-               aria-label="Previous page">&lsaquo; Prev</a>
-
-            {% if win_start > 1 %}
-            <a class="pg" href="{{ request.path }}?page=1&limit={{ limit }}">1</a>
-            {% if win_start > 2 %}<span class="gap">…</span>{% endif %}
-            {% endif %}
-
-            {% for p in range(win_start, win_end + 1) %}
-            {% if p == page %}
-            <span class="pg current" aria-current="page">{{ p }}</span>
-            {% else %}
-            <a class="pg" href="{{ request.path }}?page={{ p }}&limit={{ limit }}">{{ p }}</a>
-            {% endif %}
-            {% endfor %}
-
-            {% if win_end < total_pages %}
-            {% if win_end < total_pages - 1 %}<span class="gap">…</span>{% endif %}
-            <a class="pg" href="{{ request.path }}?page={{ total_pages }}&limit={{ limit }}">{{ total_pages }}</a>
-            {% endif %}
-
-            <a class="pg {{ 'disabled' if page >= total_pages }}"
-               href="{{ request.path }}?page={{ page + 1 }}&limit={{ limit }}"
-               aria-label="Next page">Next &rsaquo;</a>
-
-        </div>
-
-    </nav>
 
 </div>
 

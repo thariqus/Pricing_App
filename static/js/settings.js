@@ -22,12 +22,43 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // change these to your real Flask routes
     const SAVE_URL   = "/api/add_site_settings";       // POST   { sites: [...] }
-    const GET_URL    = "/api/get_all_sites";           // GET    -> { sites: [...] }
+    const GET_URL    = "/api/get_all_sites";           // GET    -> { response: { data: [...] } }
     const UPDATE_URL = "/api/update_site/";            // PUT    + id
     const DELETE_URL = "/api/delete_site/";            // DELETE + id
 
     let editingRow   = null;
     let messageTimer = null;
+
+
+    /* =====================================================
+       RESPONSE ENVELOPE
+       { response: { data, error, info, custom_fields, is_error } }
+
+       If a reply has no "response" wrapper (an endpoint not yet
+       migrated), the body itself is used, so both shapes work.
+       ===================================================== */
+
+    // Returns the inner "response" object, or the body itself if there's no wrapper
+    function unwrapResponse(result) {
+        return (result && result.response) ? result.response : (result || {});
+    }
+
+    // True when the reply should be treated as a failure
+    function isFailed(ok, env) {
+        return !ok || !!(env && env.is_error);
+    }
+
+    // Best human-readable error from an envelope
+    function errorMessageOf(env, fallback) {
+        const err = (env && env.error) || {};
+        return err.error_message || err.error_details || (env && env.message) || fallback;
+    }
+
+    // Best success text from an envelope
+    function successMessageOf(env, fallback) {
+        const info = (env && env.info) || {};
+        return info.success_message || (env && env.message) || fallback;
+    }
 
 
     /* =====================================================
@@ -52,15 +83,17 @@ document.addEventListener("DOMContentLoaded", function () {
         };
     }
 
+    // Calls the server and resolves with { ok, env } where env is the unwrapped envelope
     async function api(url, options) {
         const response = await fetch(url, options);
-        let data = {};
+        let env = {};
         try {
-            data = await response.json();
+            const body = await response.json();
+            env = unwrapResponse(body);
         } catch (e) {
             // response had no JSON body
         }
-        return { ok: response.ok, data: data };
+        return { ok: response.ok, env: env };
     }
 
     function showMessage(text, isError) {
@@ -160,18 +193,22 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const res = await api(GET_URL);
 
-            if (!res.ok) {
-                showMessage(res.data.message || "Could not load sites.", true);
+            if (isFailed(res.ok, res.env)) {
+                showMessage(errorMessageOf(res.env, "Could not load sites."), true);
+            } else {
+                // rows come from response.data (or the old flat shapes as fallback)
+                const env  = res.env;
+                const raw  = Array.isArray(env)
+                    ? env
+                    : (Array.isArray(env.data) ? env.data : (env.sites || []));
+                const list = raw.map(normalizeSite);
+
+                sitesBody.innerHTML = "";
+
+                list.forEach(function (site) {
+                    sitesBody.appendChild(createDbRow(site));
+                });
             }
-
-            const raw  = Array.isArray(res.data) ? res.data : (res.data.data || res.data.sites || []);
-            const list = raw.map(normalizeSite);
-
-            sitesBody.innerHTML = "";
-
-            list.forEach(function (site) {
-                sitesBody.appendChild(createDbRow(site));
-            });
 
         } catch (err) {
             console.error(err);
@@ -223,12 +260,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 method: "DELETE"
             });
 
-            if (res.ok) {
+            if (isFailed(res.ok, res.env)) {
+                showMessage(errorMessageOf(res.env, "Delete failed."), true);
+            } else {
                 row.remove();
                 ensureOneRow();
-                showMessage(res.data.message || "Site deleted.", false);
-            } else {
-                showMessage(res.data.message || "Delete failed.", true);
+                showMessage(successMessageOf(res.env, "Site deleted."), false);
             }
 
         } catch (err) {
@@ -311,12 +348,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
             });
 
-            if (res.ok) {
+            if (isFailed(res.ok, res.env)) {
+                showEditError(errorMessageOf(res.env, "Update failed."));
+            } else {
                 fillDbRow(editingRow, site);
                 closeEditModal();
-                showMessage(res.data.message || "Site updated.", false);
-            } else {
-                showEditError(res.data.message || "Update failed.");
+                showMessage(successMessageOf(res.env, "Site updated."), false);
             }
 
         } catch (err) {
@@ -391,11 +428,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 body: JSON.stringify({ sites: sites })
             });
 
-            if (res.ok) {
-                showMessage(res.data.message || "Sites saved.", false);
-                await loadSites();          // refresh: saved rows now show edit/delete icons
+            if (isFailed(res.ok, res.env)) {
+                showMessage(errorMessageOf(res.env, "Save failed."), true);
             } else {
-                showMessage(res.data.message || "Save failed.", true);
+                showMessage(successMessageOf(res.env, "Sites saved."), false);
+                await loadSites();          // refresh: saved rows now show edit/delete icons
             }
 
         } catch (err) {
