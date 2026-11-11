@@ -129,9 +129,9 @@ def integration():
 def integration_check():
     return ho_to_store_integration()
 
-@app.route("/api/items/get_repliaction_data/<int:version_id>")
-def get_replication_data(version_id):
-    return get_replication(version_id)
+@app.route("/api/items/get_repliaction_data/<int:version_id>/<int:site_id>")
+def get_replication_data(version_id, site_id):
+    return get_replication(version_id, site_id)
 
 @app.get("/settings")
 def settings():
@@ -140,8 +140,11 @@ def settings():
 
 @app.get("/site-details/<siteid>")
 def site_details(siteid):
-    items  = store_to_ho_data(siteid)
-    return render_template("site_detail.html", items=items)
+    return render_template("site_detail.html", site_code=siteid)
+
+@app.get("/api/items/site_details/<siteid>")
+def site_details_api(siteid):
+    return store_to_ho_data(siteid)
 
 @app.route("/api/items/notify_stores", methods=['GET'])
 def get_notification():
@@ -152,12 +155,7 @@ def prices_from_version(version_id):
     skip = request.args.get("skip", 0, type=int)
     site_code = request.args.get("site_code", type=int)
     rows = get_prices_from_version(version_id, site_code, skip)
-    return jsonify({
-        "status": "success",
-        "version_id": version_id,
-        "count": len(rows),
-        "data": rows,
-    }), 200
+    return rows
 
 # site settings code
 

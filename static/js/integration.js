@@ -10,6 +10,36 @@ document.addEventListener("DOMContentLoaded", function () {
     const ECG_PATH =
         "M0 15 H40 L45 12 L50 15 H56 L60 18 L65 3 L70 27 L74 15 H80 L86 11 L92 15 H120 L125 12 L130 15 H136 L140 18 L145 3 L150 27 L154 15 H160 L166 11 L172 15 H200";
 
+
+    /* =====================================================
+       RESPONSE ENVELOPE
+       { response: { data, error, info, custom_fields, is_error } }
+
+       If a reply has no "response" wrapper (an endpoint not yet
+       migrated), the body itself is used, so both shapes work.
+       ===================================================== */
+
+    // Returns the inner "response" object, or the body itself if there's no wrapper
+    function unwrapResponse(result) {
+        return (result && result.response) ? result.response : (result || {});
+    }
+
+    // True when the reply should be treated as a failure
+    function isFailed(ok, env) {
+        return !ok || !!(env && env.is_error);
+    }
+
+    // Best human-readable error from an envelope
+    function errorMessageOf(env, fallback) {
+        const err = (env && env.error) || {};
+        return err.error_message || err.error_details || (env && env.message) || fallback;
+    }
+
+
+    /* =====================================================
+       HELPERS
+       ===================================================== */
+
     // Escape text before putting it into HTML
     function esc(value) {
         const d = document.createElement("div");
@@ -28,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="node ho" title="${esc(ho.name)}">${esc(ho.code)}</div>
 
             <div class="site-title">
-              <strong>Site ${code}</strong>
+              <strong>${code}</strong>
             </div>
 
             <span class="flag-status">
@@ -59,16 +89,46 @@ document.addEventListener("DOMContentLoaded", function () {
             linksEl.innerHTML = '<p class="loading-msg">No sites configured.</p>';
             return;
         }
-        linksEl.innerHTML = data.sites.map(function (s) { return siteRow(data.head, s); }).join("");
+        linksEl.innerHTML = data.sites.map(function (s) { return siteRow(data.head || {}, s); }).join("");
     }
+
+
+    /* =====================================================
+       LOAD
+       ===================================================== */
 
     async function loadSites() {
         if (loading) return; // skip if the previous call is still running
         loading = true;
         try {
             const res = await fetch(API_URL, { headers: { Accept: "application/json" } });
-            if (!res.ok) throw new Error("HTTP " + res.status);
-            render(await res.json());
+
+            // read the body first: an error reply still carries error details
+            let body = {};
+            try {
+                body = await res.json();
+            } catch (e) {
+                // no JSON body
+            }
+
+            const env = unwrapResponse(body);
+
+            if (isFailed(res.ok, env)) {
+                throw new Error(errorMessageOf(env, "HTTP " + res.status));
+            }
+
+            // head and sites are sent in custom_fields (see ho_to_store_integration).
+            // Fall back to response.data, then to the flat shape.
+            const custom = env.custom_fields || {};
+            const data   = env.data || {};
+
+            const payload =
+                custom.sites !== undefined ? custom :
+                (!Array.isArray(data) && data.sites !== undefined) ? data :
+                env;
+
+            render(payload);
+
         } catch (err) {
             console.error("Failed to load integration status:", err);
             // Keep the old rows if we have them; show an error only when nothing has loaded yet

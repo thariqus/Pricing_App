@@ -1,46 +1,36 @@
-from flask import jsonify, request
+from flask import request
 from repository.mysql_connection import get_db_connection
-from utils.log_error import logger
-from repository.price.create_log import write_log
 import pymysql
+from utils.log_response import _respond
 import os
 from data.error_codes import (
     INITIATING_FUNCTION,
     BAD_REQUEST,
     SUCCESS,
     SERVICE_UNAVAILABLE,
-    INTERNAL_SERVER_ERROR
+    INTERNAL_SERVER_ERROR,
+    NOT_FOUND,
+    NOT_IMPLEMENTED
 )
+from data.structure.combination_rule import PRIORITY_RULES, FIELD_MAP
+from repository.query import _price_query
+from data.response import marshal_response_msg
 
-LOG_SOURCE = "price_priority"
-LOG_TYPE = "PRICE_FETCH"
-
-# Payload key -> PRICING_TABLE column
-FIELD_MAP = {
-    "customer_no":               "customer",
-    "customer_group":            "customer_grp",
-    "customer_hierarchy":        "customer_hierarchy",
-    "distribution_channel_code": "distribution_channel_code",
-    "location_code":             "location_code",
-    "transportation_zone_code":  "transportation_zone_code",
-}
+SOURCE = "/api/get_discounted_item_price"
 
 
-# Access sequence: priority -> key columns (item_no + uom are always required)
-PRIORITY_RULES = [
-    (1,  ["distribution_channel_code", "customer", "location_code"]),
-    (2,  ["distribution_channel_code", "customer_grp", "location_code"]),
-    (3,  ["distribution_channel_code", "customer"]),
-    (4,  ["distribution_channel_code", "customer_grp"]),
-    (5,  ["customer_grp"]),
-    (6,  ["customer_hierarchy", "location_code"]),
-    (7,  ["customer_hierarchy"]),
-    (8,  ["distribution_channel_code", "location_code", "transportation_zone_code"]),
-    (9,  ["distribution_channel_code", "location_code"]),
-    (10, ["distribution_channel_code"]),
-    (11, []),
-]
-
+def response_log(custom_message, code, error, response_message=None):
+    return _respond(
+        body={},
+        custom_message=custom_message,
+        ipaddress=request.remote_addr,
+        response_message=response_message,
+        source="repository",
+        log_type="Get price priority",
+        message_code=f"PP{code}",
+        log_status=code,
+        error=error
+    )
 
 def _val(data, key):
     """Trimmed string value, or None if missing/empty."""
@@ -58,73 +48,21 @@ def _key_val(data, key):
         return None
     return value
 
-def _price_query(key_columns):
-    where = "".join(f" AND {col} = %s" for col in key_columns)
-    return (
-        "SELECT * FROM PRICING_TABLE"
-        " WHERE active = 1"
-        "   AND priority = %s"
-        "   AND item_no = %s"
-        "   AND uom = %s"
-        "   AND COALESCE(minimum_quantity, 0) <= %s"
-        "   AND ending_date >= NOW()"
-        f"{where}"
-        " ORDER BY (starting_date <= NOW()) DESC,"
-        "          minimum_quantity DESC,"
-        "          starting_date DESC"
-        " LIMIT 1"
-    )
-
-def _respond(body, status, context, message_code, is_error, response_message=None,ipaddress=None):
-    """Write the log row, then return the JSON response."""
-    write_log(
-        custom_message=context,
-        response_message=response_message or body.get("message"),
-        source=LOG_SOURCE,
-        log_type=LOG_TYPE,
-        message_code=message_code,
-        log_status=status,
-        info=not is_error,
-        error=is_error,
-        ipaddress=ipaddress
-    )
-    return jsonify(body), status
-
-
-
 def get_price_priority(data):
     con = None
     cursor = None
-    context = "Price lookup"
-    log_type = "Get Price Priority"
-    ipaddress = request.remote_addr
 
-    write_log(
-        custom_message="Entered in getprice priority function",
-        ipaddress=ipaddress,
-        response_message="",
-        source=LOG_SOURCE,
-        log_type=log_type,
-        message_code=f"PP{INITIATING_FUNCTION}",
-        log_status=INITIATING_FUNCTION,
-        info=True,
-        error=False
-    )
+
+    response_log("Entered in getprice priority function", INITIATING_FUNCTION, False)
     try:
         if not data or not isinstance(data, dict):
-            return _respond(
-                body={
-                    "status": "error",
-                    "message": "Request data is empty or invalid"
-                },
-                log_type=log_type,
-                status=BAD_REQUEST,
-                context=context,
-                message_code=f"PP{BAD_REQUEST}",
-                is_error=True,
-                response_message="Request data is empty or invalid",
-                ipaddress=ipaddress
-            )
+            response_log("Request data is empty or invalid", BAD_REQUEST, True)
+            return marshal_response_msg({
+                "error_message" : "Request data is empty or invalid",
+                "error_details" : "Give data is invalid, please provide a valid data",
+                "error_code" : BAD_REQUEST,
+                "is_error" : True
+            })
 
         item_no = _val(data, "item_no")
         uom = _val(data, "unit_of_measure_code")
@@ -135,40 +73,24 @@ def get_price_priority(data):
         )
 
         if not item_no or not uom:
-            return _respond(
-                body={
-                    "status": "error",
-                    "message": (
-                        "item_no and unit_of_measure_code are required"
-                    )
-                },
-                log_type=log_type,
-                status=BAD_REQUEST,
-                context=context,
-                message_code=f"PP{BAD_REQUEST}",
-                is_error=True,
-                response_message=(
-                    "item_no and unit_of_measure_code are required"
-                ),
-                ipaddress=ipaddress
-            )
+            response_log("item_no and unit_of_measure_code are required", BAD_REQUEST, True)
+            return marshal_response_msg({
+                "error_message" : "Invalid request",
+                "error_details" : "Item no and UOM are required, there are not provided, please provide it",
+                "error_code" : BAD_REQUEST,
+                "is_error" : True
+            })
 
         try:
             quantity = float(_val(data, "qty") or 1)
         except (ValueError, TypeError):
-            return _respond(
-                body={
-                    "status": "error",
-                    "message": "qty must be a number"
-                },
-                log_type=log_type,
-                status=BAD_REQUEST,
-                context=context,
-                message_code=f"PP{BAD_REQUEST}",
-                is_error=True,
-                response_message="qty must be a number",
-                ipaddress=ipaddress
-            )
+            response_log("Quanty must be a number", BAD_REQUEST, True)
+            return marshal_response_msg({
+                "error_message" : "Value error",
+                "error_details" : "Quantity must be a number",
+                "error_code" : BAD_REQUEST,
+                "is_error" : True
+            })
 
         # Values provided by the caller, keyed by DB column
         provided = {
@@ -205,24 +127,13 @@ def get_price_priority(data):
                 break
 
         if not result:
-            return _respond(
-                body={
-                    "status": "error",
-                    "message": (
-                        f"No active price found for item {item_no} ({uom})"
-                    ),
-                    "checked_priorities": checked
-                },
-                log_type=log_type,
-                status=404,
-                context=context,
-                message_code="PP404",
-                is_error=True,
-                response_message=(
-                    f"No active price found, checked priorities {checked}"
-                ),
-                ipaddress=ipaddress
-            )
+            response_log(f"No active price found for item {item_no} ({uom})", NOT_FOUND, True)
+            return marshal_response_msg({
+                "error_message" : "Not Found",
+                "error_details" : "No active price found for item",
+                "error_code" : NOT_FOUND,
+                "is_error" : True
+            })
 
         base_price = result.get("sales_price") or 0
 
@@ -241,82 +152,40 @@ def get_price_priority(data):
             "name": str(result.get("id", "")),
         }
 
-        return _respond(
-            body={
-                "data": "Item price with discount applied",
-                "message": final_data
-            },
-            log_type=log_type,
-            status=SUCCESS,
-            context=context,
-            message_code=f"PP{SUCCESS}",
-            is_error=False,
-            response_message=(
-                f"Price {base_price} found at priority "
-                f"{matched_priority} (id {result.get('id')})"
-            ),
-            ipaddress=ipaddress
-        )
+        response_log("Get price priority completed", SUCCESS, False)
+
+        return marshal_response_msg({
+            "data" : final_data,
+            "success_message" : "Successfully selected price priority",
+            "success_code" : SUCCESS,
+            "source" : SOURCE,
+            "is_error" : False
+        })
 
     except ConnectionError as e:
-        logger.exception(
-            "Database connection error while fetching price priority"
-        )
-
-        return _respond(
-            body={
-                "status": "error",
-                "message": "Unable to connect to database",
-                "error": str(e)
-            },
-            log_type=log_type,
-            status=SERVICE_UNAVAILABLE,
-            context=context,
-            message_code=f"PP{SERVICE_UNAVAILABLE}",
-            is_error=True,
-            response_message=str(e),
-            ipaddress=ipaddress
-        )
-
+        response_log("Databse connection error, unable to connect database", SERVICE_UNAVAILABLE, True, str(e))
+        return marshal_response_msg({
+            "error_message" : "Databse connection error, unable to connect database",
+            "error_details" : str(e),
+            "error_code" : SERVICE_UNAVAILABLE,
+            "is_error" : True
+        })
     except pymysql.MySQLError as e:
-        logger.exception(
-            "Database error while fetching price priority"
-        )
-
-        return _respond(
-            body={
-                "status": "error",
-                "message": "Database error",
-                "error": str(e)
-            },
-            log_type=log_type,
-            status=INTERNAL_SERVER_ERROR,
-            context=context,
-            message_code=f"PP{INTERNAL_SERVER_ERROR}",
-            is_error=True,
-            response_message=str(e),
-            ipaddress=ipaddress
-        )
-
+        response_log("Database error while fetching prices priority", INTERNAL_SERVER_ERROR, True, str(e))
+        return marshal_response_msg({
+            "error_message" : "Database error while fetching prices priority",
+            "error_details" : str(e),
+            "error_code" : INTERNAL_SERVER_ERROR,
+            "is_error" : True
+        })
     except Exception as e:
-        logger.exception(
-            "Unexpected error while fetching price priority"
-        )
-
-        return _respond(
-            body={
-                "status": "error",
-                "message": "Something went wrong",
-                "error": str(e)
-            },
-            log_type=log_type,
-            status=INTERNAL_SERVER_ERROR,
-            context=context,
-            message_code=f"PP{INTERNAL_SERVER_ERROR}",
-            is_error=True,
-            response_message=str(e),
-            ipaddress=ipaddress
-        )
+        response_log("Unexpected error while fetching prices priority data", NOT_IMPLEMENTED, True, str(e))
+        return marshal_response_msg({
+            "error_message" : "Unexpected error while fetching prices priority data",
+            "error_details" : str(e),
+            "error_code" : NOT_IMPLEMENTED,
+            "is_error" : True
+        })
 
     finally:
         if cursor:

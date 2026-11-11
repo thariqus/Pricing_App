@@ -10,11 +10,13 @@ from repository.query import (
     store_deactivate_old_query,
     store_upsert_versions_query,
 )
-from utils.log_error import logger
+from data.error_codes import BAD_REQUEST, SUCCESS, SERVICE_UNAVAILABLE, INTERNAL_SERVER_ERROR
+from data.response import marshal_response_msg
 
 PRICE_DB = os.getenv("DB_P_NAME")
 BATCH_SIZE = 1000
 DATE_COLUMNS = ("starting_date", "ending_date")
+SOURCE = ""
 
 
 def _db_datetime(value):
@@ -32,13 +34,17 @@ def _row_params(record):
         for col in STORE_PRICE_COLUMNS
     )
 
-
 def store_create_price(records):
-    if not records:
-        return {"inserted": 0, "deactivated": 0}
-
     con = None
     try:
+        if not records:
+            return marshal_response_msg({
+                "error_message" : "No Records found",
+                "error_details" : "Records is required, but not given",
+                "error_code" : BAD_REQUEST,
+                "is_error" : True
+            })
+
         con = get_db_connection(PRICE_DB)
         con.autocommit(False)
 
@@ -58,14 +64,32 @@ def store_create_price(records):
             cursor.execute(*store_upsert_versions_query(after_id))
 
         con.commit()   # all rows, activations, deactivations and versions together
-        logger.info("Replication: %s inserted, %s deactivated", len(records), deactivated)
-        return {"inserted": len(records), "deactivated": deactivated}
+        
+        return marshal_response_msg({
+            "success_message" : "Successfully created",
+            "success_code" : SUCCESS,
+            "source" : SOURCE,
+            "is_error" : False,
+            "custom_field" : {
+                "inserted" : len(records),
+                "deactivated" : deactivated
+            }
+        })
 
+    except ConnectionError as e:
+        return marshal_response_msg({
+        "error_message" : "Database connection error",
+        "error_details" : str(e),
+        "error_code" : SERVICE_UNAVAILABLE,
+        "is_error" : True
+        })
     except Exception:
-        if con:
-            con.rollback()   # nothing from this batch is kept
-        logger.exception("Replication insert failed, batch rolled back")
-        raise
+        return marshal_response_msg({
+            "error_message" : "Unexpected error while store create price",
+            "error_details" : str(e),
+            "error_code" : INTERNAL_SERVER_ERROR,
+            "is_error" : True
+            })
     finally:
         if con:
             con.close()

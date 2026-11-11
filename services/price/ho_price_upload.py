@@ -1,25 +1,31 @@
-import http
-
-from flask import request, render_template, jsonify
+from flask import request, render_template
 import requests
 import os
 from data.csv_upload.price_csv_upload import upload_csv
 from repository.price.ho_create_price import ho_create_price
 from data.csv_upload.price_csv_check import check_price_csv_items
-import json
 from concurrent.futures import ThreadPoolExecutor
-from configration.integration_ip import SITES
-
-from utils.log_error import logger
-import threading
-
-
-
+from repository.price.get_all_site_data import get_all_site_data
+from data.response import marshal_response_msg
+from data.error_codes import BAD_REQUEST, UNAUTHORIZED, INITIATING_FUNCTION, SUCCESS
+from utils.log_response import _respond
 
 
 IS_CENTRAL = os.getenv("IS_CENTRAL")
 VALIDATION_API = os.getenv("VALIDATION_API")
 
+def response_log(custom_message, code, error, response_message=None):
+    return _respond(
+        body={},
+        custom_message=custom_message,
+        ipaddress=request.remote_addr,
+        response_message=response_message,
+        source="service",
+        log_type="HO price upload",
+        message_code=f"PP{code}",
+        log_status=code,
+        error=error
+    )
 
 # should be on utlis
 def _is_blank_row(row):
@@ -46,7 +52,7 @@ def call_apis(api_name):
         }
 
 def ho_price_upload():
-
+    response_log("Entered in HO price upload function", INITIATING_FUNCTION, False)
     if IS_CENTRAL == '1':
         file = request.files.get("file")
 
@@ -61,10 +67,14 @@ def ho_price_upload():
         csv_record = [row for row in (csv_record or []) if not _is_blank_row(row)]
 
         if not csv_record:
-            return jsonify({
-                "status": "error",
-                "message": "CSV file contains no records"
-            }), 400
+            response_log("CSV file contains no records", BAD_REQUEST, True)
+            return marshal_response_msg({
+                "error_message" : "Empty CSV",
+                "error_details" : "CSV file contains no records",
+                "error_code" : BAD_REQUEST,
+                "is_error" : True
+            })
+        
         validation_records = [
             {
                 "item_code": data.get("item_no"),
@@ -77,27 +87,42 @@ def ho_price_upload():
             json=validation_records
             # timeout=60
         )
+
+        if not response.ok:
+            response_log("API call error", BAD_REQUEST, True)
+            return marshal_response_msg({
+                "error_message" : "API call error",
+                "error_details" : "Error occure when API called",
+                "error_code" : BAD_REQUEST,
+                "is_error" : True,
+            })
+
         response_message = response.json()
         valid_data, invalid_data = check_price_csv_items(csv_record, response_message)
         
         mysql = ho_create_price(valid_data, file, invalid_data)
-        if mysql is False:
-            return jsonify({
-                "status": "error",
-                "message": "Failed to create HO prices"
-            }), 500
+        if mysql['response']['is_error']:
+            return mysql
 
         results = []
+
+        sites_data = get_all_site_data()['response']['data']
+        SITES= [
+            sites['site_ip'] for sites in sites_data
+        ]
         with ThreadPoolExecutor(max_workers=5) as executor:
             result = executor.map(
                 call_apis,
                 SITES
             )
             results.extend(result)
-        
+
+        response_log("Create price function completed", SUCCESS, False)
         return mysql
     else:
-        return jsonify({
-            "status": "error",
-            "message": "NO permission to upload"
+        return marshal_response_msg({
+            "error_message" : "Permission error",
+            "error_details" : "NO permission to upload",
+            "error_code" : UNAUTHORIZED,
+            "is_error" : True
         })
