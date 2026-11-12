@@ -27,7 +27,7 @@ def replication_main():
     latest_version = get_latest_version()
     skip = get_version_record_count(latest_version) if latest_version else 0
 
-    records = latest_update(latest_version, skip).get("data", [])
+    records = latest_update(latest_version, skip).get("response", {}).get("data", [])
     if not records:
         return None
 

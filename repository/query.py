@@ -485,7 +485,7 @@ def select_all_prices(page, limit):
     sql_query = """
         SELECT *
         FROM PRICING_TABLE
-        ORDER BY updated DESC
+        ORDER BY active DESC
         LIMIT %s OFFSET %s
     """
     count_query = """
@@ -794,11 +794,9 @@ def get_active_same_combination_query(row, combination):
     sql_query = f"""
         SELECT *
         FROM PRICING_TABLE
-        WHERE active = 1
-          AND id <> %s
-          AND {where}
+        WHERE {where}
     """
-    params = (row["id"],) + tuple(row.get(column) for column in combination)
+    params =  tuple(row.get(column) for column in combination)
     return sql_query, params
 
 
@@ -1362,3 +1360,7 @@ def _price_query(key_columns):
              LIMIT 1"""
     return sql_qry
 
+def select_all_prices_scheduler():
+    return """
+    select * from PRICING_TABLE
+    """

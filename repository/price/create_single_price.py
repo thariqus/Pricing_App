@@ -2,7 +2,7 @@ from flask import request
 import pymysql
 from repository.mysql_connection import get_db_connection
 from utils.log_response import _respond
-from repository.query import insert_price_query, get_latest_version_id_query, insert_version_query, deactivate_combination_query
+from repository.query import insert_price_query, get_latest_version_id_query, insert_version_query, deactivate_combination_query, get_active_same_combination_query, deactivate_price_by_ids_query
 from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
 from data.error_codes import (
     INITIATING_FUNCTION,
@@ -44,7 +44,6 @@ def create_single_price(data):
     response_log("Entered in single item price function", INITIATING_FUNCTION, False)
 
     try:
-        print(data)
         if not data:
             response_log("Request data is empty or invalid", BAD_REQUEST, True)
             return marshal_response_msg({
@@ -76,12 +75,27 @@ def create_single_price(data):
                 "error_code" : BAD_REQUEST,
                 "is_error" : True
             })
-    
 
         # 1. old prices for this combination -> inactive (only if the new price has started)
         if not is_future:
             deact_sql, deact_params = deactivate_combination_query(data, combination=combination)
             cursor.execute(deact_sql, deact_params)
+
+        data['id'] = ""
+
+        sql_query, params = get_active_same_combination_query(data, combination)
+        cursor.execute(sql_query, params)
+        active_rows = cursor.fetchall()
+
+        ids_to_deactivate = [
+        row["id"]
+        for row in active_rows
+        ]
+
+
+        if ids_to_deactivate:
+            sql_query, params = deactivate_price_by_ids_query(ids_to_deactivate)
+            cursor.execute(sql_query, params)
 
         # 2. new price -> active only if it has started
         data["active"] = 0 if is_future else 1

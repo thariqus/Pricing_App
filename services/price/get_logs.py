@@ -22,4 +22,4 @@ def get_logs():
     if data['response']['is_error']:
         return data
     response_log("Fetch all log message function completed", SUCCESS, False)
-    return data['response']['data']
+    return data
