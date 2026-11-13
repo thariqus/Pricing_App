@@ -13,6 +13,7 @@ DISCOUNT_DB = os.getenv("DB_D_NAME")
 def get_db_connection(database=None):
     if database is ...:
         database = PRICING_DB
+
     try:
         connection = pymysql.connect(
             host=os.getenv("DB_HOST", "localhost"),
@@ -36,3 +37,9 @@ def get_db_connection(database=None):
         raise ConnectionError(
             f"Database connection failed: {e}"
         ) from e
+
+
+# def get_discount_db_connection():
+#     if not DISCOUNT_DB:
+#         raise ConnectionError("DB_D_NAME is not set in .env")
+#     return get_db_connection(DISCOUNT_DB)

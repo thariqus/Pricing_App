@@ -17,12 +17,17 @@ from services.price.add_sites import add_sites
 from services.price.get_all_sites import get_all_sites
 from services.price.site_delete import site_delete
 from services.price.site_edit import site_edit
-from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
+from services.discount.create_single_discount import create_single_item_discount
+from services.discount.ho_discount_upload import ho_discount_upload
+from services.discount.notify_discount_store import notify_discount_store
+from discount_api import fetch_all_discounts,update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
 from flask.json.provider import DefaultJSONProvider
-
+from services.discount.update_discount import update_item_discount
+from repository.discount.update_discount import update_discount_data
 from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
+from repository.discount.fetch_ho_discount_records_by_version import get_discounts_from_version
 from flask import jsonify
 from utils.auth import admin_required
 
@@ -76,36 +81,59 @@ def main_filter_prices():
 def get_items_prices():
     return get_items_price_priority()
 
+#discount functions
+
 #discount pages
 
-@app.route('/api/items/create_single_item_discount')
-def create_single_discount():
-    return create_single_discount()
+@app.get("/discount")
+def discount():
+    return render_template("discount.html")
+
+
+@app.route('/api/items/create_single_item_discount', methods=['POST'])
+def create_single_discount_view():
+    return create_single_item_discount()
 
 @app.route('/api/items/create_csv_item_discount', methods=['POST'])
 def create_csv_discount():
-    return upload_discount_csv()
+    return ho_discount_upload()
 
 @app.route('/api/items/fetch_all_discount_prices', methods=['POST'])
 def fetch_discount():
     return fetch_all_discounts()
 
-@app.route('/api/items/filter_discount_prices', methods=['GET'])
+@app.route('/api/items/filter_discount_prices', methods=['POST'])
 def filter_discount():
     return filter_discount_data()
 
-@app.route('/api/items/update_item_discounts/<int:discount_id>', methods=['PUT'])
-def update_discount(discount_id):
-    return update_discount_data(discount_id)
+@app.route("/api/items/update_item_discounts/", methods=["PUT"])
+def update_item_discounts():
+    return update_item_discount()
 
 @app.route('/api/items/get_priority_item_discount')
 def get_priority_discount():
     return get_discounts()
 
-@app.get("/discount")
-def discount():
-    return render_template("discount.html")
- 
+
+@app.route("/api/items/notify_discount_stores", methods=["GET"])
+def notify_discount_stores_view():
+    return notify_discount_store()
+
+
+@app.route("/api/items/discount/version/<int:version_id>")
+def discounts_from_version(version_id):
+    skip = request.args.get("skip", 0, type=int)
+    site_code = request.args.get("site_code", type=int)
+    rows = get_discounts_from_version(version_id, site_code, skip)
+    return jsonify({
+        "status": "success",
+        "version_id": version_id,
+        "count": len(rows),
+        "data": rows,
+    }), 200
+
+
+# price
 
 @app.route("/api/items/central_app", methods=['POST'])
 def central_app():

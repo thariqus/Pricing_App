@@ -714,7 +714,12 @@ def filter_prices(data, page=1, limit=500):
         f"SELECT * FROM PRICING_TABLE{where_sql}{order_sql} LIMIT %s OFFSET %s"
     )
     select_params = params + [limit, (page - 1) * limit]
+    print("FILTER DATA:", data)
+    print("SELECT SQL:", select_sql)
+    print("PARAMS:", params)
     return select_sql, count_sql, select_params, params
+
+
 
 def deactive_exp_price_items():
     sql_query = """
@@ -772,6 +777,16 @@ def get_latest_version_id_query():
     """
 
 
+def get_latest_version_id_query_discount():
+    return """
+        SELECT id AS version_id
+        FROM pricing_version
+        ORDER BY id DESC
+        LIMIT 1
+    """
+
+
+
 def get_pending_activation_query():
     """Params: (now, now)"""
     return """
@@ -782,10 +797,33 @@ def get_pending_activation_query():
           AND ending_date >= %s
     """
 
+def get_pending_discount_activation_query():
+    sql = """
+        SELECT *
+        FROM DISCOUNT_TABLE
+        WHERE active = 0
+          AND starting_date <= %s
+          AND ending_date >= %s
+    """
+    return sql
 
 
 # indexing query
 # ALTER TABLE PRICING_TABLE ADD INDEX IF NOT EXISTS idx_active_dates (active, starting_date, ending_date);
+
+def get_active_same_combination_discount_query(row, combination):
+    """Active discounts with the same combination as `row` (a DISCOUNT_TABLE record)."""
+    where, where_params = discount_combination_where(
+        combination, [row.get(column) for column in combination]
+    )
+    sql_query = f"""
+        SELECT *
+        FROM DISCOUNT_TABLE
+        WHERE active = 1
+          AND id <> %s
+          AND {where}
+    """
+    return sql_query, (row["id"],) + where_params
 
 
 def get_active_same_combination_query(row, combination):
@@ -813,6 +851,15 @@ def deactivate_price_by_ids_query(ids):
           AND id IN ({placeholders})
     """, tuple(ids)
 
+def deactivate_discount_by_ids_query(ids):
+    placeholders = ", ".join(["%s"] * len(ids))
+    return f"""
+        UPDATE DISCOUNT_TABLE
+        SET active = 0
+        WHERE active = 1
+          AND id IN ({placeholders})
+    """, tuple(ids)
+
 
 def activate_price_by_id_query(price_id):
     return """
@@ -821,6 +868,14 @@ def activate_price_by_id_query(price_id):
         WHERE active = 0
           AND id = %s
     """, (price_id,)
+
+def activate_discount_by_id_query(discount_id):
+    return """
+        UPDATE DISCOUNT_TABLE
+        SET active = 1
+        WHERE active = 0
+          AND id = %s
+    """, (discount_id,)
 
 
 def get_prices_from_version_query(version_id, site_code, skip=0):
@@ -845,9 +900,93 @@ STORE_PRICE_COLUMNS = [
 ]
 
 
+def get_discounts_from_version_query(version_id, site_code, skip=0):
+    """HO side: rows a store should pull. A blank location_code applies to every store."""
+    sql_query = """
+        SELECT *
+        FROM DISCOUNT_TABLE
+        WHERE version_id >= %s
+          AND (location_code = %s OR location_code IS NULL OR location_code = '')
+        ORDER BY version_id, id
+        LIMIT 18446744073709551615 OFFSET %s
+    """
+    return sql_query, (version_id, str(site_code or ""), skip)
+
+
+STORE_DISCOUNT_COLUMNS = [
+    "condition_type", "item_no", "customer", "customer_grp", "customer_hierarchy",
+    "distribution_channel_code", "location_code", "priority", "currency",
+    "sales_price", "uom", "minimum_quantity", "starting_date", "ending_date",
+    "lower_limit", "upper_limit", "transportation_zone_code", "map", "change_type",
+    "updated_from_sap", "sales_division_code", "offer_article", "price_with_tax",
+    "tax_percent", "version_id", "ho_id",
+]
+
+
+# ---- Store side discount replication ----
+
+def get_max_discount_id_query():
+    return "SELECT COALESCE(MAX(id), 0) AS max_id FROM DISCOUNT_TABLE", ()
+
+
+def get_discount_version_record_count_query(version_id):
+    return """
+        SELECT COUNT(*) AS cnt
+        FROM DISCOUNT_TABLE
+        WHERE version_id = %s
+    """, (version_id,)
+
+
+def store_activate_started_discount_query(after_id):
+    return """
+        UPDATE DISCOUNT_TABLE
+        SET active = 1
+        WHERE id > %s
+          AND starting_date <= NOW()
+          AND ending_date >= NOW()
+    """, (after_id,)
+
+
+def store_deactivate_old_discount_query(after_id):
+    return """
+        UPDATE DISCOUNT_TABLE old_d
+        JOIN DISCOUNT_TABLE new_d
+          ON  new_d.item_no                   =   old_d.item_no
+          AND new_d.uom                       =   old_d.uom
+          AND new_d.condition_type            <=> old_d.condition_type
+          AND new_d.priority                  <=> old_d.priority
+          AND new_d.customer                  <=> old_d.customer
+          AND new_d.customer_grp              <=> old_d.customer_grp
+          AND new_d.customer_hierarchy        <=> old_d.customer_hierarchy
+          AND new_d.distribution_channel_code <=> old_d.distribution_channel_code
+          AND new_d.location_code             <=> old_d.location_code
+          AND new_d.transportation_zone_code  <=> old_d.transportation_zone_code
+          AND new_d.id > old_d.id
+        SET old_d.active = 0
+        WHERE new_d.id > %s
+          AND new_d.active = 1
+          AND old_d.active = 1
+    """, (after_id,)
+
+
+def store_upsert_discount_versions_query(after_id):
+    return """
+        INSERT INTO DISCOUNT_VERSION (id, file_name, record_count)
+        SELECT version_id, 'replication', COUNT(*)
+        FROM DISCOUNT_TABLE
+        WHERE id > %s
+        GROUP BY version_id
+        ON DUPLICATE KEY UPDATE record_count = record_count + VALUES(record_count)
+    """, (after_id,)
+
 def get_max_price_id_query():
     return "SELECT COALESCE(MAX(id), 0) AS max_id FROM PRICING_TABLE", ()
 
+
+def store_insert_discount_query():
+    columns = ", ".join(STORE_DISCOUNT_COLUMNS)
+    placeholders = ", ".join(["%s"] * len(STORE_DISCOUNT_COLUMNS))
+    return f"INSERT INTO DISCOUNT_TABLE ({columns}, active) VALUES ({placeholders}, 0)"
 
 def store_insert_price_query():
     columns = ", ".join(STORE_PRICE_COLUMNS)
@@ -902,11 +1041,22 @@ def store_upsert_versions_query(after_id):
 
 
 #Querys for Discount
-def select_all_discounts(page, limit):
+def active_clause(value):
+    """Return a SQL fragment for the Active dropdown. 'All' or blank adds no condition."""
+    normalized = str(value or "").strip().lower().replace(" ", "")
+    if normalized in ("active", "true", "1", "yes"):
+        return " AND active = 1"
+    if normalized in ("inactive", "false", "0", "no"):
+        return " AND (active = 0 OR active IS NULL)"
+    return ""
+
+
+def select_all_discounts(page, limit, active=None):
     offset = (page - 1) * limit
-    sql_query = """
+    sql_query = f"""
         SELECT *
         FROM DISCOUNT_TABLE
+        WHERE TRUE{active_clause(active)}
         ORDER BY item_no
         LIMIT %s OFFSET %s
     """
@@ -939,14 +1089,16 @@ def insert_discount_query(data):
             sales_division_code,
             offer_article,
             price_with_tax,
-            tax_percent
+            tax_percent,
+            version_id
         )
         VALUES (
             %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s,
+            %s
         )
     """
     params = (
@@ -975,6 +1127,7 @@ def insert_discount_query(data):
         data.get("offer_article"),
         data.get("price_with_tax"),
         data.get("tax_percent"),
+        data.get("version_id"),
     )
     return sql_query, params
   
@@ -1039,6 +1192,8 @@ def update_discount(discount_id, data):
     )
     return sql_query, params
  
+
+
 def check_discount_exists(discount_id):
     sql_query = """
         SELECT id
@@ -1048,90 +1203,82 @@ def check_discount_exists(discount_id):
     params = (discount_id,)
     return sql_query, params
 
+
+DISCOUNT_FILTER_COLUMNS = {
+    "condition_type": "condition_type",
+    "item_no": "item_no",
+    "customer": "customer",
+    "customer_grp": "customer_grp",
+    "customer_hierarchy": "customer_hierarchy",
+    "distribution_channel_code": "distribution_channel_code",
+    "location_code": "location_code",
+    "priority": "priority",
+    "currency": "currency",
+    "sales_price": "sales_price",
+    "uom": "uom",
+    "minimum_quantity": "minimum_quantity",
+    "lower_limit": "lower_limit",
+    "upper_limit": "upper_limit",
+    "transportation_zone_code": "transportation_zone_code",
+    "map": "map",
+    "change_type": "change_type",
+    "sales_division_code": "sales_division_code",
+    "offer_article": "offer_article",
+}
+
+
+def _as_list(value):
+    """Turn a single value, a comma-separated string, or a list into a list of strings."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        value = value.split(",")
+    elif not isinstance(value, (list, tuple)):
+        value = [value]
+    return [
+        str(v).strip()
+        for v in value
+        if v is not None and str(v).strip() != ""
+    ]
+
+
 def filter_discounts(data):
-    sql_query = """
-        SELECT *
-        FROM DISCOUNT_TABLE
-        WHERE TRUE
-    """
+    # Accept flat keys ({"item_no": ...}) or nested ({"filters": {"item_no": ...}})
+    filters = dict(data)
+    nested = filters.pop("filters", None) or {}
+    if not isinstance(nested, dict):
+        raise ValueError("'filters' must be an object")
+    filters.update(nested)
+
+    sql_query = "SELECT * FROM DISCOUNT_TABLE WHERE TRUE"
     params = []
-    if data.get("active") is not None:
-        sql_query += " AND active = %s"
-        params.append(data.get("active"))
-    if data.get("condition_type"):
-        sql_query += " AND condition_type = %s"
-        params.append(data.get("condition_type"))
-    if data.get("item_no"):
-        sql_query += " AND item_no = %s"
-        params.append(data.get("item_no"))
-    if data.get("customer"):
-        sql_query += " AND customer = %s"
-        params.append(data.get("customer"))
-    if data.get("customer_grp") is not None:
-        sql_query += " AND customer_grp = %s"
-        params.append(data.get("customer_grp"))
-    if data.get("customer_hierarchy") is not None:
-        sql_query += " AND customer_hierarchy = %s"
-        params.append(data.get("customer_hierarchy"))
-    if data.get("distribution_channel_code") is not None:
-        sql_query += " AND distribution_channel_code = %s"
-        params.append(data.get("distribution_channel_code"))
-    if data.get("location_code") is not None:
-        sql_query += " AND location_code = %s"
-        params.append(data.get("location_code"))
-    if data.get("priority") is not None:
-        sql_query += " AND priority = %s"
-        params.append(data.get("priority"))
-    if data.get("currency"):
-        sql_query += " AND currency = %s"
-        params.append(data.get("currency"))
-    if data.get("sales_price") is not None:
-        sql_query += " AND sales_price = %s"
-        params.append(data.get("sales_price"))
-    if data.get("uom"):
-        sql_query += " AND uom = %s"
-        params.append(data.get("uom"))
-    if data.get("minimum_quantity") is not None:
-        sql_query += " AND minimum_quantity = %s"
-        params.append(data.get("minimum_quantity"))
-    if data.get("starting_date"):
-        sql_query += " AND starting_date = %s"
-        params.append(data.get("starting_date"))
-    if data.get("ending_date"):
-        sql_query += " AND ending_date = %s"
-        params.append(data.get("ending_date"))
-    if data.get("lower_limit") is not None:
-        sql_query += " AND lower_limit = %s"
-        params.append(data.get("lower_limit"))
-    if data.get("upper_limit") is not None:
-        sql_query += " AND upper_limit = %s"
-        params.append(data.get("upper_limit"))
-    if data.get("transportation_zone_code"):
-        sql_query += " AND transportation_zone_code = %s"
-        params.append(data.get("transportation_zone_code"))
-    if data.get("map"):
-        sql_query += " AND map = %s"
-        params.append(data.get("map"))
-    if data.get("change_type"):
-        sql_query += " AND change_type = %s"
-        params.append(data.get("change_type"))
-    if data.get("updated_from_sap") is not None:
-        sql_query += " AND updated_from_sap = %s"
-        params.append(data.get("updated_from_sap"))
-    if data.get("sales_division_code") is not None:
-        sql_query += " AND sales_division_code = %s"
-        params.append(data.get("sales_division_code"))
-    if data.get("offer_article") is not None:
-        sql_query += " AND offer_article = %s"
-        params.append(data.get("offer_article"))
-    if data.get("price_with_tax") is not None:
-        sql_query += " AND price_with_tax = %s"
-        params.append(data.get("price_with_tax"))
-    if data.get("tax_percent") is not None:
-        sql_query += " AND tax_percent = %s"
-        params.append(data.get("tax_percent"))
+
+    # Active dropdown ("All" adds nothing)
+    sql_query += active_clause(filters.get("active"))
+
+    for key, column in DISCOUNT_FILTER_COLUMNS.items():
+        values = _as_list(filters.get(key))
+        if not values:
+            continue
+        if len(values) == 1:
+            sql_query += f" AND {column} = %s"
+            params.append(values[0])
+        else:
+            placeholders = ", ".join(["%s"] * len(values))
+            sql_query += f" AND {column} IN ({placeholders})"
+            params.extend(values)
+
+    # Dates: start on or after, end on or before (same as filter_prices)
+    if filters.get("starting_date"):
+        sql_query += " AND starting_date >= %s"
+        params.append(filters["starting_date"])
+    if filters.get("ending_date"):
+        sql_query += " AND ending_date <= %s"
+        params.append(filters["ending_date"])
+
     sql_query += " ORDER BY item_no"
     return sql_query, tuple(params)
+
 
 def deactive_exp_discount_items():
     sql_query = """
@@ -1143,7 +1290,7 @@ def get_item_discount_details():
     sql_query = """
         select * from DISCOUNT_TABLE where priority = %s
     """
-    return sql_query
+    return 
 
 # remove _first_value depenedency
 def _first_value(data, keys):
@@ -1362,3 +1509,84 @@ def _price_query(key_columns):
              LIMIT 1"""
     return sql_qry
 
+
+ALLOWED_FIELDS = {
+    "active", "condition_type", "item_no", "customer", "customer_grp",
+    "customer_hierarchy", "distribution_channel_code", "location_code",
+    "priority", "currency", "sales_price", "uom", "minimum_quantity",
+    "starting_date", "ending_date", "lower_limit", "upper_limit",
+    "transportation_zone_code", "map", "change_type", "updated_from_sap",
+    "sales_division_code", "offer_article", "price_with_tax", "tax_percent",
+}
+
+
+#discount
+
+
+def update_discount(discount_id, update_data):
+    fields = {k: v for k, v in update_data.items() if k in ALLOWED_FIELDS}
+    set_clause = ", ".join(f"{k} = %s" for k in fields)
+    sql = f"UPDATE DISCOUNT_TABLE SET {set_clause} WHERE id = %s"
+    params = list(fields.values()) + [discount_id]
+    return sql, params
+
+
+
+def get_latest_discount_version_id_query():
+    return """
+        SELECT id AS version_id
+        FROM DISCOUNT_VERSION
+        ORDER BY id DESC
+        LIMIT 1
+    """
+
+def insert_discount_version_query(data):
+    sql_query = """
+        INSERT INTO DISCOUNT_VERSION (
+            id,
+            file_name,
+            record_count,
+            uploaded_by
+        )
+        VALUES (%s, %s, %s, %s)
+    """
+    params = (
+        data.get("id"),
+        data.get("file_name"),
+        data.get("record_count", 0),
+        data.get("uploaded_by"),
+    )
+    return sql_query, params
+
+
+def deactivate_discount_combination_query(data, combination):
+    """
+    Deactivate every active discount with the same combination as `data`.
+    A blank value matches both NULL and '' in the table.
+    """
+    values = [_first_value(data, keys) for keys in combination.values()]
+    where, params = discount_combination_where(combination, values)
+
+    sql_query = f"""
+        UPDATE DISCOUNT_TABLE
+        SET active = 0
+        WHERE active = 1
+          AND {where}
+    """
+
+    return sql_query, params
+
+
+def discount_combination_where(combination, values):
+    """
+    WHERE fragment matching a combination, treating NULL and '' as the same "blank".
+    CAST(... AS CHAR) keeps a numeric 0 from being equal to ''.
+    """
+    parts, params = [], []
+    for column, value in zip(combination, values):
+        if value is None or str(value).strip() == "":
+            parts.append(f"(`{column}` IS NULL OR CAST(`{column}` AS CHAR) = '')")
+        else:
+            parts.append(f"`{column}` = %s")
+            params.append(value)
+    return " AND ".join(parts), tuple(params)

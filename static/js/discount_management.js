@@ -39,13 +39,13 @@ const COLUMNS = [
 
 
 const API = {
-    fetch:     "/api/items/fetch_all_item_prices",
-    save:      "/api/items/create_singel_item_price",
+    fetch:     "/api/items/fetch_all_discount_prices",
+    save:      "/api/items/create_single_item_discount",
     remove:    "/api/item-management/delete",
     sampleCsv: "/api/items/central_app",
-    import:    "/api/items/central_app",
-    filter:    "/api/items/filter_item_prices",
-    upDate:    "/api/items/update_item_prices/"
+    import:    "/api/items/create_csv_item_discount",
+    filter:    "/api/items/filter_discount_prices",
+    upDate:    "/api/items/update_item_discounts/"
 };
 
 /* =========================================================
@@ -210,6 +210,20 @@ const pagination = document.getElementById("paginationControls");
 
 function rowId(item) {
     return item.id ?? item.condition_id ?? item.unique_key ?? null;
+}
+
+
+function normalizeDateTime(value) {
+    if (value === null || value === undefined) return "";
+    let text = String(value).trim();
+    if (text === "") return "";
+
+    text = text.replace("T", " ");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) text += " 00:00:00";
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(text)) text += ":00";
+
+    if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text)) return null;
+    return text;
 }
 
 function escapeHtml(value) {
@@ -488,19 +502,22 @@ function validateItem(data, mode) {
     }
 
 
-    /* ---- dates ---- */
+        /* ---- dates ---- */
 
     const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
 
     ["starting_date", "ending_date"].forEach(function (field) {
 
-        if (data[field]) {
+        if (data[field] === undefined || data[field] === null || data[field] === "") {
+            return;
+        }
 
-            data[field] = toBackendDateTime(data[field]);
+        const normalized = normalizeDateTime(data[field]);
 
-            if (!dateRegex.test(data[field])) {
-                errors.push((FIELD_LABELS[field] || field) + " must be YYYY-MM-DD HH:mm:ss");
-            }
+        if (normalized === null) {
+            errors.push((FIELD_LABELS[field] || field) + " must be YYYY-MM-DD HH:mm:ss");
+        } else {
+            data[field] = normalized;
         }
     });
 
@@ -986,7 +1003,7 @@ function createNewRow(afterRow) {
             return;
         }
 
-        const defaults = { condition_type: "ZEN1", currency: "AED" };
+        const defaults = { condition_type: "ZEN2", currency: "AED" };
 
         html +=
             "<td>" +
@@ -1767,7 +1784,7 @@ document.getElementById("downloadCsvBtn").addEventListener("click", function () 
     const link = document.createElement("a");
 
     link.href     = url;
-    link.download = "item_management.csv";
+    link.download = "discount_management.csv";
 
     document.body.appendChild(link);
     link.click();

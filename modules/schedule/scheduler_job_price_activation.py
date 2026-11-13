@@ -4,14 +4,19 @@ from datetime import datetime
 from repository.mysql_connection import get_db_connection
 from repository.query import (
     get_pending_activation_query,
+    get_pending_discount_activation_query,
     get_active_same_combination_query,
+    get_active_same_combination_discount_query,
     deactivate_price_by_ids_query,
     activate_price_by_id_query,
+    activate_discount_by_id_query,
+    deactivate_discount_by_ids_query
 )
 from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
 from utils.log_error import logger
 
 PRICE_DB = os.getenv("DB_P_NAME")
+DISCOUNT_DB = os.getenv("DB_D_NAME")
 
 
 def check_pending_activation():
@@ -55,8 +60,85 @@ def check_pending_activation():
             con.close()
 
 
+def check_pending_activation_discount():
+    con = None
+    try:
+        con = get_db_connection(DISCOUNT_DB)
+        with con.cursor() as cursor:
+            now = datetime.now()
+
+            # 1. Deactivate discounts whose end date has passed
+            cursor.execute(
+                """
+                UPDATE DISCOUNT_TABLE
+                SET active = 0
+                WHERE active = 1
+                  AND ending_date IS NOT NULL
+                  AND ending_date < %s
+                """,
+                (now,),
+            )
+            if cursor.rowcount:
+                logger.info("Deactivated %s expired discount(s)", cursor.rowcount)
+
+            # 1b. Deactivate discounts whose start date is still in the future
+            #     (rows saved as active from the grid get corrected here)
+            cursor.execute(
+                """
+                UPDATE DISCOUNT_TABLE
+                SET active = 0
+                WHERE active = 1
+                  AND starting_date IS NOT NULL
+                  AND starting_date > %s
+                """,
+                (now,),
+            )
+            if cursor.rowcount:
+                logger.info("Deactivated %s not-yet-started discount(s)", cursor.rowcount)
+
+            # 2. Activate pending discounts whose window has started
+            cursor.execute(get_pending_discount_activation_query(), (now, now))
+            rows = cursor.fetchall()
+            logger.info("Pending activation: %s discount(s)", len(rows))
+
+            # latest uploaded first, so it wins within the same combination
+            for row in sorted(rows, key=lambda r: r["id"], reverse=True):
+                sql_query, params = get_active_same_combination_discount_query(row, combination)
+                cursor.execute(sql_query, params)
+                active_rows = cursor.fetchall()
+
+                # a NULL ending_date never expires
+                def still_valid(a):
+                    return not (a["ending_date"] and a["ending_date"] < now)
+
+                # a newer discount for this combination is already live -> it wins
+                if any(a["id"] > row["id"] and still_valid(a) for a in active_rows):
+                    continue
+
+                # this one has started and is the newest: older/expired ones go inactive
+                if active_rows:
+                    sql_query, params = deactivate_discount_by_ids_query([a["id"] for a in active_rows])
+                    cursor.execute(sql_query, params)
+
+                sql_query, params = activate_discount_by_id_query(row["id"])
+                cursor.execute(sql_query, params)
+
+        con.commit()
+        return rows
+    except Exception:
+        if con:
+            con.rollback()
+        logger.exception("Failed to check pending activation (discount)")
+        return []
+    finally:
+        if con:
+            con.close()
+
+
+
 def run_scheduler(interval=10):
     while True:
         start = time.monotonic()
         check_pending_activation()
+        check_pending_activation_discount()
         time.sleep(max(0, interval - (time.monotonic() - start)))

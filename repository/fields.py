@@ -588,11 +588,11 @@ Discount_Table = {
     "minimum_quantity": {
         "type": "INT"
     },
-    "starting_date": {
-        "type": "DATE"
+    "starting_date":    {
+        "type": "DATETIME"
     },
     "ending_date": {
-        "type": "DATE"
+        "type": "DATETIME"
     },
     "lower_limit": {
         "type": "FLOAT"
@@ -624,7 +624,28 @@ Discount_Table = {
     "tax_percent": {
         "type": "FLOAT"
     },
+    "version_id": {
+        "type": "INT"
+    },
+    "ho_id": {
+        "type": "INT"
+    },
+    "created": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP"
+    },
+    "updated": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP",
+        "on_update": "CURRENT_TIMESTAMP"
+    },
     "indexes": {
+        "idx_version_id": {
+            "type": "INDEX",
+            "columns": [
+                "version_id"
+            ]
+        },
         "idx_item_uom": {
             "type": "INDEX",
             "columns": [
@@ -910,6 +931,40 @@ Discount_UOM = {
             ]
         }
     },
+    "engine": "InnoDB",
+    "charset": "utf8mb4"
+}
+
+
+Discount_Version = {
+    "id": {"type": "INT", "primary_key": True, "auto_increment": True},
+    "file_name": {"type": "VARCHAR(255)"},
+    "record_count": {"type": "INT", "default": 0},
+    "uploaded_by": {"type": "VARCHAR(100)"},
+}
+
+
+
+Discount_Setting = {
+    "id": {"type": "INT", "auto_increment": True, "primary_key": True},
+    "ho_url": {"type": "VARCHAR(255)"},
+    "db_port": {"type": "INT"},
+    "db_user": {"type": "VARCHAR(100)"},
+    "db_password": {"type": "VARCHAR(255)"},
+    "is_central": {"type": "BOOLEAN", "default": 0},
+    "created": {"type": "DATETIME", "default": "CURRENT_TIMESTAMP"},
+    "updated": {"type": "DATETIME", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP"},
+    "engine": "InnoDB",
+    "charset": "utf8mb4"
+}
+
+Discount_Setting_Site = {
+    "id": {"type": "INT", "auto_increment": True, "primary_key": True},
+    "site_location": {"type": "VARCHAR(255)", "not_null": True},
+    "site_ip": {"type": "VARCHAR(45)", "not_null": True},
+    "active": {"type": "BOOLEAN", "default": 1},
+    "created": {"type": "DATETIME", "default": "CURRENT_TIMESTAMP"},
+    "updated": {"type": "DATETIME", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP"},
     "engine": "InnoDB",
     "charset": "utf8mb4"
 }
