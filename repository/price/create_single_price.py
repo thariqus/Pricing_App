@@ -127,7 +127,7 @@ def create_single_price(data):
         response_log("Price created successfully", SUCCESS, False)
 
         return marshal_response_msg({
-            "success_message" : f"{data.get("item_no")} is created successfully",
+            "success_message" : f"{data.get('item_no')} is created successfully",
             "success_code" : CREATED,
             "source" : SOURCE,
             "is_error" : False
