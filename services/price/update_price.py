@@ -2,7 +2,8 @@ from flask import request
 from repository.price.update_price import update_price_data
 from data.response import marshal_response_msg
 from utils.log_response import _respond
-from data.error_codes import INITIATING_FUNCTION, SUCCESS, BAD_REQUEST
+from data.error_codes import INITIATING_FUNCTION, SUCCESS, BAD_REQUEST, INTERNAL_SERVER_ERROR
+from utils.classes.price_body_validator import PriceConditionValidator
 
 
 
@@ -40,6 +41,15 @@ def update_item_price():
             "error_code" : BAD_REQUEST,
             "is_error" : True
         })
+    # try:
+    #     data = PriceConditionValidator(data).validate()
+    # except Exception as e:
+    #     return marshal_response_msg({
+    #         "error_message" : "Validation Error",
+    #         "error_details" : str(e),
+    #         "error_code" : INTERNAL_SERVER_ERROR,
+    #         "is_error" : True,
+    #     })
     mysql = update_price_data(data)
     if mysql['response']['is_error']:
         return mysql

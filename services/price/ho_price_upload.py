@@ -7,8 +7,9 @@ from data.csv_upload.price_csv_check import check_price_csv_items
 from concurrent.futures import ThreadPoolExecutor
 from repository.price.get_all_site_data import get_all_site_data
 from data.response import marshal_response_msg
-from data.error_codes import BAD_REQUEST, UNAUTHORIZED, INITIATING_FUNCTION, SUCCESS
+from data.error_codes import BAD_REQUEST, UNAUTHORIZED, INITIATING_FUNCTION, SUCCESS, INTERNAL_SERVER_ERROR
 from utils.log_response import _respond
+from utils.classes.price_body_validator import PriceConditionValidator
 
 
 IS_CENTRAL = os.getenv("IS_CENTRAL")
@@ -99,6 +100,16 @@ def ho_price_upload():
 
         response_message = response.json()
         valid_data, invalid_data = check_price_csv_items(csv_record, response_message)
+
+        # try:
+        #     valid_data = PriceConditionValidator(valid_data).validate()
+        # except Exception as e:
+        #     return marshal_response_msg({
+        #         "error_message" : "Validation Error",
+        #         "error_details" : str(e),
+        #         "error_code" : INTERNAL_SERVER_ERROR,
+        #         "is_error" : True,
+        #     })
         
         mysql = ho_create_price(valid_data, file, invalid_data)
         if mysql['response']['is_error']:
