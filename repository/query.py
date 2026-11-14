@@ -483,9 +483,38 @@ def create_discount_uom_query():
 def select_all_prices(page, limit):
     offset = (page - 1) * limit
     sql_query = """
-        SELECT *
+        SELECT
+            id,
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            map,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id,
+            created,
+            updated
         FROM PRICING_TABLE
-        ORDER BY updated DESC
+        ORDER BY active DESC
         LIMIT %s OFFSET %s
     """
     count_query = """
@@ -498,7 +527,19 @@ def select_all_prices(page, limit):
 def select_log_message(page, limit):
     offset = (page - 1) * limit
     sql_query = """
-        SELECT *
+        SELECT
+            id,
+            custom_message,
+            response_message,
+            source,
+            type,
+            ipaddress,
+            site_details,
+            message_code,
+            log_status,
+            info,
+            error,
+            created_at
         FROM log_message
         ORDER BY created_at DESC
         LIMIT %s OFFSET %s
@@ -739,7 +780,38 @@ def active_valid_price_items():
 
 def get_item_price_details():
     sql_query = """
-        select * from PRICING_TABLE where priority = %s
+        SELECT
+            id,
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            map,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id,
+            created,
+            updated
+        FROM PRICING_TABLE
+        WHERE priority = %s
     """
     return sql_query
 
@@ -775,7 +847,36 @@ def get_latest_version_id_query():
 def get_pending_activation_query():
     """Params: (now, now)"""
     return """
-        SELECT *
+        SELECT
+            id,
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            map,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id,
+            created,
+            updated
         FROM PRICING_TABLE
         WHERE active = 0
           AND starting_date <= %s
@@ -792,13 +893,40 @@ def get_active_same_combination_query(row, combination):
     """Active prices with the same combination as `row` (a PRICING_TABLE record)."""
     where = " AND ".join(f"`{column}` <=> %s" for column in combination)
     sql_query = f"""
-        SELECT *
+        SELECT
+            id,
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            map,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id,
+            created,
+            updated
         FROM PRICING_TABLE
-        WHERE active = 1
-          AND id <> %s
-          AND {where}
+        WHERE {where}
     """
-    params = (row["id"],) + tuple(row.get(column) for column in combination)
+    params =  tuple(row.get(column) for column in combination)
     return sql_query, params
 
 
@@ -825,10 +953,39 @@ def activate_price_by_id_query(price_id):
 
 def get_prices_from_version_query(version_id, site_code, skip=0):
     sql_query = """
-        SELECT *
+        SELECT
+            id,
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            map,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id,
+            created,
+            updated
         FROM PRICING_TABLE
         WHERE version_id >= %s
-          AND (location_code = %s OR location_code IS NULL)
+        AND (location_code = %s OR location_code IS NULL)
         ORDER BY version_id, id
         LIMIT 18446744073709551615 OFFSET %s
     """
@@ -1176,16 +1333,11 @@ def deactivate_combination_query(data,combination):
     return sql_query, params
 
 
-import os
-
-PRICE_TABLE = os.getenv("DB_P_NAME")
-
-
 def deactivate_out_of_window_query():
     """Active records expired before today, or starting after today -> inactive.
     Params: (today_start, tomorrow_start)"""
     return f"""
-        UPDATE `{PRICE_TABLE}`
+        UPDATE PRICING_TABLE
         SET `active` = 0
         WHERE `active` = 1
           AND (`ending_date` < %s OR `starting_date` >= %s)
@@ -1197,14 +1349,14 @@ def reactivate_valid_combination_query(combination):
     Params: (tomorrow_start, today_start)"""
     partition_cols = ", ".join(f"`{c}`" for c in combination)
     return f"""
-        UPDATE `{PRICE_TABLE}` p
+        UPDATE PRICING_TABLE p
         JOIN (
             SELECT `id` AS pk,
                    ROW_NUMBER() OVER (
                        PARTITION BY {partition_cols}
                        ORDER BY `id` DESC
                    ) AS rn
-            FROM `{PRICE_TABLE}`
+            FROM PRICING_TABLE
             WHERE `starting_date` < %s
               AND `ending_date`  >= %s
         ) r ON r.pk = p.`id`
@@ -1217,11 +1369,11 @@ def next_boundary_query():
     return f"""
         SELECT MIN(t) AS next_at FROM (
             SELECT MIN(`starting_date`) AS t
-            FROM `{PRICE_TABLE}`
+            FROM PRICING_TABLE
             WHERE `starting_date` > %s
             UNION ALL
             SELECT MIN(`ending_date`) + INTERVAL 1 SECOND AS t
-            FROM `{PRICE_TABLE}`
+            FROM PRICING_TABLE
             WHERE `ending_date` >= %s
         ) b
     """
@@ -1231,12 +1383,12 @@ def future_boundaries_query():
     """All upcoming start/end moments (capped at ~1 year). Params: (now, now, now, now)"""
     return f"""
         SELECT DISTINCT `starting_date` AS t
-        FROM `{PRICE_TABLE}`
+        FROM PRICING_TABLE
         WHERE `starting_date` > %s
           AND `starting_date` < %s + INTERVAL 400 DAY
         UNION
         SELECT DISTINCT `ending_date` + INTERVAL 1 SECOND AS t
-        FROM `{PRICE_TABLE}`
+        FROM PRICING_TABLE
         WHERE `ending_date` >= %s
           AND `ending_date` < %s + INTERVAL 400 DAY
     """
@@ -1247,7 +1399,7 @@ def price_fingerprint_query():
         SELECT MAX(`id`) AS max_id,
                MAX(`updated`) AS max_updated,
                COUNT(*) AS total
-        FROM `{PRICE_TABLE}`
+        FROM PRICING_TABLE
     """
 
 def get_replicated_version(site_code):
@@ -1310,7 +1462,14 @@ def insert_site_settings(data):
 
 def select_all_sites():
     sql_qry = """
-    select * from pricing_setting_site
+        SELECT
+            id,
+            site_location,
+            site_ip,
+            active,
+            created,
+            updated
+        FROM pricing_setting_site
     """
     return sql_qry
 
@@ -1348,17 +1507,87 @@ def update_site_qry(site_id, data):
 
 def _price_query(key_columns):
     where = "".join(f" AND {col} = %s" for col in key_columns)
-    sql_qry = f"""SELECT * FROM PRICING_TABLE
-             WHERE active = 1
-               AND priority = %s
-               AND item_no = %s
-               AND uom = %s
-               AND COALESCE(minimum_quantity, 0) <= %s
-               AND ending_date >= NOW()
-            {where}
-             ORDER BY (starting_date <= NOW()) DESC,
-                      minimum_quantity DESC,
-                      starting_date DESC
-             LIMIT 1"""
+
+    sql_qry = f"""
+        SELECT
+            id,
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            map,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id,
+            created,
+            updated
+        FROM PRICING_TABLE
+        WHERE active = 1
+          AND priority = %s
+          AND item_no = %s
+          AND uom = %s
+          AND COALESCE(minimum_quantity, 0) <= %s
+          AND ending_date >= NOW()
+          {where}
+        ORDER BY
+            (starting_date <= NOW()) DESC,
+            minimum_quantity DESC,
+            starting_date DESC
+        LIMIT 1
+    """
     return sql_qry
+
+def select_all_prices_scheduler():
+    return """
+        SELECT
+            id,
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            map,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id,
+            created,
+            updated
+        FROM PRICING_TABLE
+    """
+
 

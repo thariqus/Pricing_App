@@ -52,8 +52,12 @@ def index_call():
 @app.get("/log_message")
 # @admin_required
 def log_message():
-    messages = get_logs()
-    return render_template("log_message.html", messages=messages)
+    return render_template("log_message.html")
+
+@app.get("/api/logs")
+# @admin_required
+def api_logs():
+    return get_logs()
 
 #functions
 @app.post("/api/items/create_singel_item_price")

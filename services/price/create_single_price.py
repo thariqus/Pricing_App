@@ -7,7 +7,8 @@ from concurrent.futures import ThreadPoolExecutor
 from repository.price.get_all_site_data import get_all_site_data
 from data.response import marshal_response_msg
 from utils.log_response import _respond
-from data.error_codes import INITIATING_FUNCTION, BAD_REQUEST, NOT_FOUND, SUCCESS
+from data.error_codes import INITIATING_FUNCTION, BAD_REQUEST, NOT_FOUND, SUCCESS, INTERNAL_SERVER_ERROR
+from utils.classes.price_body_validator import PriceConditionValidator
 
 VALIDATION_API = os.getenv("VALIDATION_API")
 
@@ -51,6 +52,15 @@ def create_single_item_price():
             "error_code" : BAD_REQUEST,
             "is_error" : True,
         })
+    # try:
+    #     data = PriceConditionValidator(data).validate()
+    # except Exception as e:
+    #     return marshal_response_msg({
+    #         "error_message" : "Validation Error",
+    #         "error_details" : str(e),
+    #         "error_code" : INTERNAL_SERVER_ERROR,
+    #         "is_error" : True,
+    #     })
     validation_records = [
         {
             "item_code": data.get("item_no"),

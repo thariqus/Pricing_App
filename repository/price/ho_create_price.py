@@ -7,6 +7,8 @@ from repository.query import (
     deactivate_combination_query,
     get_latest_version_id_query,   # version
     insert_version_query,          # version
+    get_active_same_combination_query,
+    deactivate_price_by_ids_query
 )
 
 from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
@@ -86,6 +88,21 @@ def ho_create_price(records, file, invalid_data):
                 deact_sql, deact_params = deactivate_combination_query(data, combination=combination)
                 cursor.execute(deact_sql, deact_params)
                 deactivated += cursor.rowcount
+
+            data['id'] = ""
+            
+            sql_query, params = get_active_same_combination_query(data, combination)
+            cursor.execute(sql_query, params)
+            active_rows = cursor.fetchall()
+    
+            ids_to_deactivate = [
+            row["id"]
+            for row in active_rows
+            ]
+
+            if ids_to_deactivate:
+                sql_query, params = deactivate_price_by_ids_query(ids_to_deactivate)
+                cursor.execute(sql_query, params)
 
             # 2. new price -> active only if it has started
             data["active"] = 0 if is_future else 1

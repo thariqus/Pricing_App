@@ -7,6 +7,7 @@ from repository.query import (
     get_active_same_combination_query,
     deactivate_price_by_ids_query,
     activate_price_by_id_query,
+    select_all_prices_scheduler
 )
 from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
 from utils.log_error import logger
@@ -22,25 +23,30 @@ def check_pending_activation():
             now = datetime.now()
             cursor.execute(get_pending_activation_query(), (now, now))
             rows = cursor.fetchall()
-            logger.info("Pending activation: %s price(s)", len(rows))
+            logger.info("Expired item price(s): %s", len(rows))
+
+            cursor.execute(select_all_prices_scheduler())
+            all_prices = cursor.fetchall()
+            expired = [a for a in all_prices if a["ending_date"] < now]
+            if expired:
+                sql_query, params = deactivate_price_by_ids_query([a["id"] for a in expired])
+                cursor.execute(sql_query, params)
 
             # latest uploaded first, so it wins within the same combination
-            for row in sorted(rows, key=lambda r: r["id"], reverse=True):
+            for row in sorted(rows, key=lambda r: r["id"]):   # oldest first, newest processed last so it wins
                 sql_query, params = get_active_same_combination_query(row, combination)
                 cursor.execute(sql_query, params)
                 active_rows = cursor.fetchall()
 
-                expired = [a for a in active_rows if a["ending_date"] < now]
+                active_data = max(active_rows,key=lambda ad: ad['starting_date'],default=None)
 
-                # still a valid active price -> leave the new one inactive
-                if len(expired) < len(active_rows):
-                    continue
+                ids_to_deactivate = [a["id"] for a in active_rows if a["id"] != active_data['id']]
 
-                if expired:
-                    sql_query, params = deactivate_price_by_ids_query([a["id"] for a in expired])
+                if ids_to_deactivate:
+                    sql_query, params = deactivate_price_by_ids_query(ids_to_deactivate)
                     cursor.execute(sql_query, params)
 
-                sql_query, params = activate_price_by_id_query(row["id"])
+                sql_query, params = activate_price_by_id_query(active_data['id'])
                 cursor.execute(sql_query, params)
 
         con.commit()
