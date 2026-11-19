@@ -37,44 +37,31 @@ def get_all_site_data():
         site_datas = cursor.fetchall()
         if not site_datas:
             response_log("No datas found", NOT_FOUND, True)
-            return marshal_response_msg({
-                "error_message" : "No data found",
-                "erroe_details" : "There is no site datas",
-                "error_code" : NOT_FOUND,
-                "is_error" : True
-            })
+            return ("", {"error" : True, "error_code" : NOT_FOUND})
+        
         response_log("Get all site data completed", SUCCESS, False)
-        return marshal_response_msg({
-            "data" : site_datas,
-            "success_message" : "Site selected successfully",
-            "success_code" : SUCCESS,
-            "source" : SOURCE,
-            "is_error" : False
-        })
+        return (site_datas, {"error" : False, "error_code" : SUCCESS})
+    
     except ConnectionError as e:
-        response_log("Databse connection error, unable to connect database", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Databse connection error, unable to connect database",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except pymysql.MySQLError as e:
-        response_log("Database error while fetching all site data", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database error while fetching all site data",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Database error while select site datas", http_status, True, str(e))
+        
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except Exception as e:
-        response_log("Unexpected error while fetching all site data", NOT_IMPLEMENTED, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unexpected error while fetching all site data",
-            "error_details" : str(e),
-            "error_code" : NOT_IMPLEMENTED,
-            "is_error" : True
-        })
+        response_log("Unexpected error while select site datas", NOT_IMPLEMENTED, True, str(e))
+        
+        return ("", {"error" : True, "error_code" : NOT_IMPLEMENTED})
     finally:
         if cursor:
             cursor.close()

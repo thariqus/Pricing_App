@@ -33,19 +33,19 @@ def get_log_messages():
         # Validate pagination
         if page < 1:
             response_log("Page must be greater than 0", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Page must be greater that 0",
-                "error_details" : "Provided page is below 0,please provide a valid page number",
+            return ("", {
+                "error" : True, 
                 "error_code" : BAD_REQUEST,
-                "is_error" : True
+                "page" : page,
+                "limit" : limit
             })
         if limit < 1 or limit > 100:
             response_log("Limit must be between 1 and 100", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Limit must be between 1 and 100",
-                "error_details" : "Provided limit is below 1 or above 100,please provide a valid limit between 1 and 100",
+            return ("", {
+                "error" : True, 
                 "error_code" : BAD_REQUEST,
-                "is_error" : True
+                "page" : page,
+                "limit" : limit
             })
         # Database connection
         con = get_db_connection(PRICE_DB)
@@ -56,43 +56,51 @@ def get_log_messages():
         log_messages = cursor.fetchall()
         if not log_messages:
             response_log("No data found", NOT_FOUND, True)
-            return marshal_response_msg({
-                "error_message" : "No data found",
-                "error_details" : "There is no log message found",
-                "error_code" : NOT_FOUND,
-                "is_error" : True
+            return ("", {
+                "error" : True, 
+                "error_code" : NOT_FOUND, 
+                "page" : page,
+                "limit" : limit
             })
         response_log("Get log message completed", SUCCESS, False)
-        return marshal_response_msg({
-            "data" : log_messages,
-            "success_message" : "Successfully selected log message",
-            "success_code" : SUCCESS,
-            "is_error" : False
-        })
+        return ({"data" : log_messages,
+            "page" : page,
+            "limit" : limit
+            }
+            , {"error" : False, "error_code" : SUCCESS})
+        
     except ConnectionError as e:
-        response_log("Databse connection error, unable to connect database", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Databse connection error, unable to connect database",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status,
+            "page" : page,
+            "limit" : limit})
+    
     except pymysql.MySQLError as e:
-        response_log("Database error while fetching all log message", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database error while fetching all log message",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Database error while fetch all log message", http_status, True, str(e))
+        
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status,
+            "page" : page,
+            "limit" : limit})
+    
     except Exception as e:
-        response_log("Unexpected error while fetching all log message data", NOT_IMPLEMENTED, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unexpected error while fetching all log message data",
-            "error_details" : str(e),
+        response_log("Unexpected error while fetch all log message", NOT_IMPLEMENTED, True, str(e))
+        
+        return ("", {
+            "error" : True, 
             "error_code" : NOT_IMPLEMENTED,
-            "is_error" : True
-        })
+            "page" : page,
+            "limit" : limit})
     finally:
         if cursor:
             cursor.close()

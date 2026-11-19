@@ -36,7 +36,7 @@ def response_log(custom_message, code, error, response_message=None):
         error=error
     )
 
-def create_single_price(data):
+def create_single_price(datas):
     con = None
     cursor = None
 
@@ -44,17 +44,10 @@ def create_single_price(data):
     response_log("Entered in single item price function", INITIATING_FUNCTION, False)
 
     try:
-        if not data:
-            response_log("Request data is empty or invalid", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Empty data given",
-                "error_details" : "Given data is empty, please provide valid input",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
-
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
+        inserted_count = 0
+        is_future = False
 
         cursor.execute(get_latest_version_id_query())
         row = cursor.fetchone()
@@ -65,55 +58,55 @@ def create_single_price(data):
 
         version_id = (latest or 0) + 1
 
-        try:
-            _clean_record(data)
-            is_future = _to_datetime(data.get("starting_date")) > datetime.now()
-        except ValueError as e:
-            return marshal_response_msg({
-                "error_message" : "Invalid item",
-                "error_details" : str(e),
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
 
-        # 1. old prices for this combination -> inactive (only if the new price has started)
-        if not is_future:
-            deact_sql, deact_params = deactivate_combination_query(data, combination=combination)
-            cursor.execute(deact_sql, deact_params)
-
-        data['id'] = ""
-
-        sql_query, params = get_active_same_combination_query(data, combination)
-        cursor.execute(sql_query, params)
-        active_rows = cursor.fetchall()
-
-        ids_to_deactivate = [
-        row["id"]
-        for row in active_rows
-        ]
-
-
-        if ids_to_deactivate:
-            sql_query, params = deactivate_price_by_ids_query(ids_to_deactivate)
+        for data in datas:
+            try:
+                _clean_record(data)
+            except ValueError as e:
+                response_log("Data processing error", SERVICE_UNAVAILABLE, True, str(e))
+                return ("", {"error" : True, "error_code" : INTERNAL_SERVER_ERROR})
+            
+            data['id'] = ""
+            sql_query, params = get_active_same_combination_query(data, combination)
             cursor.execute(sql_query, params)
+            active_rows = cursor.fetchall()
 
-        # 2. new price -> active only if it has started
-        data["active"] = 0 if is_future else 1
-        data["version_id"] = version_id
+            is_future = True if _to_datetime(data['starting_date']) < datetime.now() else False
+            if active_rows:
+                latest_rows = [
+                    row for row in active_rows
+                    if row['active'] == 1
+                ]
+                ids_to_deactivate = []
+                if latest_rows:
+                    is_future = True if (
+                        (latest_rows[0]['starting_date'] <= _to_datetime(data['starting_date']) <= datetime.now()) 
+                        or 
+                        (_to_datetime(data['starting_date']) < datetime.now())) else False
+                    ids_to_deactivate = [
+                        row["id"]
+                        for row in active_rows
+                        if is_future or row['id'] != latest_rows[0]['id']
+                    ]
+                else:
+                    is_future = True if _to_datetime(data['starting_date']) < datetime.now() else False
 
-        sql_query, params = insert_price_query(data)
-        cursor.execute(sql_query, params)
-        inserted_id = cursor.lastrowid
 
-        if not inserted_id:
+                if ids_to_deactivate:
+                    sql_query, params = deactivate_price_by_ids_query(ids_to_deactivate)
+                    cursor.execute(sql_query, params)
+            # 2. new price -> active only if it has started
+            data["active"] = 1 if is_future else 0
+            data["version_id"] = version_id
+
+            sql_query, params = insert_price_query(data)
+            cursor.execute(sql_query, params)
+            inserted_count += 1
+
+        if not inserted_count:
             con.rollback()
             response_log("Price could not be created", INTERNAL_SERVER_ERROR, True)
-            return marshal_response_msg({
-                "error_message" : "Couldn't create",
-                "error_details" : "Price couldn't be created",
-                "error_code" : INTERNAL_SERVER_ERROR,
-                "is_error" : True
-            })
+            return ("", {"error" : True, "error_code" : INTERNAL_SERVER_ERROR})
 
         version_sql, version_params = insert_version_query({
             "id": version_id,
@@ -126,45 +119,28 @@ def create_single_price(data):
 
         response_log("Price created successfully", SUCCESS, False)
 
-        return marshal_response_msg({
-            "success_message" : f"{data.get('item_no')} is created successfully",
-            "success_code" : CREATED,
-            "source" : SOURCE,
-            "is_error" : False
-        })
+        return (inserted_count, {"error" : False, "error_code" : SUCCESS})
 
     except ConnectionError as e:
-        if con:
-            con.rollback()
-        response_log("Databse connection error, unable to connect database", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Databse connection error, unable to connect database",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
 
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except pymysql.MySQLError as e:
-        if con:
-            con.rollback()
-        response_log("Database error", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Databse error",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
 
+        response_log("Database error while creating prices", http_status, True, str(e))
+        
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except Exception as e:
-        if con:
-            con.rollback()
-        response_log("Something went wrong", NOT_IMPLEMENTED, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Something went wrong",
-            "error_details" : str(e),
-            "error_code" : NOT_IMPLEMENTED,
-            "is_error" : True
-        })
+        response_log("Unexpected error while creating prices data", NOT_IMPLEMENTED, True, str(e))
+        
+        return ("", {"error" : True, "error_code" : NOT_IMPLEMENTED})
 
     finally:
         if cursor:

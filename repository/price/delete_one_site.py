@@ -35,15 +35,6 @@ def delete_one_site(site_id):
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
 
-        if not site_id:
-            response_log("Id required but missing", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Id is missing",
-                "error_details" : "Id is required but not given",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
-
         # Get query and parameters
         sel_query, params = delete_site_qry(site_id)
 
@@ -53,12 +44,7 @@ def delete_one_site(site_id):
         # Check whether a row was deleted
         if cursor.rowcount == 0:
             response_log("Error in deleting site", NOT_FOUND, True)
-            return marshal_response_msg({
-                "error_message" : "Error in deletion",
-                "error_details" : "Error occured when delete performed",
-                "error_code" : INTERNAL_SERVER_ERROR,
-                "is_error" : True
-            })
+            return ("", {"error" : True, "error_code" : INTERNAL_SERVER_ERROR})
 
         response_log(f"Successfully deleted {cursor.rowcount} site", SUCCESS, False)
 
@@ -67,41 +53,28 @@ def delete_one_site(site_id):
 
         response_log("Successfully completed site deletion", SUCCESS, False)
 
-        return marshal_response_msg({
-            "success_message" : "Site delete sucessfully",
-            "success_code" : SUCCESS,
-            "source" : SOURCE,
-            "is_error" : False
-        })
-
+        return (cursor.rowcount, {"error" : False, "error_code" : SUCCESS})
+    
     except ConnectionError as e:
-        response_log("Databse connection error, unable to connect database", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Databse connection error, unable to connect database",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except pymysql.MySQLError as e:
-        if con:
-            con.rollback()
-        response_log("Database error", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database error",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Database error while delete site data", http_status, True, str(e))
+        
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except Exception as e:
-        if con:
-            con.rollback()
-        response_log("Unexpected error occure", NOT_IMPLEMENTED, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unexpected error occure",
-            "error_details" : str(e),
-            "error_code" : NOT_IMPLEMENTED,
-            "is_error" : True
-        })
+        response_log("Unexpected error while delete site data", NOT_IMPLEMENTED, True, str(e))
+        
+        return ("", {"error" : True, "error_code" : NOT_IMPLEMENTED})
     finally:
         if cursor:
             cursor.close()

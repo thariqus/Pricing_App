@@ -46,20 +46,12 @@ def ho_create_price(records, file, invalid_data):
         invalid_data = []
         
     try:
-        if not records:
-            response_log("No records found", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Not found",
-                "error_details" : "Records is required, but not given",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
-
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
 
         inserted = 0
         deactivated = 0
+        is_future = False
 
         cursor.execute(get_latest_version_id_query())
         row = cursor.fetchone()
@@ -78,34 +70,44 @@ def ho_create_price(records, file, invalid_data):
             original = dict(data)
             try:
                 _clean_record(data)
-                is_future = _to_datetime(data.get("starting_date")) > now
             except ValueError as e:
                 invalid_data.append({**original, "reason": str(e)})
                 continue
-
-            # 1. old prices for this combination -> inactive (only if the new price has started)
-            if not is_future:
-                deact_sql, deact_params = deactivate_combination_query(data, combination=combination)
-                cursor.execute(deact_sql, deact_params)
-                deactivated += cursor.rowcount
 
             data['id'] = ""
             
             sql_query, params = get_active_same_combination_query(data, combination)
             cursor.execute(sql_query, params)
             active_rows = cursor.fetchall()
-    
-            ids_to_deactivate = [
-            row["id"]
-            for row in active_rows
-            ]
 
-            if ids_to_deactivate:
-                sql_query, params = deactivate_price_by_ids_query(ids_to_deactivate)
-                cursor.execute(sql_query, params)
+            is_future = True if _to_datetime(data['starting_date']) < datetime.now() else False
+    
+            if active_rows:
+                latest_rows = [
+                    row for row in active_rows
+                    if row['active'] == 1
+                ]
+                ids_to_deactivate = []
+                if latest_rows:
+                    is_future = True if (
+                        (latest_rows[0]['starting_date'] <= _to_datetime(data['starting_date']) <= datetime.now()) 
+                        or 
+                        (_to_datetime(data['starting_date']) < datetime.now())) else False
+                    ids_to_deactivate = [
+                        row["id"]
+                        for row in active_rows
+                        if is_future or row['id'] != latest_rows[0]['id']
+                    ]
+                else:
+                    is_future = True if _to_datetime(data['starting_date']) < datetime.now() else False
+
+
+                if ids_to_deactivate:
+                    sql_query, params = deactivate_price_by_ids_query(ids_to_deactivate)
+                    cursor.execute(sql_query, params)
 
             # 2. new price -> active only if it has started
-            data["active"] = 0 if is_future else 1
+            data["active"] = 1 if is_future else 0
             data["version_id"] = version_id   # version
 
             sql_query, params = insert_price_query(data)
@@ -133,42 +135,41 @@ def ho_create_price(records, file, invalid_data):
         con.commit()   # deactivations + inserts land together
 
         response_log("HO price insert completed", SUCCESS, False)
-        return marshal_response_msg({
-            "success_message" : f"{inserted} price(s) inserted, {deactivated} old price(s) deactivated",
-            "success_code" : CREATED,
-            "source" : SOURCE,
-            "is_error" : False,
-            "custom_field" : {
+        return (
+            {
                 "count": inserted,
                 "deactivated": deactivated,
                 "InvalidData": invalid_data
-            }
-        })
+            },
+            {"error" : False, "error_code" : CREATED}
+        )
 
     except ConnectionError as e:
-        response_log("Databse connection error, unable to connect database", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Databse connection error, unable to connect database",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status})
+    
     except pymysql.MySQLError as e:
-        response_log("Database error while fetching ho create prices", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database error while fetching ho create prices",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Database error while create price", http_status, True, str(e))
+        
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status})
+    
     except Exception as e:
-        response_log("Unexpected error while fetching ho create price data", NOT_IMPLEMENTED, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unexpected error while fetching ho create price data",
-            "error_details" : str(e),
-            "error_code" : NOT_IMPLEMENTED,
-            "is_error" : True
-        })
+        response_log("Unexpected error while create price", NOT_IMPLEMENTED, True, str(e))
+        
+        return ("", {
+            "error" : True, 
+            "error_code" : NOT_IMPLEMENTED})
 
     finally:
         if cursor:

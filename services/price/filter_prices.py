@@ -4,6 +4,8 @@ from data.response import marshal_response_msg
 from utils.log_response import _respond
 from data.error_codes import INITIATING_FUNCTION, BAD_REQUEST, SUCCESS
 
+SOURCE = "/api/items/filter_item_prices"
+
 def response_log(custom_message, code, error, response_message=None):
     return _respond(
         body={},
@@ -28,8 +30,29 @@ def filter_items_prices():
             "error_code" : BAD_REQUEST,
             "is_error" : True
         })
-    data = filter_price_data(data)
-    if data['response']['is_error']:
-        return data
+    data, error = filter_price_data(data)
+    if error['error']:
+        return marshal_response_msg({
+            "error_message" : "No data founded",
+            "error_details" : "Something went wrong, can't filter items prices datas",
+            "error_code" : error['error_code'],
+            "is_error" : True,
+            "custom_field" : {
+                "page" : error['page'],
+                "limit" : error['limit'],
+                "total" : error['total']
+            }
+        })
     response_log("Filter price function completed", SUCCESS, False)
-    return data
+    return marshal_response_msg({
+        "data" : data['data'],
+        "success_message" : "Successfully select price data",
+        "success_code" : SUCCESS,
+        "source" : SOURCE,
+        "is_error" : False,
+        "custom_field" : {
+            "page" : data['page'],
+            "limit" : data['limit'],
+            "total" : data['total']
+        }
+    })

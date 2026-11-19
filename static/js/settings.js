@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!isError) {
             messageTimer = setTimeout(function () {
                 messageBox.hidden = true;
-            }, 4000);
+            }, 9000);
         }
     }
 
