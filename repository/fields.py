@@ -941,6 +941,7 @@ Discount_Version = {
     "file_name": {"type": "VARCHAR(255)"},
     "record_count": {"type": "INT", "default": 0},
     "uploaded_by": {"type": "VARCHAR(100)"},
+    "uploaded_at": {"type": "DATETIME", "not_null": True, "default": "CURRENT_TIMESTAMP"},
 }
 
 

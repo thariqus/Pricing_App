@@ -20,7 +20,8 @@ from services.price.site_edit import site_edit
 from services.discount.create_single_discount import create_single_item_discount
 from services.discount.ho_discount_upload import ho_discount_upload
 from services.discount.notify_discount_store import notify_discount_store
-from discount_api import fetch_all_discounts,update_discount_data, filter_discount_data, get_discounts
+from services.discount.fetch_all_discount import fetch_all_discounts
+from services.discount.filter_discount import filter_items_discount
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
 from flask.json.provider import DefaultJSONProvider
@@ -104,16 +105,11 @@ def fetch_discount():
 
 @app.route('/api/items/filter_discount_prices', methods=['POST'])
 def filter_discount():
-    return filter_discount_data()
+    return filter_items_discount()
 
 @app.route("/api/items/update_item_discounts/", methods=["PUT"])
 def update_item_discounts():
     return update_item_discount()
-
-@app.route('/api/items/get_priority_item_discount')
-def get_priority_discount():
-    return get_discounts()
-
 
 @app.route("/api/items/notify_discount_stores", methods=["GET"])
 def notify_discount_stores_view():

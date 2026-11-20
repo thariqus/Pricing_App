@@ -24,7 +24,8 @@ def latest_update(version, skip):
 def replication_main():
     """Pull every HO discount this store has not received yet (filtered by site on the HO)."""
     latest_version = get_store_latest_discount_version()
-    skip = get_store_discount_version_count(latest_version) if latest_version else 0
+    new_version = latest_version + 1 if latest_version else 0
+    skip = get_store_discount_version_count(new_version) if new_version else 0
 
     records = latest_update(latest_version, skip).get("data", [])
     if not records:

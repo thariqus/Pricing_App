@@ -1,37 +1,28 @@
 import os
 import re
+import time
 from decimal import Decimal, InvalidOperation
+from datetime import datetime, date
+
+import pymysql
 from flask import jsonify
+
 from repository.mysql_connection import get_db_connection
 from utils.log_error import logger
 from utils.file_path import upload_price_directory
 from repository.query import (
     insert_discount_query,
     deactivate_discount_combination_query,
-    get_latest_discount_version_id_query,
     insert_discount_version_query,
 )
+from repository.discount.write_lock import discount_write_lock
 from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
-import pymysql
-from datetime import datetime, date
-
-
-def _to_datetime(value):
-    if isinstance(value, datetime):
-        return value
-    if isinstance(value, date):
-        return datetime.combine(value, datetime.min.time())
-    s = str(value).strip()
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d",
-                "%d-%m-%Y %H:%M:%S", "%d-%m-%Y", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y"):
-        try:
-            return datetime.strptime(s, fmt)
-        except ValueError:
-            continue
-    raise ValueError(f"invalid starting_date: {value!r}")
 
 
 DISCOUNT_DB = os.getenv("DB_D_NAME")
+
+# changed record, lock wait timeout, deadlock
+RETRYABLE_ERRORS = {1020, 1205, 1213}
 
 REQUIRED_NUMERIC = ("sales_price",)
 OPTIONAL_NUMERIC = ("lower_limit", "upper_limit", "minimum_quantity")
@@ -60,6 +51,21 @@ PRIORITY_RULES = {
     10: ("distribution_channel_code",),
     11: (),
 }
+
+
+def _to_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        return datetime.combine(value, datetime.min.time())
+    s = str(value).strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d",
+                "%d-%m-%Y %H:%M:%S", "%d-%m-%Y", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"invalid starting_date: {value!r}")
 
 
 def _is_blank(value):
@@ -145,6 +151,18 @@ def _clean_record(data):
 
 
 def ho_create_discount(records, file, invalid_data):
+    """Public entry point: retries the whole upload when MariaDB reports a conflict."""
+    for attempt in range(3):
+        try:
+            return _ho_create_discount_once(records, file, invalid_data)
+        except pymysql.err.OperationalError as e:
+            if e.args[0] not in RETRYABLE_ERRORS or attempt == 2:
+                raise
+            logger.warning("Discount upload conflict (%s), retrying", e.args[0])
+            time.sleep(0.2 * (attempt + 1))
+
+
+def _ho_create_discount_once(records, file, invalid_data):
     con = None
     cursor = None
     current = None
@@ -158,64 +176,70 @@ def ho_create_discount(records, file, invalid_data):
 
         inserted = 0
         deactivated = 0
+        skipped = []   # records that failed validation inside the lock
 
-        cursor.execute(get_latest_discount_version_id_query())
-        row = cursor.fetchone()
-        latest = (row["version_id"] if isinstance(row, dict) else row[0]) if row else None
-        version_id = (latest or 0) + 1
-
-        now = datetime.now()
-        for data in records:
-            current = data
-
-            if not isinstance(data, dict) or not data.get("item_no"):
-                logger.warning("Skipping record without item_no: %r", data)
-                continue
-
-            # 0. validate BEFORE touching the DB, so a bad row never deactivates a good discount
-            original = dict(data)
-            try:
-                _clean_record(data)
-                is_future = _to_datetime(data.get("starting_date")) > now
-            except ValueError as e:
-                logger.warning("Invalid record item_no=%s: %s", data.get("item_no"), e)
-                invalid_data.append({**original, "reason": str(e)})
-                continue
-
-            # 1. old discounts for this combination -> inactive (only if the new one has started)
-            if not is_future:
-                deact_sql, deact_params = deactivate_discount_combination_query(data, combination=combination)
-                cursor.execute(deact_sql, deact_params)
-                deactivated += cursor.rowcount
-
-            # 2. new discount -> active only if it has started
-            data["active"] = 0 if is_future else 1
-            data["version_id"] = version_id
-
-            sql_query, params = insert_discount_query(data)
-            try:
-                cursor.execute(sql_query, params)
-            except pymysql.err.DataError:
-                logger.error("Insert failed for item_no=%s SQL: %s",
-                             data.get("item_no"), cursor.mogrify(sql_query, params))
-                raise
-            inserted += 1
-
-        current = None
-
-        if inserted:
+        # The whole upload is one transaction under the shared lock,
+        # so single saves and the scheduler cannot interleave with it.
+        with discount_write_lock(cursor):
+            # 1. Version row first; the database assigns the id
             version_sql, version_params = insert_discount_version_query({
-                "id": version_id,
+                "id": None,
                 "file_name": file.filename if file else "",
-                "record_count": inserted,
+                "record_count": 0,
             })
             cursor.execute(version_sql, version_params)
+            version_id = cursor.lastrowid
 
-        if file:
-            file_path = os.path.join(upload_price_directory, file.filename)
-            file.save(file_path)
+            now = datetime.now()
+            for data in records:
+                current = data
 
-        con.commit()   # deactivations + inserts land together
+                if not isinstance(data, dict) or not data.get("item_no"):
+                    logger.warning("Skipping record without item_no: %r", data)
+                    continue
+
+                # 0. validate BEFORE touching the DB, so a bad row never deactivates a good discount
+                original = dict(data)
+                try:
+                    _clean_record(data)
+                    is_future = _to_datetime(data.get("starting_date")) > now
+                except ValueError as e:
+                    logger.warning("Invalid record item_no=%s: %s", data.get("item_no"), e)
+                    invalid_data.append({**original, "reason": str(e)})
+                    continue
+
+                # 1. old discounts for this combination -> inactive (only if the new one has started)
+                if not is_future:
+                    deact_sql, deact_params = deactivate_discount_combination_query(data, combination=combination)
+                    cursor.execute(deact_sql, deact_params)
+                    deactivated += cursor.rowcount
+
+                # 2. new discount -> active only if it has started
+                data["active"] = 0 if is_future else 1
+                data["version_id"] = version_id
+
+                sql_query, params = insert_discount_query(data)
+                try:
+                    cursor.execute(sql_query, params)
+                except pymysql.err.DataError:
+                    logger.error("Insert failed for item_no=%s SQL: %s",
+                                 data.get("item_no"), cursor.mogrify(sql_query, params))
+                    raise
+                inserted += 1
+
+            current = None
+
+            # 3. Record the real count on the version row
+            cursor.execute(
+                "UPDATE DISCOUNT_VERSION SET record_count = %s WHERE id = %s",
+                (inserted, version_id),
+            )
+
+            if file:
+                file_path = os.path.join(upload_price_directory, file.filename)
+                file.save(file_path)
+
+            con.commit()   # deactivations, inserts and version land together
 
         return jsonify({
             "status": "success",
@@ -225,17 +249,12 @@ def ho_create_discount(records, file, invalid_data):
             "InvalidData": invalid_data
         }), 201
 
-    except ConnectionError as e:
-        logger.error(f"Database connection error: {e}")
-        return jsonify({
-            "status": "error",
-            "message": "Unable to connect to database",
-            "error": str(e)
-        }), 503
-
     except pymysql.MySQLError as e:
         if con:
             con.rollback()
+        # Conflict errors go back to the retry wrapper
+        if isinstance(e, pymysql.err.OperationalError) and e.args[0] in RETRYABLE_ERRORS:
+            raise
         logger.exception("Database error while inserting CSV data")
 
         failed = None
@@ -266,6 +285,16 @@ def ho_create_discount(records, file, invalid_data):
             "error": str(e),
             "failed_record": failed
         }), status
+
+    except ConnectionError as e:
+        if con:
+            con.rollback()
+        logger.error(f"Database connection error: {e}")
+        return jsonify({
+            "status": "error",
+            "message": "Unable to connect to database",
+            "error": str(e)
+        }), 503
 
     except Exception as e:
         if con:

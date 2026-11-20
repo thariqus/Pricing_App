@@ -271,6 +271,17 @@ def get_version_record_count_query(version_id):
 
 from repository.tables import LOG_MESSAGE
 
+def get_version_record_count_query_discount(version_id):
+    sql_query = """
+        SELECT COUNT(*) AS cnt
+        FROM DISCOUNT_TABLE
+        WHERE version_id = %s
+    """
+    return sql_query, (version_id,)
+
+from repository.tables import LOG_MESSAGE
+
+
 
 def insert_log_message_query(entry):
     sql_query = f"""
@@ -807,6 +818,30 @@ def get_pending_discount_activation_query():
     """
     return sql
 
+def deactivate_expired_discounts(cursor, current_date):
+    query = """
+        UPDATE DISCOUNT_TABLE
+        SET active = 0
+        WHERE active = 1
+          AND ending_date IS NOT NULL
+          AND ending_date < %s
+    """
+
+    cursor.execute(query, (current_date,))
+    return cursor.rowcount
+
+def deactivate_upcoming_discounts(cursor, current_date):
+    query = """
+        UPDATE DISCOUNT_TABLE
+        SET active = 0
+        WHERE active = 1
+          AND starting_date IS NOT NULL
+          AND starting_date > %s
+    """
+
+    cursor.execute(query, (current_date,))
+    return cursor.rowcount
+
 
 # indexing query
 # ALTER TABLE PRICING_TABLE ADD INDEX IF NOT EXISTS idx_active_dates (active, starting_date, ending_date);
@@ -883,7 +918,7 @@ def get_prices_from_version_query(version_id, site_code, skip=0):
         SELECT *
         FROM PRICING_TABLE
         WHERE version_id >= %s
-          AND (location_code = %s OR location_code IS NULL)
+        AND (location_code = %s OR location_code IS NULL)
         ORDER BY version_id, id
         LIMIT 18446744073709551615 OFFSET %s
     """
@@ -899,19 +934,18 @@ STORE_PRICE_COLUMNS = [
     "tax_percent", "version_id",
 ]
 
-
 def get_discounts_from_version_query(version_id, site_code, skip=0):
-    """HO side: rows a store should pull. A blank location_code applies to every store."""
+    """HO side: active rows a store should pull. A blank location_code applies to every store."""
     sql_query = """
         SELECT *
         FROM DISCOUNT_TABLE
-        WHERE version_id >= %s
+        WHERE version_id > %s
+          AND active = 1
           AND (location_code = %s OR location_code IS NULL OR location_code = '')
         ORDER BY version_id, id
         LIMIT 18446744073709551615 OFFSET %s
     """
     return sql_query, (version_id, str(site_code or ""), skip)
-
 
 STORE_DISCOUNT_COLUMNS = [
     "condition_type", "item_no", "customer", "customer_grp", "customer_hierarchy",
@@ -1516,7 +1550,7 @@ ALLOWED_FIELDS = {
     "priority", "currency", "sales_price", "uom", "minimum_quantity",
     "starting_date", "ending_date", "lower_limit", "upper_limit",
     "transportation_zone_code", "map", "change_type", "updated_from_sap",
-    "sales_division_code", "offer_article", "price_with_tax", "tax_percent",
+    "sales_division_code", "offer_article", "price_with_tax", "tax_percent","version_id"
 }
 
 
@@ -1590,3 +1624,16 @@ def discount_combination_where(combination, values):
             parts.append(f"`{column}` = %s")
             params.append(value)
     return " AND ".join(parts), tuple(params)
+
+
+def get_active_discount_changes_query(last_updated, last_id, site_code, limit):
+    """Active discounts for this site changed after the checkpoint (updated, id)."""
+    return """
+        SELECT *
+        FROM DISCOUNT_TABLE
+        WHERE active = 1
+          AND (updated > %s OR (updated = %s AND id > %s))
+          AND (location_code = %s OR location_code IS NULL OR location_code = '')
+        ORDER BY updated, id
+        LIMIT %s
+    """, (last_updated, last_updated, last_id, str(site_code or ""), limit)
