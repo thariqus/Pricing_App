@@ -30,7 +30,6 @@ from repository.discount.update_discount import update_discount_data
 from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
 from repository.discount.fetch_ho_discount_records_by_version import get_discounts_from_version
 from services.price.get_price_version import get_price_version
-from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
 from flask.json.provider import DefaultJSONProvider
