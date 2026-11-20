@@ -15,14 +15,10 @@ from repository.query import (
     deactivate_expired_discounts,
     deactivate_upcoming_discounts,
     insert_discount_version_query,
-)
-from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
-from utils.log_error import logger
-from repository.discount.write_lock import discount_write_lock
-
     select_all_prices_scheduler,
     insert_version_query
 )
+from repository.discount.write_lock import discount_write_lock
 from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
 from utils.log_error import logger
 from data.data_processing._to_datetime import _to_datetime
