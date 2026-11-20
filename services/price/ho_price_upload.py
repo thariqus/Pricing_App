@@ -145,7 +145,7 @@ def ho_price_upload():
             sites_data, site_error = get_all_site_data()
             if site_error['error']:
                 return marshal_response_msg({
-                    "error_message" : "Data added, but can't select site datas, site data is missing, replication is failed",
+                    "error_message" : "Data inserted sucessfully, But can't select site datas for replication, site data is missing",
                     "error_details" : "Something went wrong, can't select the site datas",
                     "error_code" : INTERNAL_SERVER_ERROR,
                     "is_error" : True

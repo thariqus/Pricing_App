@@ -35,7 +35,7 @@ def check_pending_activation():
 
             cursor.execute(select_all_prices_scheduler())
             all_prices = cursor.fetchall()
-            expired = [a for a in all_prices if a["ending_date"] < now]
+            expired = [a for a in all_prices if _to_datetime(a["ending_date"]) < now]
             if expired:
                 sql_query, params = deactivate_price_by_ids_query([a["id"] for a in expired])
                 cursor.execute(sql_query, params)
@@ -46,7 +46,9 @@ def check_pending_activation():
                 cursor.execute(sql_query, params)
                 active_rows = cursor.fetchall()
 
-                active_data = max((ad for ad in active_rows if _to_datetime(ad['starting_date']) < datetime.now()),key=lambda ad: ad['starting_date'],default=None)
+                active_data = max([ad for ad in active_rows if _to_datetime(ad['starting_date']) < datetime.now() and _to_datetime(ad['ending_date']) > datetime.now()], key=lambda ad: ad['id'],default=None)
+
+                # active_data = max((ad for ad in active_rows if _to_datetime(ad['starting_date']) < datetime.now()),key=lambda ad: ad['starting_date'],default=None)
 
                 ids_to_deactivate = [a["id"] for a in active_rows if a["id"] != active_data['id']]
 

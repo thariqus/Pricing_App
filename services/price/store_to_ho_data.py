@@ -114,7 +114,7 @@ def store_to_ho_data(site):
     filtered_data = [
         {**row, 'status': 'Failed'}
         for row in price_data['data']
-        if row['version_id'] > final_version and (row['location_code'] == site or row['location_code'] == None)
+        if row['version_id'] > final_version and (row['location_code'] == site or row['location_code'] == None) and (row['active'] == 1)
     ]
 
     response_log("Store to ho data function completed", SUCCESS, False)

@@ -1425,8 +1425,9 @@ def get_ho_version_count_data(version_id, site_code):
             COUNT(*) AS version_count
         FROM PRICING_TABLE 
         WHERE version_id = %s
-          AND (location_code = %s
-          OR location_code IS NULL)
+        AND active = 1 
+        AND (location_code = %s
+        OR location_code IS NULL)
         ORDER BY version_id
     """
     params = (version_id, site_code)
