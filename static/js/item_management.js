@@ -1749,8 +1749,8 @@ document.getElementById("addItemBtn").addEventListener("click", function () {
 /* =========================================================
    SAVE
 
-     - each NEW row    -> POST  API.save   (one request per row)
-     - all EDITED rows -> ONE PUT to API.upDate carrying a list
+     - all NEW rows    -> ONE POST to API.save    (JSON list)
+     - all EDITED rows -> ONE PUT  to API.upDate  (JSON list)
    ========================================================= */
 
 // Sends a JSON request and resolves with the unwrapped envelope
@@ -1772,9 +1772,9 @@ function sendJson(url, method, body) {
     });
 }
 
-// NEW rows: one POST per row
-function sendRow(url, data) {
-    return sendJson(url, "POST", toDbPayload(data));
+// NEW rows: one POST with the whole list
+function sendRows(url, list) {
+    return sendJson(url, "POST", list.map(toDbPayload));
 }
 
 // EDITED rows: one PUT with the whole list
@@ -1820,13 +1820,16 @@ saveButton.addEventListener("click", function () {
     saveButton.disabled = true;
 
     const originalText = saveButton.innerText;
-
     saveButton.innerText = "Saving...";
 
-    const jobs = newRows.map(function (entry) {
-        return sendRow(API.save, entry.data);
-    });
+    const jobs = [];
 
+    // All NEW rows go in ONE request
+    if (newRows.length > 0) {
+        jobs.push(sendRows(API.save, newRows.map(function (entry) { return entry.data; })));
+    }
+
+    // All EDITED rows go in ONE request
     if (updates.length > 0) {
         jobs.push(sendUpdates(API.upDate, updates));
     }
@@ -1835,18 +1838,22 @@ saveButton.addEventListener("click", function () {
         .then(function (results) {
 
             // Results are in the same order the jobs were pushed:
-            //   [ create#1, create#2, ..., updateBatch ]
-            const createResults = results.slice(0, newRows.length);
-            const updateResult  = updates.length > 0
-                ? results[results.length - 1]
-                : null;
+            //   [ createBatch, updateBatch ]  (each present only if it had rows)
+            let index = 0;
+            const createResult = newRows.length > 0 ? results[index++] : null;
+            const updateResult = updates.length > 0 ? results[index++] : null;
 
             const lines = [];
 
             /* ---- create API ---- */
 
-            if (createResults.length > 0) {
-                lines.push(createResults.length + " item(s) created");
+            if (createResult) {
+
+                const createdCount = Number(
+                    customField(createResult, "created_count", newRows.length)
+                );
+
+                lines.push(createdCount + " item(s) created.");
             }
 
             /* ---- update API ---- */

@@ -7,8 +7,11 @@ from data.csv_upload.price_csv_check import check_price_csv_items
 from concurrent.futures import ThreadPoolExecutor
 from repository.price.get_all_site_data import get_all_site_data
 from data.response import marshal_response_msg
-from data.error_codes import BAD_REQUEST, UNAUTHORIZED, INITIATING_FUNCTION, SUCCESS
+from data.error_codes import BAD_REQUEST, UNAUTHORIZED, INITIATING_FUNCTION, SUCCESS, INTERNAL_SERVER_ERROR
 from utils.log_response import _respond
+from utils.classes.price_body_validator import PriceConditionValidator
+
+SOURCE = "/api/items/store_csv_uploads"
 
 
 IS_CENTRAL = os.getenv("IS_CENTRAL")
@@ -57,13 +60,24 @@ def ho_price_upload():
         file = request.files.get("file")
 
         if not file:
-            return render_template(
-                "index.html",
-                message="No file selected",
-                message_type="error"
-            )
+            response_log("Request body is empty", BAD_REQUEST, True)
+            return marshal_response_msg({
+                "error_message" : "Data not found",
+                "error_details" : "Request body is empty, give a valid json",
+                "error_code" : BAD_REQUEST,
+                "is_error" : True,
+            })
 
-        csv_record, file = upload_csv(file)
+        csv_data, csv_error = upload_csv(file)
+        if csv_error['error']:
+            return marshal_response_msg({
+                "error_message" : "Data proccess error",
+                "error_details" : "Something went wrong, data can't process",
+                "error_code" : csv_error['error_code'],
+                "is_error" : True,
+            })
+        csv_record = csv_data['records']
+        file = csv_data['file']
         csv_record = [row for row in (csv_record or []) if not _is_blank_row(row)]
 
         if not csv_record:
@@ -99,26 +113,65 @@ def ho_price_upload():
 
         response_message = response.json()
         valid_data, invalid_data = check_price_csv_items(csv_record, response_message)
-        
-        mysql = ho_create_price(valid_data, file, invalid_data)
-        if mysql['response']['is_error']:
-            return mysql
 
-        results = []
+        # try:
+        #     valid_data = PriceConditionValidator(valid_data).validate()
+        # except Exception as e:
+        #     return marshal_response_msg({
+        #         "error_message" : "Validation Error",
+        #         "error_details" : str(e),
+        #         "error_code" : INTERNAL_SERVER_ERROR,
+        #         "is_error" : True,
+        #     })
+        if not valid_data:
+            response_log("No records found", BAD_REQUEST, True)
+            return marshal_response_msg({
+                "error_message" : "Not found",
+                "error_details" : "Records is required, but not given",
+                "error_code" : BAD_REQUEST,
+                "is_error" : True
+            })
+        data, error = ho_create_price(valid_data, file, invalid_data)
+        if error['error']:
+            return marshal_response_msg({
+                "error_message" : "Inseration failed",
+                "error_details" : f"Somehing went wrong, can't insert the records",
+                "error_code" : error['error_code'],
+                "is_error" : True
+            })
+        if IS_CENTRAL == '1':
+            results = []
 
-        sites_data = get_all_site_data()['response']['data']
-        SITES= [
-            sites['site_ip'] for sites in sites_data
-        ]
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            result = executor.map(
-                call_apis,
-                SITES
-            )
-            results.extend(result)
+            sites_data, site_error = get_all_site_data()
+            if site_error['error']:
+                return marshal_response_msg({
+                    "error_message" : "Data inserted sucessfully, But can't select site datas for replication, site data is missing",
+                    "error_details" : "Something went wrong, can't select the site datas",
+                    "error_code" : INTERNAL_SERVER_ERROR,
+                    "is_error" : True
+                })
+            SITES= [
+                sites['site_ip'] for sites in sites_data if sites["active"] == 1
+            ]
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                result = executor.map(
+                    call_apis,
+                    SITES
+                )
+                results.extend(result)
 
         response_log("Create price function completed", SUCCESS, False)
-        return mysql
+        return marshal_response_msg({
+            "success_message" : f"{data['count']} price(s) inserted, {data['deactivated']} old price(s) deactivated",
+            "success_code" : error['error_code'],
+            "source" : SOURCE,
+            "is_error" : False,
+            "custom_field" : {
+                "count": data['count'],
+                "deactivated": data['deactivated'],
+                "InvalidData": data['InvalidData']
+            }
+        })
     else:
         return marshal_response_msg({
             "error_message" : "Permission error",

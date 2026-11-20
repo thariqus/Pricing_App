@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const SITE_CODE  = container.dataset.site;
 
     const API_LOAD   = "/api/items/site_details/";
-    const API_SAVE   = "/api/items/create_singel_item_price";
+    const SAVE_PATH  = "/api/items/create_singel_item_price";
 
     const tableBody  = document.getElementById("detailBody");
     const totalEl    = document.getElementById("totalCount");
@@ -39,7 +39,8 @@ document.addEventListener("DOMContentLoaded", function () {
         info:    "fa-circle-info"
     };
 
-    let rows = [];   // records from the last load, used by the retry button
+    let rows = [];        // records from the last load, used by the retry button
+    let storeIp = "";     // store server address returned by the load API
 
 
     /* =====================================================
@@ -211,6 +212,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
+            storeIp = (res.env.custom_fields && res.env.custom_fields.store_ip) || "";
             rows = res.env.data || [];
             renderRows();
 
@@ -239,11 +241,20 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        if (!storeIp) {
+            showMessage("Store address is missing. Reload the page and try again.", "error", "Retry Failed");
+            return;
+        }
+
+        const saveUrl = storeIp.replace(/\/+$/, "") + SAVE_PATH;
+        console.log(saveUrl);
+        
+
         btn.disabled = true;
         btn.classList.add("loading");
 
         try {
-            const res = await callApi(API_SAVE, {
+            const res = await callApi(saveUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(item)
@@ -269,7 +280,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         } catch (err) {
             console.error("Retry error:", err);
-            showMessage("Could not reach the server. Please try again.", "error", "Connection Error");
+            showMessage("Could not reach the store server. Please try again.", "error", "Connection Error");
             btn.disabled = false;
             btn.classList.remove("loading");
         }

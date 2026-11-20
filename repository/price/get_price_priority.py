@@ -55,15 +55,6 @@ def get_price_priority(data):
 
     response_log("Entered in getprice priority function", INITIATING_FUNCTION, False)
     try:
-        if not data or not isinstance(data, dict):
-            response_log("Request data is empty or invalid", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Request data is empty or invalid",
-                "error_details" : "Give data is invalid, please provide a valid data",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
-
         item_no = _val(data, "item_no")
         uom = _val(data, "unit_of_measure_code")
 
@@ -74,23 +65,13 @@ def get_price_priority(data):
 
         if not item_no or not uom:
             response_log("item_no and unit_of_measure_code are required", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Invalid request",
-                "error_details" : "Item no and UOM are required, there are not provided, please provide it",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
+            return ("", {"error" : True, "error_code" : BAD_REQUEST})
 
         try:
             quantity = float(_val(data, "qty") or 1)
         except (ValueError, TypeError):
             response_log("Quanty must be a number", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Value error",
-                "error_details" : "Quantity must be a number",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
+            return ("", {"error" : True, "error_code" : BAD_REQUEST})
 
         # Values provided by the caller, keyed by DB column
         provided = {
@@ -128,12 +109,7 @@ def get_price_priority(data):
 
         if not result:
             response_log(f"No active price found for item {item_no} ({uom})", NOT_FOUND, True)
-            return marshal_response_msg({
-                "error_message" : "Not Found",
-                "error_details" : "No active price found for item",
-                "error_code" : NOT_FOUND,
-                "is_error" : True
-            })
+            return ("", {"error" : True, "error_code" : NOT_FOUND})
 
         base_price = result.get("sales_price") or 0
 
@@ -154,38 +130,34 @@ def get_price_priority(data):
 
         response_log("Get price priority completed", SUCCESS, False)
 
-        return marshal_response_msg({
-            "data" : final_data,
-            "success_message" : "Successfully selected price priority",
-            "success_code" : SUCCESS,
-            "source" : SOURCE,
-            "is_error" : False
-        })
+        return (final_data, {"error" : False, "error_code" : SUCCESS})
 
     except ConnectionError as e:
-        response_log("Databse connection error, unable to connect database", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Databse connection error, unable to connect database",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status})
+    
     except pymysql.MySQLError as e:
-        response_log("Database error while fetching prices priority", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database error while fetching prices priority",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Database error while fetch all log message", http_status, True, str(e))
+        
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status})
+    
     except Exception as e:
-        response_log("Unexpected error while fetching prices priority data", NOT_IMPLEMENTED, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unexpected error while fetching prices priority data",
-            "error_details" : str(e),
-            "error_code" : NOT_IMPLEMENTED,
-            "is_error" : True
-        })
+        response_log("Unexpected error while fetch all log message", NOT_IMPLEMENTED, True, str(e))
+        
+        return ("", {
+            "error" : True, 
+            "error_code" : NOT_IMPLEMENTED})
 
     finally:
         if cursor:

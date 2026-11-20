@@ -55,3 +55,14 @@ def convert_datetime(data):
     data["ending_date"]   = converter(data.get("ending_date"))
 
     return data
+
+def convert_datetime_single_item(datas):
+    """Convert the date fields in place. Raises ValueError on a bad date."""
+    if not datas:
+        return datas
+
+    for data in datas:
+        data["starting_date"] = converter(data.get("starting_date"))
+        data["ending_date"]   = converter(data.get("ending_date"))
+
+    return datas

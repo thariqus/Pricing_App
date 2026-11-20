@@ -34,25 +34,6 @@ def edit_one_site(site_id, data):
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
 
-        if not site_id:
-            response_log("Id is missing", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Id is missing",
-                "error_details" : "Id is required but no id is given",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
-
-
-        if not data:
-            response_log("Data is missing", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Data is missing",
-                "error_details" : "Data is required but no data is given",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
-
         # Get query and parameters
         update_query, params = update_site_qry(site_id, data)
 
@@ -63,12 +44,7 @@ def edit_one_site(site_id, data):
         if cursor.rowcount == 0:
             con.rollback()
             response_log("No changes made", NOT_FOUND, True)
-            return marshal_response_msg({
-                "error_message" : "No changes",
-                "error_details" : "There is no updation is occured",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
+            return ("", {"error" : True, "error_code" : BAD_REQUEST})
 
         response_log(f"Successfully edited {cursor.rowcount} site", SUCCESS, False)
 
@@ -76,41 +52,28 @@ def edit_one_site(site_id, data):
         con.commit()
 
         response_log("Edit site completed", SUCCESS, False)
-        return marshal_response_msg({
-            "success_message" : "Site is updated successfully",
-            "success_code" : SUCCESS,
-            "source" : SOURCE,
-            "is_error" : False
-        })
+        return (cursor.rowcount, {"error" : False, "error_code" : SUCCESS})
 
     except ConnectionError as e:
-        response_log("Unable to connect to database", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unable to connect to database",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except pymysql.MySQLError as e:
-        if con:
-            con.rollback()
-        response_log("Database error while updating site", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database error while updating site",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Database error while edit site data", http_status, True, str(e))
+        
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except Exception as e:
-        if con:
-            con.rollback()
-        response_log("Unexpected error while updating site", NOT_IMPLEMENTED, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unexpected error while updating site",
-            "error_details" : str(e),
-            "error_code" : NOT_IMPLEMENTED,
-            "is_error" : True
-        })
+        response_log("Unexpected error while edit site data", NOT_IMPLEMENTED, True, str(e))
+        
+        return ("", {"error" : True, "error_code" : NOT_IMPLEMENTED})
     finally:
         if cursor:
             cursor.close()

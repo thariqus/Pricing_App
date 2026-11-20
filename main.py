@@ -7,6 +7,8 @@ from modules.schedule.scheduler_job_store_price_replication import run_replicati
 from modules.schedule.scheduler_job_discount_replication import run_discount_replication_scheduler
 from flask_cors import CORS
  
+from flask_cors import CORS
+
 PORT_NUMBER = os.getenv("PORT_NUMBER")
  
 from scheduler import start_scheduler, stop_scheduler
@@ -24,6 +26,15 @@ CORS(app, resources={
     }
 })
 
+
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            os.getenv("HO_URL"),
+            os.getenv("STORE_1_URL")
+        ]
+    }
+})
 
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":

@@ -2,36 +2,21 @@
 <html lang="en">
 
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Log Messages | Pricing Application</title>
 
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
-<link rel="stylesheet"
-      href="{{ url_for('static', filename='css/item_management.css') }}">
-
-<link rel="stylesheet"
-      href="{{ url_for('static', filename='css/logs.css') }}">
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/item_management.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/logs.css') }}">
 </head>
-
 
 <body>
 
 <div class="logs-container">
 
-    <!-- =====================================================
-         HEADER
-         ===================================================== -->
-
     <div class="top-bar">
-
         <div class="top-bar-title">
-
             <span style="display:flex; align-items:center; gap:10px;">
                 <i class="fas fa-list"></i>
                 Log Messages
@@ -51,31 +36,21 @@
                     <i class="fas fa-list"></i> Logs
                 </a>
             </nav>
-
         </div>
 
         <div class="logs-toolbar">
             <span class="logs-subtitle">Pricing Application - Database Logs</span>
         </div>
-
     </div>
 
-
-    <!-- =====================================================
-         LOG TABLE
-         ===================================================== -->
-
     <section class="logs-card">
-
         <div class="card-head">
             <h2><i class="fas fa-database"></i> Log Records</h2>
-            <span class="total-badge">Total: {{ messages|length }}</span>
+            <span class="total-badge">Total: <span id="totalCount">0</span></span>
         </div>
 
         <div class="logs-table-wrap">
-
             <table class="logs-table" id="logTable">
-
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -92,68 +67,17 @@
                     </tr>
                 </thead>
 
-                <tbody>
-                    {% for log in messages %}
-                    <tr class="{{ 'row-error' if log.error }}">
-                        <td class="id-cell">{{ log.id }}</td>
-
-                        <td class="message-cell">{{ log.custom_message }}</td>
-
-                        <td class="message-cell">{{ log.response_message }}</td>
-
-                        <td>{{ log.source }}</td>
-
-                        <td>{{ log.type or '' }}</td>
-
-                        <td>{{ log.site_details or '' }}</td>
-
-                        <td>
-                            <span class="code-badge">{{ log.message_code }}</span>
-                        </td>
-
-                        <td>
-                            <span class="status-badge">{{ log.log_status }}</span>
-                        </td>
-
-                        <td class="flag-cell">
-                            {% if log.info %}
-                            <span class="flag-badge info"><i class="fas fa-circle-info"></i> Yes</span>
-                            {% else %}
-                            <span class="flag-badge off">No</span>
-                            {% endif %}
-                        </td>
-
-                        <td class="flag-cell">
-                            {% if log.error %}
-                            <span class="flag-badge error"><i class="fas fa-circle-xmark"></i> Yes</span>
-                            {% else %}
-                            <span class="flag-badge off">No</span>
-                            {% endif %}
-                        </td>
-
-                        <td class="date-cell">{{ log.created_at }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="11" class="empty-message">
-                            No log messages found.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-
+                <tbody id="logTbody" data-endpoint="{{ url_for('api_logs') }}"></tbody>
             </table>
-
         </div>
 
         <div class="logs-footer">
-            Showing <span id="visibleCount">{{ messages|length }}</span> record(s)
+            Showing <span id="visibleCount">0</span> record(s)
         </div>
-
     </section>
 
 </div>
 
+<script src="{{ url_for('static', filename='js/log_message.js') }}"></script>
 </body>
-
 </html>

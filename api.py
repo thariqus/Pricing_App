@@ -29,6 +29,12 @@ from services.discount.update_discount import update_item_discount
 from repository.discount.update_discount import update_discount_data
 from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
 from repository.discount.fetch_ho_discount_records_by_version import get_discounts_from_version
+from services.price.get_price_version import get_price_version
+from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
+from data.csv_upload.discount_csv_upload import upload_discount_csv
+from datetime import datetime, date
+from flask.json.provider import DefaultJSONProvider
+
 from flask import jsonify
 from utils.auth import admin_required
 
@@ -58,8 +64,12 @@ def index_call():
 @app.get("/log_message")
 # @admin_required
 def log_message():
-    messages = get_logs()
-    return render_template("log_message.html", messages=messages)
+    return render_template("log_message.html")
+
+@app.get("/api/logs")
+# @admin_required
+def api_logs():
+    return get_logs()
 
 #functions
 @app.post("/api/items/create_singel_item_price")
@@ -178,8 +188,7 @@ def get_notification():
 def prices_from_version(version_id):
     skip = request.args.get("skip", 0, type=int)
     site_code = request.args.get("site_code", type=int)
-    rows = get_prices_from_version(version_id, site_code, skip)
-    return rows
+    return get_price_version(version_id, site_code, skip)
 
 # site settings code
 
