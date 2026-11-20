@@ -47,8 +47,15 @@ def check_site(site):
 def ho_to_store_integration():
     response_log("Entered in HO to store integration function", INITIATING_FUNCTION, False)
     SITES = []
-    sites_data = get_all_site_data()['response']['data']
-    for sites in sites_data:
+    data, error = get_all_site_data()
+    if error['error']:
+        return marshal_response_msg({
+            "error_message" : "No data founded",
+            "error_details" : "Something went wrong, can't select site datas",
+            "error_code" : error['error_code'],
+            "is_error" : True
+        })
+    for sites in data:
         SITES.append(check_site({"ip" : sites['site_ip'], "code" : sites['site_location']}))
     response_log("HO to store integration function completed", SUCCESS, False)
     return marshal_response_msg({

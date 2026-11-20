@@ -5,7 +5,7 @@ from repository.query import select_all_prices
 import pymysql
 from utils.log_response import _respond
 from data.response import marshal_response_msg
-from data.error_codes import INITIATING_FUNCTION, BAD_REQUEST, SUCCESS, SERVICE_UNAVAILABLE, INTERNAL_SERVER_ERROR, NOT_FOUND
+from data.error_codes import INITIATING_FUNCTION, BAD_REQUEST, SUCCESS, SERVICE_UNAVAILABLE, INTERNAL_SERVER_ERROR, NOT_FOUND, NOT_IMPLEMENTED
 
 PRICE_DB = os.getenv("DB_P_NAME")
 SOURCE = "/api/items/fetch_all_item_prices"
@@ -35,23 +35,25 @@ def fetch_all_prices():
         # Validate pagination
         if page < 1:
             response_log("Page must be greater than 0", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Page value is 0",
-                "error_details" : "The page value should be minimum 1 not to be 0, give a valid page value",
+            return ("", {
+                "error" : True, 
                 "error_code" : BAD_REQUEST,
-                "source" : SOURCE,
-                "is_error" : True
-            })
+                "page" : page,
+                "limit" : limit,
+                "total_records" : ""
+                })
+        
         if limit < 1 or limit > 100:
             response_log("Limit must be between 1 and 100", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Limit must be between 1 and 100",
-                "error_details" : "The limit value should be minimum 1 and maximum 100, give a valid limit",
+            return ("", {
+                "error" : True, 
                 "error_code" : BAD_REQUEST,
-                "source" : SOURCE,
-                "is_error" : True
-            })
-        
+                "page" : page,
+                "limit" : limit,
+                "total_records" : ""
+                })
+
+            
         # Database connection
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
@@ -62,61 +64,50 @@ def fetch_all_prices():
         cursor.execute(count_query)
         total_records = cursor.fetchone()["total"]
         
-        if not price_data:
-            response_log("No pricing data found", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "success_message" : "No data founded",
-                "success_code" : NOT_FOUND,
-                "source" : SOURCE,
-                "is_error" : False,
-                "custom_field" : {
-                    "page" : page,
-                    "limit" : limit,
-                    "total_records" : total_records
-                }
-            })
-        
 
         response_log("Price selected successfully", SUCCESS, False)
-        return marshal_response_msg({
-            "data" : price_data,
-            "success_message" : f"Successfully selected {total_records} records",
-            "success_code" : SUCCESS,
-            "source" : SOURCE,
-            "custom_field" : {
+        return ({"data" : price_data,
                 "page" : page,
                 "limit" : limit,
                 "total_records" : total_records
-            },
-            "is_error" : False
-        })
+                }
+                , {"error" : False, "error_code" : SUCCESS})
+    
     except ConnectionError as e:
-        response_log("Database connection error", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database connection error",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "source" : SOURCE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status,
+            "page" : page,
+            "limit" : limit,
+            "total_records" : ""})
+    
     except pymysql.MySQLError as e:
-        response_log("Database error while fetching prices", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database error while fetching prices",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "source" : SOURCE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Database error while fech all prices", http_status, True, str(e))
+        
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status,
+            "page" : page,
+            "limit" : limit,
+            "total_records" : ""})
+    
     except Exception as e:
-        response_log("Unexpected error while fetching prices data", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unexpected error while fetching prices data",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "source" : SOURCE,
-            "is_error" : True
-        })
+        response_log("Unexpected error while fetch all price", NOT_IMPLEMENTED, True, str(e))
+        
+        return ("", {
+            "error" : True, 
+            "error_code" : NOT_IMPLEMENTED,
+            "page" : page,
+            "limit" : limit,
+            "total_records" : ""})
     finally:
         if cursor:
             cursor.close()

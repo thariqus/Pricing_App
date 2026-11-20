@@ -28,24 +28,17 @@ def filter_price_data(data):
     cursor = None
     response_log("Enter into filter price data function", INITIATING_FUNCTION, False)
     try:
-        if data is None:
-            response_log("Request must contain valid JSON", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Request must contain valid JSON",
-                "error_details" : "Given filter is empty, please provide a valid filter",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
         page  = int(data.get("page") or 1)
         limit = int(data.get("limit") or 500)
  
         if page < 1 or limit < 1 or limit > 500:
             response_log("Invalid page or limit", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Invalid page or limit",
-                "error_details" : "Given page or limit is invalid, check it and provide a valid page and limit",
+            return ("", {
+                "error" : True, 
                 "error_code" : BAD_REQUEST,
-                "is_error" : True
+                "page" : page,
+                "limit" : limit,
+                "total" : ""
             })
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
@@ -62,42 +55,49 @@ def filter_price_data(data):
                 if value is not None:
                     row[field] = value.strftime("%Y-%m-%d %H:%M:%S")
         response_log("Filter pricing data completed", SUCCESS, False)
-        return marshal_response_msg({
+        return ({
             "data" : price_data,
-            "success_message" : "Successfully select price data",
-            "success_code" : SUCCESS,
-            "source" : SOURCE,
-            "is_error" : False,
-            "custom_field" : {
-                "page" : page,
-                "limit" : limit,
-                "total" : total
+            "page" : page,
+            "limit" : limit,
+            "total" : total
             }
-        })
+            , {"error" : False, "error_code" : SUCCESS})
+        
     except ConnectionError as e:
-        response_log("Database connection error", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database connection error",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status,
+            "page" : page,
+            "limit" : limit,
+            "total" : ""})
+    
     except pymysql.MySQLError as e:
-        response_log("Database error while filtering prices", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database error while filtering prices",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Database error while filter all prices", http_status, True, str(e))
+        
+        return ("", {
+            "error" : True, 
+            "error_code" : http_status,
+            "page" : page,
+            "limit" : limit,
+            "total" : ""})
+    
     except Exception as e:
-        response_log("Unexpected error while filtering prices data", NOT_IMPLEMENTED, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unexpected error while filtering prices data",
-            "error_details" : str(e),
+        response_log("Unexpected error while filter all price", NOT_IMPLEMENTED, True, str(e))
+        
+        return ("", {
+            "error" : True, 
             "error_code" : NOT_IMPLEMENTED,
-            "is_error" : True
-        })
+            "page" : page,
+            "limit" : limit,
+            "total" : ""})
     finally:
         if cursor:
             cursor.close()

@@ -20,7 +20,10 @@ from scheduler import start_scheduler, stop_scheduler
 
 CORS(app, resources={
     r"/*": {
-        "origins": ['*']
+        "origins": [
+            os.getenv("HO_URL"),
+            os.getenv("STORE_1_URL")
+        ]
     }
 })
 

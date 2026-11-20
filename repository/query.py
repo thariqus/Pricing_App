@@ -646,7 +646,8 @@ def update_price(price_id, data):
         "sales_division_code",
         "offer_article",
         "price_with_tax",
-        "tax_percent"
+        "tax_percent",
+        "version_id"
     }
     update_fields = {
         key: value
@@ -942,13 +943,14 @@ def deactivate_price_by_ids_query(ids):
     """, tuple(ids)
 
 
-def activate_price_by_id_query(price_id):
+def activate_price_by_id_query(price_id, version_id):
     return """
         UPDATE PRICING_TABLE
-        SET active = 1
+        SET active = 1,
+        version_id = %s
         WHERE active = 0
           AND id = %s
-    """, (price_id,)
+    """, (version_id, price_id,)
 
 
 def get_prices_from_version_query(version_id, site_code, skip=0):
@@ -984,7 +986,8 @@ def get_prices_from_version_query(version_id, site_code, skip=0):
             created,
             updated
         FROM PRICING_TABLE
-        WHERE version_id >= %s
+        WHERE version_id > %s
+        AND active = 1
         AND (location_code = %s OR location_code IS NULL)
         ORDER BY version_id, id
         LIMIT 18446744073709551615 OFFSET %s
@@ -1008,8 +1011,12 @@ def get_max_price_id_query():
 
 def store_insert_price_query():
     columns = ", ".join(STORE_PRICE_COLUMNS)
-    placeholders = ", ".join(["%s"] * len(STORE_PRICE_COLUMNS))
-    return f"INSERT INTO PRICING_TABLE ({columns}, active) VALUES ({placeholders}, 0)"
+    placeholders = ", ".join(["%s"] * (len(STORE_PRICE_COLUMNS) + 1))
+
+    return f"""
+        INSERT INTO PRICING_TABLE ({columns}, active)
+        VALUES ({placeholders})
+    """
 
 
 def store_activate_started_query(after_id):
@@ -1418,8 +1425,9 @@ def get_ho_version_count_data(version_id, site_code):
             COUNT(*) AS version_count
         FROM PRICING_TABLE 
         WHERE version_id = %s
-          OR location_code = %s
-          AND location_code IS NULL
+        AND active = 1 
+        AND (location_code = %s
+        OR location_code IS NULL)
         ORDER BY version_id
     """
     params = (version_id, site_code)
@@ -1590,4 +1598,21 @@ def select_all_prices_scheduler():
         FROM PRICING_TABLE
     """
 
+def select_one_sites(site):
+    sql_qry = """
+        SELECT
+            id,
+            site_location,
+            site_ip,
+            active,
+            created,
+            updated
+        FROM pricing_setting_site
+        WHERE site_location = %s
+    """
+    params = (
+        site
+    )
+
+    return sql_qry, params
 

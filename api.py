@@ -17,12 +17,12 @@ from services.price.add_sites import add_sites
 from services.price.get_all_sites import get_all_sites
 from services.price.site_delete import site_delete
 from services.price.site_edit import site_edit
+from services.price.get_price_version import get_price_version
 from discount_api import fetch_all_discounts, create_single_discount, update_discount_data, filter_discount_data, get_discounts
 from data.csv_upload.discount_csv_upload import upload_discount_csv
 from datetime import datetime, date
 from flask.json.provider import DefaultJSONProvider
 
-from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
 from flask import jsonify
 from utils.auth import admin_required
 
@@ -158,8 +158,7 @@ def get_notification():
 def prices_from_version(version_id):
     skip = request.args.get("skip", 0, type=int)
     site_code = request.args.get("site_code", type=int)
-    rows = get_prices_from_version(version_id, site_code, skip)
-    return rows
+    return get_price_version(version_id, site_code, skip)
 
 # site settings code
 

@@ -9,9 +9,13 @@ from repository.query import (
     store_activate_started_query,
     store_deactivate_old_query,
     store_upsert_versions_query,
+    get_active_same_combination_query,
+    deactivate_price_by_ids_query,
 )
-from data.error_codes import BAD_REQUEST, SUCCESS, SERVICE_UNAVAILABLE, INTERNAL_SERVER_ERROR
-from data.response import marshal_response_msg
+from data.error_codes import SUCCESS, SERVICE_UNAVAILABLE, INTERNAL_SERVER_ERROR, NOT_IMPLEMENTED
+import pymysql
+from data.structure.deactivation_combination import COMBINATION_COLUMNS as combination
+from data.data_processing._to_datetime import _to_datetime
 
 PRICE_DB = os.getenv("DB_P_NAME")
 BATCH_SIZE = 1000
@@ -27,24 +31,30 @@ def _db_datetime(value):
     except (TypeError, ValueError):
         return value
 
-
 def _row_params(record):
     return tuple(
         _db_datetime(record.get(col)) if col in DATE_COLUMNS else record.get(col)
         for col in STORE_PRICE_COLUMNS
-    )
+    ) + (record.get("active", 0),)
+
+def check_combination(cursor, data):
+    data['id'] = ""
+    sql_query, params = get_active_same_combination_query(data, combination)
+    cursor.execute(sql_query, params)
+    active_rows = cursor.fetchall()
+
+    if active_rows:
+        ids_to_deactivate = [
+            row["id"]
+            for row in active_rows
+        ]
+        if ids_to_deactivate:
+            sql_query, params = deactivate_price_by_ids_query(ids_to_deactivate)
+            cursor.execute(sql_query, params)
 
 def store_create_price(records):
     con = None
     try:
-        if not records:
-            return marshal_response_msg({
-                "error_message" : "No Records found",
-                "error_details" : "Records is required, but not given",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
-
         con = get_db_connection(PRICE_DB)
         con.autocommit(False)
 
@@ -56,40 +66,55 @@ def store_create_price(records):
             insert_sql = store_insert_price_query()
             for i in range(0, len(records), BATCH_SIZE):
                 batch = records[i:i + BATCH_SIZE]
+                [check_combination(cursor, data) for data in batch]
                 cursor.executemany(insert_sql, [_row_params(r) for r in batch])
 
-            cursor.execute(*store_activate_started_query(after_id))
-            cursor.execute(*store_deactivate_old_query(after_id))
-            deactivated = cursor.rowcount
+            # cursor.execute(*store_activate_started_query(after_id))
+            # cursor.execute(*store_deactivate_old_query(after_id))
+            # deactivated = cursor.rowcount
             cursor.execute(*store_upsert_versions_query(after_id))
 
         con.commit()   # all rows, activations, deactivations and versions together
-        
-        return marshal_response_msg({
-            "success_message" : "Successfully created",
-            "success_code" : SUCCESS,
-            "source" : SOURCE,
-            "is_error" : False,
-            "custom_field" : {
-                "inserted" : len(records),
-                "deactivated" : deactivated
-            }
-        })
+
+        return ({
+            "inserted" : len(records),
+            # "deactivated" : deactivated
+        },
+        {"error" : False, "error_code" : SUCCESS})
 
     except ConnectionError as e:
-        return marshal_response_msg({
-        "error_message" : "Database connection error",
-        "error_details" : str(e),
-        "error_code" : SERVICE_UNAVAILABLE,
-        "is_error" : True
-        })
-    except Exception:
-        return marshal_response_msg({
-            "error_message" : "Unexpected error while store create price",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-            })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        return (
+            {
+            "inserted" : 0,
+            "deactivated" : 0
+            }, {
+            "error" : True, 
+            "error_code" : http_status})
+    
+    except pymysql.MySQLError as e:
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        return (
+            {
+            "inserted" : 0,
+            "deactivated" : 0
+            }, {
+            "error" : True, 
+            "error_code" : http_status})
+    
+    except Exception as e:
+
+        return (
+            {
+            "inserted" : 0,
+            "deactivated" : 0
+            }, {
+            "error" : True, 
+            "error_code" : NOT_IMPLEMENTED})
     finally:
         if con:
             con.close()

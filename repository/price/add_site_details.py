@@ -2,13 +2,12 @@ from flask import request
 from repository.mysql_connection import get_db_connection
 import os
 import pymysql
-from repository.query import insert_site_settings
+from repository.query import insert_site_settings, select_one_sites
 from utils.log_response import _respond
 from data.error_codes import INITIATING_FUNCTION, BAD_REQUEST, SUCCESS, SERVICE_UNAVAILABLE, INTERNAL_SERVER_ERROR, NOT_IMPLEMENTED, CREATED
 from data.response import marshal_response_msg
 
 PRICE_DB = os.getenv("DB_P_NAME")
-SOURCE = "/api/add_site_settings"
 
 def response_log(custom_message, code, error, response_message=None):
     return _respond(
@@ -29,67 +28,60 @@ def add_site_details(data):
     cursor = None
     response_log("Entered in add site details function", INITIATING_FUNCTION, False)
     try:
-        if not data:
-            response_log("Given data i empty", BAD_REQUEST, True)
-            return marshal_response_msg({
-                "error_message" : "Given data is empty",
-                "error_details" : "Please provide a valid data",
-                "error_code" : BAD_REQUEST,
-                "is_error" : True
-            })
         # Database connection
         con = get_db_connection(PRICE_DB)
         cursor = con.cursor()
         # Execute query
+        result = []
 
         inserted_count = 0
         for sites in data['sites']:
-            sql_query, params = insert_site_settings(sites)
-            cursor.execute(sql_query, params)
-            inserted_count += cursor.rowcount
+            select_sql, select_params = select_one_sites(sites['location'])
+            cursor.execute(select_sql, select_params)
+            site_datas = cursor.fetchall()
+
+            if len(site_datas) > 0:
+                result.append(sites['location'])
+                continue
+            else:
+                sql_query, params = insert_site_settings(sites)
+                cursor.execute(sql_query, params)
+                inserted_count += cursor.rowcount
         con.commit()
 
-        if inserted_count == 0:
-            return marshal_response_msg({
-                "success_message" : f"{inserted_count} records created successfully",
-                "success_code" : CREATED,
-                "source" : SOURCE,
-                "is_error" : False
-            })
+        if inserted_count < 0:
+            return ("", {"error" : True, "error_code" : INTERNAL_SERVER_ERROR})
+        
         response_log(f"{inserted_count} Sites created successfully", SUCCESS, False)
 
         response_log("Site setting completed successfully", SUCCESS, False)
 
-        return marshal_response_msg({
-            "success_message" : f"{inserted_count} records created successfully",
-            "success_code" : CREATED,
-            "source" : SOURCE,
-            "is_error" : False
-        })
+        return ({
+            "data" : inserted_count,
+            "message_result" : result
+            }, {"error" : False, "error_code" : SUCCESS})
+
     except ConnectionError as e:
-        response_log("Databse connection error, unable to connect database", SERVICE_UNAVAILABLE, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Databse connection error, unable to connect database",
-            "error_details" : str(e),
-            "error_code" : SERVICE_UNAVAILABLE,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Databse connection error, unable to connect database", http_status, True, str(e))
+
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except pymysql.MySQLError as e:
-        response_log("Database error while fetching prices", INTERNAL_SERVER_ERROR, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Database error while fetching prices",
-            "error_details" : str(e),
-            "error_code" : INTERNAL_SERVER_ERROR,
-            "is_error" : True
-        })
+        mysql_error_code = e.args[0] if e.args else None
+        http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
+
+        response_log("Database error while fetching prices", http_status, True, str(e))
+        
+        return ("", {"error" : True, "error_code" : http_status})
+    
     except Exception as e:
         response_log("Unexpected error while fetching prices data", NOT_IMPLEMENTED, True, str(e))
-        return marshal_response_msg({
-            "error_message" : "Unexpected error while fetching prices data",
-            "error_details" : str(e),
-            "error_code" : NOT_IMPLEMENTED,
-            "is_error" : True
-        })
+        
+        return ("", {"error" : True, "error_code" : NOT_IMPLEMENTED})
+
     finally:
         if cursor:
             cursor.close()

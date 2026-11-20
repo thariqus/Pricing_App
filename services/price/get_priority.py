@@ -4,6 +4,8 @@ from data.response import marshal_response_msg
 from utils.log_response import _respond
 from data.error_codes import INITIATING_FUNCTION, BAD_REQUEST, SUCCESS
 
+SOURCE = "/api/get_discounted_item_price"
+
 def response_log(custom_message, code, error, response_message=None):
     return _respond(
         body={},
@@ -20,7 +22,7 @@ def response_log(custom_message, code, error, response_message=None):
 def get_items_price_priority():
     response_log("Entered in fetch all price priority function", INITIATING_FUNCTION, False)
     data = request.get_json()
-    if not data:
+    if not data or not isinstance(data, dict):
         response_log("Request body is empty", BAD_REQUEST, False)
         return marshal_response_msg({
             "error_message" : "Not found",
@@ -28,8 +30,19 @@ def get_items_price_priority():
             "error_code" : BAD_REQUEST,
             "is_error" : True
         })
-    datas = get_price_priority(data)
-    if datas['response']['is_error']:
-        return datas
+    data, error = get_price_priority(data)
+    if error['error']:
+        return marshal_response_msg({
+            "error_message" : "No data founded",
+            "error_details" : "Something went wrong, can't select item priority datas",
+            "error_code" : error['error_code'],
+            "is_error" : True
+        })    
     response_log("Fetch all price priority function completed", SUCCESS, False)
-    return datas
+    return marshal_response_msg({
+        "data" : data,
+        "success_message" : "Successfully selected item price priority",
+        "success_code" : error['error_code'],
+        "source" : SOURCE,
+        "is_error" : False
+    })

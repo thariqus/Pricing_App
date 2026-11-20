@@ -1,6 +1,7 @@
 import csv
 from data.structure.csv_field_mapping import CSV_FIELD_MAPPING
 from utils.log_error import logger
+from data.error_codes import SUCCESS, INTERNAL_SERVER_ERROR
 
 def upload_csv(file):
     try:
@@ -26,17 +27,13 @@ def upload_csv(file):
             "CSV processed successfully. %s records found",
             len(records)
         )
-        return records, file
+        return ({"records" : records, "file" : file}, {"error" : False, "error_code" : SUCCESS})
     except UnicodeDecodeError:
         logger.exception("CSV file encoding is invalid")
-        raise ValueError(
-            "Invalid CSV encoding. Please upload a UTF-8 CSV file."
-        )
+        return ("", {"error" : True, "error_code" : INTERNAL_SERVER_ERROR})
     except csv.Error:
         logger.exception("Invalid CSV file format")
-        raise ValueError(
-            "Invalid CSV file format."
-        )
+        return ("", {"error" : True, "error_code" : INTERNAL_SERVER_ERROR})
     except Exception:
         logger.exception("Failed to process uploaded CSV file")
-        raise
+        return ("", {"error" : True, "error_code" : INTERNAL_SERVER_ERROR})
