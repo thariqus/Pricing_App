@@ -1161,7 +1161,7 @@ function createNewRow(afterRow) {
             return;
         }
 
-        const defaults = { condition_type: "ZEN1", currency: "AED" };
+        const defaults = { condition_type: "ZEN2", currency: "AED" };
 
         html +=
             "<td>" +
