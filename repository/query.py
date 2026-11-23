@@ -602,7 +602,7 @@ def insert_price_query(data):
         data.get("active"),
         data.get("condition_type"),
         data.get("item_no"),
-        data.get("customer"),
+        data.get("customer_no"),
         data.get("customer_group"),
         data.get("customer_hierarchy"),
         data.get("distribution_channel_code"),
