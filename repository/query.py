@@ -1891,3 +1891,16 @@ def select_one_sites(site):
 
     return sql_qry, params
 
+def site_permission(location_code, status):
+    placeholders = ', '.join(['%s'] * len(location_code))
+
+    sql_qry = f"""
+        UPDATE pricing_setting_site
+        SET active = %s
+        WHERE site_location IN ({placeholders})
+    """
+
+    params = (status, *location_code)
+
+    return sql_qry, params
+

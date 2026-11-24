@@ -17,6 +17,8 @@ from services.price.add_sites import add_sites
 from services.price.get_all_sites import get_all_sites
 from services.price.site_delete import site_delete
 from services.price.site_edit import site_edit
+from services.price.site_stop import site_stop
+from services.price.site_start import site_start
 from services.discount.create_single_discount import create_single_item_discount
 from services.discount.ho_discount_upload import ho_discount_upload
 from services.discount.notify_discount_store import notify_discount_store
@@ -206,3 +208,11 @@ def delete_site(site_id):
 @app.route("/api/update_site/<int:site_id>", methods=['PUT'])
 def edit_site(site_id):
     return site_edit(site_id)
+
+@app.route('/api/stop_site', methods=['POST'])
+def stop_site():
+    return site_stop()
+
+@app.route('/api/start_site', methods=['POST'])
+def start_site():
+    return site_start()
