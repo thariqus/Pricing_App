@@ -1,7 +1,8 @@
 from flask import request
 from repository.price.fetch_ho_price_records_by_version import get_prices_from_version
+from repository.price.select_one_site import select_one_site
 from utils.log_response import _respond
-from data.error_codes import INITIATING_FUNCTION, SUCCESS, BAD_REQUEST
+from data.error_codes import INITIATING_FUNCTION, SUCCESS, BAD_REQUEST, NOT_FOUND
 from data.response import marshal_response_msg
 
 SOURCE = "/api/items/prices/version/"
@@ -37,6 +38,24 @@ def get_price_version(version_id, site_code, skip):
             "error_message" : "Site code not found",
             "error_details" : "Site code is required, but not given, please provide a valid site code",
             "error_code" : BAD_REQUEST,
+            "is_error" : True
+        })
+
+    
+    site_data, site_error = select_one_site(site_code)
+    if site_error['error']:
+        return marshal_response_msg({
+            "error_message" : "No site data found for this site code",
+            "error_details" : "There is no site data in the site code",
+            "error_code" : site_error['error_code'],
+            "is_error" : True
+        })
+
+    if site_data[0]['active'] != 1:
+        return marshal_response_msg({
+            "error_message" : "The site in this code is temporarily deactive",
+            "error_details" : "The site is deactive",
+            "error_code" : NOT_FOUND,
             "is_error" : True
         })
 

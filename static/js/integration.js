@@ -75,8 +75,6 @@ document.addEventListener("DOMContentLoaded", function () {
               <span class="flag-label">${isActive ? "Running" : "Stopped"}</span>
             </span>
 
-            <a class="chevron" href="${detailUrl}" aria-label="Open site ${code}">&rsaquo;</a>
-
             <div class="wire ecg-wire">
               <svg class="ecg" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true">
                 <path class="ecg-base" pathLength="100" d="${ECG_PATH}" />

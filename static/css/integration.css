@@ -181,11 +181,11 @@
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-        "ho   title flag  chev toggle"
-        ".    wire  site  info  toggle";
+        "ho    title flag  toggle toggle"
+        "wire  wire  wire  site   info";
     align-items: center;
     column-gap: 14px;
-    row-gap: 10px;
+    row-gap: 8px;
     padding: 14px 18px;
     border: 1px solid var(--jh-border);
     border-radius: 14px;
@@ -211,9 +211,8 @@
 .link-row .node.ho     { grid-area: ho; }
 .link-row .site-title  { grid-area: title; display: flex; flex-direction: column; gap: 2px; }
 .link-row .wire        { grid-area: wire; }
-.link-row .node.site   { grid-area: site; }
-.link-row .info-btn    { grid-area: info; }
-.link-row .site-toggle { grid-area: toggle; }
+.link-row .node.site   { grid-area: site; justify-self: end; }
+.link-row .info-btn    { grid-area: info; justify-self: end; }
 
 .site-title strong {
     font-size: 14px;
@@ -224,17 +223,6 @@
     font-size: 11px;
     color: var(--jh-muted);
 }
-
-.link-row .chevron {
-    grid-area: chev;
-    align-self: start;
-    font-size: 22px;
-    line-height: 1;
-    color: var(--jh-muted);
-    text-decoration: none;
-}
-
-.link-row .chevron:hover { color: var(--jh-burgundy); }
 
 /* =========================
    NODES
@@ -284,6 +272,8 @@
     background: rgba(22, 163, 74, .1);
     border: 1px solid rgba(22, 163, 74, .25);
     border-radius: 999px;
+    margin-left: 180px;
+    margin-right: -51px;
 }
 
 .flag-pole {
@@ -321,7 +311,8 @@
 
 .ecg {
     display: block;
-    width: 100%;
+    width: 210px;
+    margin-left: 86px;
     height: 100%;
     overflow: visible;
 }
@@ -396,6 +387,8 @@
    ========================= */
 
 .link-row .site-toggle {
+    grid-area: toggle;
+    align-self: center;
     justify-self: end;
     display: inline-flex;
     align-items: center;
@@ -403,6 +396,7 @@
     padding: 6px 12px;
     font-size: 12px;
     font-weight: 700;
+    white-space: nowrap;
     border-radius: 999px;
     cursor: pointer;
     transition: transform .12s ease, opacity .15s ease;

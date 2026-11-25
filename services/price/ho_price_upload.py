@@ -7,7 +7,7 @@ from data.csv_upload.price_csv_check import check_price_csv_items
 from concurrent.futures import ThreadPoolExecutor
 from repository.price.get_all_site_data import get_all_site_data
 from data.response import marshal_response_msg
-from data.error_codes import BAD_REQUEST, UNAUTHORIZED, INITIATING_FUNCTION, SUCCESS, INTERNAL_SERVER_ERROR
+from data.error_codes import BAD_REQUEST, UNAUTHORIZED, INITIATING_FUNCTION, SUCCESS, INTERNAL_SERVER_ERROR, NOT_FOUND
 from utils.log_response import _respond
 from utils.classes.price_body_validator import PriceConditionValidator
 
@@ -153,6 +153,13 @@ def ho_price_upload():
             SITES= [
                 sites['site_ip'] for sites in sites_data if sites["active"] == 1
             ]
+            if not SITES:
+                return marshal_response_msg({
+                    "error_message" : "Data inserted, but no valid store is available for replication, no active store found",
+                    "error_details" : "Something went wrong, can't replicate to store, no active store found",
+                    "error_code" : NOT_FOUND,
+                    "is_error" : True
+                })
             with ThreadPoolExecutor(max_workers=5) as executor:
                 result = executor.map(
                     call_apis,
