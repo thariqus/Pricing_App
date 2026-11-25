@@ -56,7 +56,7 @@ const DB_COLUMNS = {
     active:               "active",
     condition_type:       "condition_type",
     item_no:              "item_no",
-    customer:             "customer_no",
+    customer:             "customer",
     customer_grp:         "customer_grp",
     customer_hierarchy:   "customer_hierarchy",
     distribution_channel: "distribution_channel_code",
@@ -160,6 +160,30 @@ function toDbPayload(data) {
     });
 
     return payload;
+}
+
+/* =========================================================
+   DB COLUMN  ->  CSV HEADER NAME
+   Only the names that differ. Used so single-item rows are
+   sent in the same shape as the CSV import.
+   ========================================================= */
+
+const DB_TO_CSV = {
+    customer:     "customer_no",
+    customer_grp: "customer_group"
+};
+
+/* Same conversions as toDbPayload, but with the CSV header names */
+function toCsvPayload(data) {
+
+    const db  = toDbPayload(data);
+    const out = {};
+
+    Object.keys(db).forEach(function (key) {
+        out[DB_TO_CSV[key] || key] = db[key];
+    });
+
+    return out;
 }
 
 /* =========================================================
@@ -1749,8 +1773,8 @@ document.getElementById("addItemBtn").addEventListener("click", function () {
 /* =========================================================
    SAVE
 
-     - all NEW rows    -> ONE POST to API.save    (JSON list)
-     - all EDITED rows -> ONE PUT  to API.upDate  (JSON list)
+     - all NEW rows    -> ONE POST to API.save    (JSON list, CSV names)
+     - all EDITED rows -> ONE PUT  to API.upDate  (JSON list, DB names)
    ========================================================= */
 
 // Sends a JSON request and resolves with the unwrapped envelope
@@ -1772,12 +1796,12 @@ function sendJson(url, method, body) {
     });
 }
 
-// NEW rows: one POST with the whole list
+// NEW rows: one POST with the whole list, in the same shape as the CSV
 function sendRows(url, list) {
-    return sendJson(url, "POST", list.map(toDbPayload));
+    return sendJson(url, "POST", list.map(toCsvPayload));
 }
 
-// EDITED rows: one PUT with the whole list
+// EDITED rows: one PUT with the whole list (DB column names)
 function sendUpdates(url, list) {
     return sendJson(url, "PUT", list.map(toDbPayload));
 }

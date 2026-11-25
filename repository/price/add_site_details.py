@@ -73,12 +73,12 @@ def add_site_details(data):
         mysql_error_code = e.args[0] if e.args else None
         http_status = SERVICE_UNAVAILABLE if mysql_error_code in (2002, 2003, 2006, 2013) else INTERNAL_SERVER_ERROR
 
-        response_log("Database error while fetching prices", http_status, True, str(e))
+        response_log("Database error while add site details", http_status, True, str(e))
         
         return ("", {"error" : True, "error_code" : http_status})
     
     except Exception as e:
-        response_log("Unexpected error while fetching prices data", NOT_IMPLEMENTED, True, str(e))
+        response_log("Unexpected error while add site details", NOT_IMPLEMENTED, True, str(e))
         
         return ("", {"error" : True, "error_code" : NOT_IMPLEMENTED})
 

@@ -602,7 +602,7 @@ def insert_price_query(data):
         data.get("active"),
         data.get("condition_type"),
         data.get("item_no"),
-        data.get("customer"),
+        data.get("customer_no"),
         data.get("customer_group"),
         data.get("customer_hierarchy"),
         data.get("distribution_channel_code"),
@@ -1888,6 +1888,19 @@ def select_one_sites(site):
     params = (
         site
     )
+
+    return sql_qry, params
+
+def site_permission(location_code, status):
+    placeholders = ', '.join(['%s'] * len(location_code))
+
+    sql_qry = f"""
+        UPDATE pricing_setting_site
+        SET active = %s
+        WHERE site_location IN ({placeholders})
+    """
+
+    params = (status, *location_code)
 
     return sql_qry, params
 

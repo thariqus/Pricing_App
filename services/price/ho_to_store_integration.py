@@ -27,7 +27,7 @@ def check_site(site):
             f"{site['ip']}/api/items/fetch_all_item_prices",
             timeout=10
         )
-        if response.ok:
+        if response.ok and site['is_active'] == 1:
             site["status"] = "connected"
         else:
             site["status"] = "disconnected"
@@ -56,7 +56,7 @@ def ho_to_store_integration():
             "is_error" : True
         })
     for sites in data:
-        SITES.append(check_site({"ip" : sites['site_ip'], "code" : sites['site_location']}))
+        SITES.append(check_site({"ip" : sites['site_ip'], "code" : sites['site_location'], "is_active" : sites['active']}))
     response_log("HO to store integration function completed", SUCCESS, False)
     return marshal_response_msg({
         "success_message" : "Site selected successfully",
