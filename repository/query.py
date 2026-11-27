@@ -1,3 +1,5 @@
+from repository.tables import LOG_MESSAGE
+
 # Database Creation query for Pricing and Discount
 def create_pricing_database_query(db_name):
     return f"CREATE DATABASE IF NOT EXISTS {db_name}"
@@ -239,7 +241,6 @@ def create_pricing_uom_query():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """
 
-
 def create_version_table_query(table_name, version_table_definition):
     columns = []
     for field_name, definition in version_table_definition.items():
@@ -269,8 +270,6 @@ def get_version_record_count_query(version_id):
     """
     return sql_query, (version_id,)
 
-from repository.tables import LOG_MESSAGE
-
 def get_version_record_count_query_discount(version_id):
     sql_query = """
         SELECT COUNT(*) AS cnt
@@ -278,10 +277,6 @@ def get_version_record_count_query_discount(version_id):
         WHERE version_id = %s
     """
     return sql_query, (version_id,)
-
-from repository.tables import LOG_MESSAGE
-
-
 
 def insert_log_message_query(entry):
     sql_query = f"""
@@ -535,6 +530,50 @@ def select_all_prices(page, limit):
 
     return sql_query, count_query, (limit, offset)
 
+def select_all_expired_prices(page, limit):
+    offset = (page - 1) * limit
+    sql_query = """
+        SELECT
+            id,
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            map,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id,
+            created,
+            updated
+        FROM EXPIRED_PRICING_TABLE
+        ORDER BY active DESC
+        LIMIT %s OFFSET %s
+    """
+    count_query = """
+        SELECT COUNT(*) AS total
+        FROM EXPIRED_PRICING_TABLE
+    """
+
+    return sql_query, count_query, (limit, offset)
+
 def select_log_message(page, limit):
     offset = (page - 1) * limit
     sql_query = """
@@ -558,7 +597,6 @@ def select_log_message(page, limit):
 
     return sql_query, (limit, offset)
 
- 
 def insert_price_query(data):
     sql_query = """
         INSERT INTO PRICING_TABLE (
@@ -627,8 +665,6 @@ def insert_price_query(data):
         data.get("version_id"),
     )
     return sql_query, params
-
-
 
 def update_price(price_id, data):
 
@@ -772,8 +808,6 @@ def filter_prices(data, page=1, limit=500):
     print("PARAMS:", params)
     return select_sql, count_sql, select_params, params
 
-
-
 def deactive_exp_price_items():
     sql_query = """
         update PRICING_TABLE set active = false where ending_date < %s AND active = true
@@ -832,7 +866,6 @@ def get_item_price_details():
     """
     return sql_query
 
-
 def insert_version_query(data):
     sql_query = """
         INSERT INTO pricing_version (
@@ -851,7 +884,6 @@ def insert_version_query(data):
     )
     return sql_query, params
 
-
 def get_latest_version_id_query():
     return """
         SELECT id AS version_id
@@ -860,7 +892,6 @@ def get_latest_version_id_query():
         LIMIT 1
     """
 
-
 def get_latest_version_id_query_discount():
     return """
         SELECT id AS version_id
@@ -868,8 +899,6 @@ def get_latest_version_id_query_discount():
         ORDER BY id DESC
         LIMIT 1
     """
-
-
 
 def get_pending_activation_query():
     """Params: (now, now)"""
@@ -962,7 +991,6 @@ def get_active_same_combination_discount_query(row, combination):
     """
     return sql_query, (row["id"],) + where_params
 
-
 def get_active_same_combination_query(row, combination):
     """Active prices with the same combination as `row` (a PRICING_TABLE record)."""
     where = " AND ".join(f"`{column}` <=> %s" for column in combination)
@@ -1003,9 +1031,6 @@ def get_active_same_combination_query(row, combination):
     params =  tuple(row.get(column) for column in combination)
     return sql_query, params
 
-
-
-
 def deactivate_price_by_ids_query(ids):
     placeholders = ", ".join(["%s"] * len(ids))
     return f"""
@@ -1024,7 +1049,6 @@ def deactivate_discount_by_ids_query(ids):
           AND id IN ({placeholders})
     """, tuple(ids)
 
-
 def activate_price_by_id_query(price_id, version_id):
     return """
         UPDATE PRICING_TABLE
@@ -1041,7 +1065,6 @@ def activate_discount_by_id_query(discount_id):
         WHERE active = 0
           AND id = %s
     """, (discount_id,)
-
 
 def get_prices_from_version_query(version_id, site_code, skip=0):
     sql_query = """
@@ -1122,14 +1145,12 @@ STORE_DISCOUNT_COLUMNS = [
 def get_max_discount_id_query():
     return "SELECT COALESCE(MAX(id), 0) AS max_id FROM DISCOUNT_TABLE", ()
 
-
 def get_discount_version_record_count_query(version_id):
     return """
         SELECT COUNT(*) AS cnt
         FROM DISCOUNT_TABLE
         WHERE version_id = %s
     """, (version_id,)
-
 
 def store_activate_started_discount_query(after_id):
     return """
@@ -1139,7 +1160,6 @@ def store_activate_started_discount_query(after_id):
           AND starting_date <= NOW()
           AND ending_date >= NOW()
     """, (after_id,)
-
 
 def store_deactivate_old_discount_query(after_id):
     return """
@@ -1162,7 +1182,6 @@ def store_deactivate_old_discount_query(after_id):
           AND old_d.active = 1
     """, (after_id,)
 
-
 def store_upsert_discount_versions_query(after_id):
     return """
         INSERT INTO DISCOUNT_VERSION (id, file_name, record_count)
@@ -1175,7 +1194,6 @@ def store_upsert_discount_versions_query(after_id):
 
 def get_max_price_id_query():
     return "SELECT COALESCE(MAX(id), 0) AS max_id FROM PRICING_TABLE", ()
-
 
 def store_insert_discount_query():
     columns = ", ".join(STORE_DISCOUNT_COLUMNS)
@@ -1191,7 +1209,6 @@ def store_insert_price_query():
         VALUES ({placeholders})
     """
 
-
 def store_activate_started_query(after_id):
     sql_query = """
         UPDATE PRICING_TABLE
@@ -1200,7 +1217,6 @@ def store_activate_started_query(after_id):
           AND starting_date <= NOW()
     """
     return sql_query, (after_id,)
-
 
 def store_deactivate_old_query(after_id):
     sql_query = """
@@ -1224,7 +1240,6 @@ def store_deactivate_old_query(after_id):
     """
     return sql_query, (after_id,)
 
-
 def store_upsert_versions_query(after_id):
     sql_query = """
         INSERT INTO pricing_version (id, file_name, record_count)
@@ -1247,7 +1262,6 @@ def active_clause(value):
     if normalized in ("inactive", "false", "0", "no"):
         return " AND (active = 0 OR active IS NULL)"
     return ""
-
 
 def select_all_discounts(page, limit, active=None):
     offset = (page - 1) * limit
@@ -1390,8 +1404,6 @@ def update_discount(discount_id, data):
     )
     return sql_query, params
  
-
-
 def check_discount_exists(discount_id):
     sql_query = """
         SELECT id
@@ -1400,7 +1412,6 @@ def check_discount_exists(discount_id):
     """
     params = (discount_id,)
     return sql_query, params
-
 
 DISCOUNT_FILTER_COLUMNS = {
     "condition_type": "condition_type",
@@ -1424,7 +1435,6 @@ DISCOUNT_FILTER_COLUMNS = {
     "offer_article": "offer_article",
 }
 
-
 def _as_list(value):
     """Turn a single value, a comma-separated string, or a list into a list of strings."""
     if value is None:
@@ -1438,7 +1448,6 @@ def _as_list(value):
         for v in value
         if v is not None and str(v).strip() != ""
     ]
-
 
 def filter_discounts(data):
     # Accept flat keys ({"item_no": ...}) or nested ({"filters": {"item_no": ...}})
@@ -1477,7 +1486,6 @@ def filter_discounts(data):
     sql_query += " ORDER BY item_no"
     return sql_query, tuple(params)
 
-
 def deactive_exp_discount_items():
     sql_query = """
         update DISCOUNT_TABLE set active = false where ending_date < %s
@@ -1497,7 +1505,6 @@ def _first_value(data, keys):
         if value is not None and str(value).strip() != "":
             return value
     return None
-
 
 def deactivate_combination_query(data,combination):
     """
@@ -1520,7 +1527,6 @@ def deactivate_combination_query(data,combination):
 
     return sql_query, params
 
-
 def deactivate_out_of_window_query():
     """Active records expired before today, or starting after today -> inactive.
     Params: (today_start, tomorrow_start)"""
@@ -1530,7 +1536,6 @@ def deactivate_out_of_window_query():
         WHERE `active` = 1
           AND (`ending_date` < %s OR `starting_date` >= %s)
     """
-
 
 def reactivate_valid_combination_query(combination):
     """Per combination, activate the latest-uploaded record valid today.
@@ -1551,7 +1556,6 @@ def reactivate_valid_combination_query(combination):
         SET p.`active` = IF(r.rn = 1, 1, 0)
     """
 
-
 def next_boundary_query():
     """Earliest future moment a price starts or expires. Params: (now, now)"""
     return f"""
@@ -1566,7 +1570,6 @@ def next_boundary_query():
         ) b
     """
 
-
 def future_boundaries_query():
     """All upcoming start/end moments (capped at ~1 year). Params: (now, now, now, now)"""
     return f"""
@@ -1580,7 +1583,6 @@ def future_boundaries_query():
         WHERE `ending_date` >= %s
           AND `ending_date` < %s + INTERVAL 400 DAY
     """
-
 
 def price_fingerprint_query():
     return f"""
@@ -1598,7 +1600,6 @@ def get_replicated_version(site_code):
         LIMIT 1
     """
     return sql_query, (site_code,)
-
 
 def get_ho_version_count_data(version_id, site_code):
     sql_qry = """
@@ -1673,7 +1674,6 @@ def delete_site_qry(site_id):
     )
 
     return sql_qry, params
-
 
 def update_site_qry(site_id, data):
     sql_qry = """
@@ -1753,10 +1753,7 @@ ALLOWED_FIELDS = {
     "transportation_zone_code", "map", "change_type", "updated_from_sap",
     "sales_division_code", "offer_article", "price_with_tax", "tax_percent","version_id"
 }
-
-
 #discount
-
 
 def update_discount(discount_id, update_data):
     fields = {k: v for k, v in update_data.items() if k in ALLOWED_FIELDS}
@@ -1764,8 +1761,6 @@ def update_discount(discount_id, update_data):
     sql = f"UPDATE DISCOUNT_TABLE SET {set_clause} WHERE id = %s"
     params = list(fields.values()) + [discount_id]
     return sql, params
-
-
 
 def get_latest_discount_version_id_query():
     return """
@@ -1793,7 +1788,6 @@ def insert_discount_version_query(data):
     )
     return sql_query, params
 
-
 def deactivate_discount_combination_query(data, combination):
     """
     Deactivate every active discount with the same combination as `data`.
@@ -1811,7 +1805,6 @@ def deactivate_discount_combination_query(data, combination):
 
     return sql_query, params
 
-
 def discount_combination_where(combination, values):
     """
     WHERE fragment matching a combination, treating NULL and '' as the same "blank".
@@ -1826,7 +1819,6 @@ def discount_combination_where(combination, values):
             params.append(value)
     return " AND ".join(parts), tuple(params)
 
-
 def get_active_discount_changes_query(last_updated, last_id, site_code, limit):
     """Active discounts for this site changed after the checkpoint (updated, id)."""
     return """
@@ -1838,6 +1830,7 @@ def get_active_discount_changes_query(last_updated, last_id, site_code, limit):
         ORDER BY updated, id
         LIMIT %s
     """, (last_updated, last_updated, last_id, str(site_code or ""), limit)
+
 def select_all_prices_scheduler():
     return """
         SELECT
@@ -1902,5 +1895,189 @@ def site_permission(location_code, status):
 
     params = (status, *location_code)
 
+    return sql_qry, params
+
+def get_expired_log_message_query(filter_date):
+    sql_qry = """
+    SELECT
+        id,
+        custom_message,
+        response_message,
+        source,
+        type,
+        ipaddress,
+        site_details,
+        message_code,
+        log_status,
+        info,
+        error,
+        created_at
+    FROM log_message
+    where created_at < %s
+    """
+
+    params = (
+        filter_date,
+    )
+    return sql_qry, params
+
+def insert_expired_log_message_query(expired_logs):
+    sql_query = """
+        INSERT INTO expired_log_message (
+            custom_message,
+            response_message,
+            source,
+            `type`,
+            ipaddress,
+            site_details,
+            message_code,
+            log_status,
+            info,
+            error
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+
+    params = expired_logs
+
+    return sql_query, params
+
+def remove_exp_logs_query(filter_date):
+    sql_qry = """
+    Delete from log_message
+    where created_at < %s
+    """
+    params = (filter_date,)
+
+    return sql_qry, params
+
+def select_expired_log_message(page, limit):
+    offset = (page - 1) * limit
+    sql_query = """
+        SELECT
+            id,
+            custom_message,
+            response_message,
+            source,
+            type,
+            ipaddress,
+            site_details,
+            message_code,
+            log_status,
+            info,
+            error,
+            created_at
+        FROM expired_log_message
+        ORDER BY created_at DESC
+        LIMIT %s OFFSET %s
+    """
+
+    return sql_query, (limit, offset)
+
+def permanently_remove_exp_logs_query(filter_date):
+    sql_qry = """
+    Delete from expired_log_message
+    where created_at < %s
+    """
+    params = (filter_date, )
+    return sql_qry, params
+
+def get_expired_price_query(filter_date):
+    sql_query = """
+        SELECT
+            id,
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            map,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id,
+            created,
+            updated
+        FROM PRICING_TABLE
+        WHERE ending_date < %s
+    """
+
+    return (
+        sql_query,
+        (filter_date,)
+    )
+
+def insert_expired_price_query(expired_price_logs):
+    sql_query = """
+        INSERT INTO EXPIRED_PRICING_TABLE (
+            active,
+            condition_type,
+            item_no,
+            customer,
+            customer_grp,
+            customer_hierarchy,
+            distribution_channel_code,
+            location_code,
+            priority,
+            currency,
+            sales_price,
+            uom,
+            minimum_quantity,
+            starting_date,
+            ending_date,
+            lower_limit,
+            upper_limit,
+            transportation_zone_code,
+            `map`,
+            change_type,
+            updated_from_sap,
+            sales_division_code,
+            offer_article,
+            price_with_tax,
+            tax_percent,
+            version_id
+        )
+        VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s
+        )
+    """
+
+    params = expired_price_logs
+
+    return sql_query, params
+
+def remove_exp_price_item_query(filter_date):
+    sql_qry = """
+    Delete from PRICING_TABLE
+    where ending_date < %s
+    """
+    params = (filter_date,)
+
+    return sql_qry, params
+
+def permanently_remove_exp_price_query(filter_date):
+    sql_qry = """
+    Delete from EXPIRED_PRICING_TABLE
+    where created < %s
+    """
+    params = (filter_date, )
     return sql_qry, params
 

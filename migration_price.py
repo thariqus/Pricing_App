@@ -16,7 +16,9 @@ from repository.tables import (
     LOG_MESSAGE,
     PRICING_SETTING,
     PRICING_SETTING_SITE,
-    REPLICATION_VERSION
+    REPLICATION_VERSION,
+    EXPIRED_LOG_MESSAGE,
+    EXPIRED_PRICING_TABLE
     )
 from repository.fields import (
     Pricing_Table, 
@@ -30,7 +32,9 @@ from repository.fields import (
     log_message,
     Pricing_Setting,
     Pricing_Setting_Site,
-    replication_version
+    replication_version,
+    expired_log_message,
+    Expired_Pricing_Table
     )
 
 from utils.log_error import logger
@@ -230,6 +234,36 @@ def create_pricing_setting_tables():
         if con:
             con.close()
 
+def create_expired_log_message():
+    con = None
+    try:
+        con = get_db_connection(DB_NAME)
+        with con.cursor() as cursor:
+            cursor.execute(create_table_query(EXPIRED_LOG_MESSAGE,expired_log_message))
+        con.commit()
+        logger.info("Table '%s' successfully created",EXPIRED_LOG_MESSAGE)
+    except Exception:
+        logger.exception("Failed to create table '%s'",EXPIRED_LOG_MESSAGE)
+        raise
+    finally:
+        if con:
+            con.close()
+
+def create_expired_pricing_table():
+    con = None
+    try:
+        con = get_db_connection(DB_NAME)
+        with con.cursor() as cursor:
+            cursor.execute(create_table_query(EXPIRED_PRICING_TABLE,Expired_Pricing_Table))
+        con.commit()
+        logger.info("Table '%s' successfully created",EXPIRED_PRICING_TABLE)
+    except Exception:
+        logger.exception("Failed to create table '%s'",EXPIRED_PRICING_TABLE)
+        raise
+    finally:
+        if con:
+            con.close()
+
 
 if __name__ == "__main__":
     create_database()
@@ -244,3 +278,5 @@ if __name__ == "__main__":
     create_log_message()
     create_pricing_setting_tables()
     create_replication_version()
+    create_expired_log_message()
+    create_expired_pricing_table()

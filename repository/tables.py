@@ -11,6 +11,8 @@ PRICING_SETTING = "pricing_setting"
 PRICING_SETTING_SITE = "pricing_setting_site"
 
 LOG_MESSAGE = "log_message"
+EXPIRED_LOG_MESSAGE = "expired_log_message"
+EXPIRED_PRICING_TABLE = "EXPIRED_PRICING_TABLE"
 
 REPLICATION_VERSION = "replication_version"
 

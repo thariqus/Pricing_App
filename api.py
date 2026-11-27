@@ -19,6 +19,8 @@ from services.price.site_delete import site_delete
 from services.price.site_edit import site_edit
 from services.price.site_stop import site_stop
 from services.price.site_start import site_start
+from services.price.get_expired_logs import get_expired_logs
+from services.price.get_exp_prices import get_exp_prices
 from services.discount.create_single_discount import create_single_item_discount
 from services.discount.ho_discount_upload import ho_discount_upload
 from services.discount.notify_discount_store import notify_discount_store
@@ -72,6 +74,10 @@ def log_message():
 def api_logs():
     return get_logs()
 
+@app.get("/api/expired_logs")
+def expired_logs():
+    return get_expired_logs()
+
 #functions
 @app.post("/api/items/create_singel_item_price")
 def add_single_price():
@@ -80,6 +86,10 @@ def add_single_price():
 @app.route('/api/items/fetch_all_item_prices', methods=['POST'])
 def main_function():
     return fetch_all_items_prices()
+
+@app.get("/api/items/fetch_all_expired_prices")
+def fetch_exp_price():
+    return get_exp_prices()
 
 @app.route('/api/items/update_item_prices/',methods=['PUT'])
 def main_update_price():

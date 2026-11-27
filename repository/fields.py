@@ -120,6 +120,127 @@ Pricing_Table = {
     "charset": "utf8mb4"
 }
 
+Expired_Pricing_Table = {
+    "id": {
+        "type": "INT",
+        "auto_increment": True,
+        "primary_key": True
+    },
+    "active": {
+        "type": "BOOLEAN",
+        "default": 1
+    },
+    "condition_type": {
+        "type": "VARCHAR(100)"
+    },
+    "item_no": {
+        "type": "VARCHAR(100)"
+    },
+    "customer": {
+        "type": "VARCHAR(100)"
+    },
+    "customer_grp": {
+        "type": "INT"
+    },
+    "customer_hierarchy": {
+        "type": "INT"
+    },
+    "distribution_channel_code": {
+        "type": "INT"
+    },
+    "location_code": {
+        "type": "INT"
+    },
+    "priority": {
+        "type": "INT"
+    },
+    "currency": {
+        "type": "VARCHAR(100)"
+    },
+    "sales_price": {
+        "type": "FLOAT"
+    },
+    "uom": {
+        "type": "VARCHAR(100)"
+    },
+    "minimum_quantity": {
+        "type": "INT"
+    },
+    "starting_date": {
+        "type": "DATETIME"
+    },
+    "ending_date": {
+        "type": "DATETIME"
+    },
+    "lower_limit": {
+        "type": "FLOAT"
+    },
+    "upper_limit": {
+        "type": "FLOAT"
+    },
+    "transportation_zone_code": {
+        "type": "VARCHAR(100)"
+    },
+    "map": {
+        "type": "VARCHAR(100)"
+    },
+    "change_type": {
+        "type": "VARCHAR(100)"
+    },
+    "updated_from_sap": {
+        "type": "BOOLEAN"
+    },
+    "sales_division_code": {
+        "type": "INT"
+    },
+    "offer_article": {
+        "type": "BOOLEAN"
+    },
+    "price_with_tax": {
+        "type": "FLOAT"
+    },
+    "tax_percent": {
+        "type": "FLOAT"
+    },
+    "version_id": {
+        "type": "INT"
+    },
+    "created": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP"
+    },
+    "updated": {
+        "type": "DATETIME",
+        "default": "CURRENT_TIMESTAMP",
+        "on_update": "CURRENT_TIMESTAMP"
+    },
+    "indexes": {
+        "idx_item_uom": {
+            "type": "INDEX",
+            "columns": [
+                "item_no",
+                "uom"
+            ]
+        },
+        "idx_dates": {
+            "type": "INDEX",
+            "columns": [
+                "starting_date",
+                "ending_date"
+            ]
+        },"idx_version_location": {
+    "type": "INDEX",
+    "columns": ["version_id", "location_code"]
+},
+"idx_combination": {
+    "type": "INDEX",
+    "columns": ["item_no", "uom", "active"]
+}
+    },
+    "engine": "InnoDB",
+    "charset": "utf8mb4"
+}
+
 Pricing_Location = {
     "id": {
         "type": "INT",
@@ -541,6 +662,57 @@ log_message = {
     },
 }
 
+expired_log_message = {
+    "id": {
+        "type": "INT",
+        "auto_increment": True,
+        "primary_key": True
+    },
+    "custom_message": {
+        "type": "VARCHAR(500)",
+        "not_null": True
+    },
+    "response_message": {
+        "type" : "VARCHAR(500)",
+        "not_null": True
+    },
+    "source": {
+        "type" : "VARCHAR(20)",
+        "not_null": True
+    },
+    "type": {
+        "type": "VARCHAR(20)"
+    },
+    "ipaddress" : {
+        "type": "VARCHAR(100)"
+    },
+    "site_details": {
+        "type": "VARCHAR(100)"
+    },
+    "message_code": {
+        "type" : "CHAR(5)",
+        "not_null": True
+    },
+    "log_status": {
+        "type" : "INT",
+        "not_null": True
+    },
+    "info": {
+        "type": "BOOLEAN",
+        "not_null": True,
+        "default": 0
+    },
+    "error": {
+        "type": "BOOLEAN",
+        "not_null": True,
+        "default": 0
+    },
+    "created_at": {
+        "type": "DATETIME",
+        "not_null": True,
+        "default": "CURRENT_TIMESTAMP"
+    },
+}
 
 Discount_Table = {
     "id": {
